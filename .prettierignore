@@ -1,0 +1,6 @@
+node_modules
+.next
+coverage
+apps/owner
+docs/blueprint.md
+package-lock.json

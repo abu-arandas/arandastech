@@ -1,0 +1,32 @@
+{
+  "name": "arandastech",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/web"
+  ],
+  "scripts": {
+    "test": "npm run test -w @arandas/core",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --check \"**/*.{ts,tsx,mjs,json,md,css}\"",
+    "db:reset": "tsx packages/core/scripts/db-reset.ts",
+    "demo": "tsx packages/core/scripts/demo.ts",
+    "dev": "npm run dev -w @arandas/web",
+    "build": "npm run build -w @arandas/web"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^10.14.0",
+    "prettier": "^3.10.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0"
+  }
+}
