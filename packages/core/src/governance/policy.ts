@@ -4,7 +4,7 @@ import { type ActionSpec, actionSpec, levelOf } from './actions';
 import { matchRule, type StandingRule } from './rules';
 
 /** A check that a domain adds to an action. Each string it returns is a reason to block the action. */
-export type Guard = (db: Db, payload: Record<string, unknown>) => Promise<string[]>;
+export type Guard = (db: Db, payload: Record<string, unknown>, requester: Actor) => Promise<string[]>;
 
 export interface ProposalContext {
   requester: Actor;
@@ -40,7 +40,7 @@ export async function evaluate(db: Db, type: string, rawPayload: unknown, ctx: P
   const level = levelOf(spec, payload);
 
   const blocked: string[] = [];
-  for (const guard of guards) blocked.push(...(await guard(db, payload)));
+  for (const guard of guards) blocked.push(...(await guard(db, payload, ctx.requester)));
   if (blocked.length) return { outcome: 'blocked', level, reasons: blocked, rule: null, spec, payload };
 
   if (level <= 1) return { outcome: 'auto_approved', level, reasons: [`level_${level}`], rule: null, spec, payload };

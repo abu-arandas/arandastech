@@ -138,6 +138,7 @@ create table public.orders (
   buyer_name text not null,
   buyer_email text not null,
   locale text not null default 'en' check (locale in ('en', 'ar')),
+  shipping_address text,
   status text not null default 'pending_payment' check (status in (
     'pending_payment', 'paid', 'on_hold', 'fulfilling', 'shipped', 'delivered', 'completed',
     'return_requested', 'canceled', 'refunded', 'expired')),

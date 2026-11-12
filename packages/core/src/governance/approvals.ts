@@ -167,7 +167,7 @@ export async function decideApproval(db: Db, requestId: string, input: DecisionI
       edited = parsed.data;
       payload = parsed.data;
       for (const guard of guardsFor(action.action_type)) {
-        const reasons = await guard(tx, payload);
+        const reasons = await guard(tx, payload, input.by);
         if (reasons.length) throw invalid(`the edited payload is blocked: ${reasons.join('; ')}`);
       }
     }

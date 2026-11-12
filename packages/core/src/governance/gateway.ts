@@ -4,7 +4,7 @@ import { conflict, notFound } from '../lib/errors';
 import { payloadHash } from '../lib/hash';
 import type { Actor, Clock } from '../lib/types';
 import { actionSpec } from './actions';
-import { type ActionRow, type ApprovalRequestRow, createApprovalRequest, decideApproval, type DecisionInput } from './approvals';
+import { type ActionRow, type ApprovalRequestRow, createApprovalRequest, decideApproval, type DecisionInput, expireDueApprovals } from './approvals';
 import { audit } from './audit';
 import { activePause, type PauseTarget } from './pause';
 import { evaluate, type Guard } from './policy';
@@ -47,6 +47,7 @@ export class Gateway {
   private readonly guards = new Map<string, Guard[]>();
   private readonly effects = new Map<string, Effect[]>();
   private readonly internal = new Map<string, InternalHandler>();
+  private readonly rejections = new Map<string, Array<(db: Db, action: ActionRow) => Promise<void>>>();
 
   constructor(
     private readonly db: Db,
@@ -60,6 +61,15 @@ export class Gateway {
 
   onExecuted(type: string, effect: Effect): void {
     this.effects.set(type, [...(this.effects.get(type) ?? []), effect]);
+  }
+
+  /** Runs when the owner rejects an action of this type, or its request lapses, or the policy engine blocks it. */
+  onRejected(type: string, effect: (db: Db, action: ActionRow) => Promise<void>): void {
+    this.rejections.set(type, [...(this.rejections.get(type) ?? []), effect]);
+  }
+
+  private async notifyRejected(action: ActionRow): Promise<void> {
+    for (const effect of this.rejections.get(action.action_type) ?? []) await this.db.tx((tx) => effect(tx, action));
   }
 
   handle(type: string, handler: InternalHandler): void {
@@ -112,6 +122,7 @@ export class Gateway {
       return { action, request };
     });
 
+    if (created.action.status === 'blocked') await this.notifyRejected(created.action);
     if (created.action.status === 'auto_approved') {
       const action = await this.execute(created.action.id);
       return { action, request: null, duplicate: false };
@@ -122,7 +133,10 @@ export class Gateway {
   /** The owner's decision. An approved action runs at once, unless a pause holds it. */
   async decide(requestId: string, input: DecisionInput): Promise<{ action: ActionRow; request: ApprovalRequestRow }> {
     const result = await decideApproval(this.db, requestId, input, this.clock(), this.guardsFor);
-    if (!result.approved) return { action: result.action, request: result.request };
+    if (!result.approved) {
+      if (result.action.status === 'rejected') await this.notifyRejected(result.action);
+      return { action: result.action, request: result.request };
+    }
     return { action: await this.execute(result.action.id), request: result.request };
   }
 
@@ -204,6 +218,17 @@ export class Gateway {
       }
     }
     return executed;
+  }
+
+  /** Lapses every request that has reached its expiry, and tells the domains whose actions lapsed. */
+  async expireDue(): Promise<number> {
+    const before = await this.db.query<{ id: string }>(`select a.id from actions a join approval_requests r on r.action_id = a.id where r.status = 'pending' and r.expires_at <= $1`, [this.clock()]);
+    const count = await expireDueApprovals(this.db, this.clock());
+    for (const { id } of before) {
+      const action = maybeOne(await this.db.query<ActionRow>(`select * from actions where id = $1 and status = 'expired'`, [id]));
+      if (action) await this.notifyRejected(action);
+    }
+    return count;
   }
 
   /** Runs the actions a pause was holding. Called after the owner ends a pause. Held actions are kept, not dropped. */
