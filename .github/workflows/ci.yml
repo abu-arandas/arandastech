@@ -33,3 +33,8 @@ jobs:
       - run: npm run typecheck
       # Applies every migration to a fresh PostgreSQL, then runs all tests. Fails under 60% line coverage.
       - run: npm test
+      # The site's translation test fails when a text has no Arabic. Then the site must build.
+      - run: npm test -w @arandas/web
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1

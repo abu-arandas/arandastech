@@ -8,7 +8,8 @@ Planning repository for the Arandas Tech platform: an owner-controlled AI compan
 | [Agent team](agents/openmausbot/README.md) | The eight AI departments as a team for OpenMausBot | Built. Not yet applied to a running app. |
 | [Database](supabase/migrations) | 38 tables with row-level security, an append-only audit log and a finance ledger | Built |
 | [Platform services](packages/core) | Rules engine, approvals, connector gateway, store, ledger, CRM, API and an MCP server for the bots | Built on mock connectors. 67 tests pass. |
-| Storefront and owner app | The public site and the owner's dashboard | Planned |
+| [Storefront](apps/web) | The public site in Arabic and English: services, licenses, lead form, test checkout, order status | Built. Not deployed. |
+| Owner app | The owner's dashboard and approval inbox, in Flutter | Planned |
 
 See the [runbook](docs/runbook.md) for how to run it and what must happen before anything goes live.
 

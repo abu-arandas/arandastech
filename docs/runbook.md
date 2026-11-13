@@ -10,7 +10,7 @@ How to run, check and connect what is in this repository. The plan it implements
 | Database schema | `supabase/migrations` | Built. Applied to a local PostgreSQL 16. Not yet applied to a Supabase project. |
 | Platform services and API | `packages/core` | Built. 67 tests pass, including the nine-step acceptance run of blueprint §15. |
 | MCP server for the bots | `packages/core/src/api/mcp.ts` | Built and tested through the API. Not yet tried from a real MCP client. |
-| Public site and storefront | `apps/web` | Planned |
+| Public site and storefront | `apps/web` | Built. Arabic and English, lead form, test checkout, order status. A browser smoke test passes. Not deployed. |
 | Owner app (Flutter) | `apps/owner` | Planned |
 | Live connectors | none | Every connector is a mock. No live account is connected. |
 
@@ -40,6 +40,30 @@ The acceptance run alone:
 
 ```bash
 npx vitest run test/acceptance.test.ts --root packages/core
+```
+
+## Run the site locally
+
+Create a local demo database (this drops `arandas_dev` if it exists):
+
+```bash
+npm run db:reset
+```
+
+Copy the example settings, then start the site:
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+```bash
+npm run dev
+```
+
+Open http://localhost:3000. With the site running on port 3100 from a production build, the browser smoke test is:
+
+```bash
+node apps/web/e2e/smoke.mjs http://localhost:3100
 ```
 
 ## How the pieces fit
