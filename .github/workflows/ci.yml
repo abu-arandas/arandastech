@@ -38,3 +38,23 @@ jobs:
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+
+  owner-app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/owner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --set-exit-if-changed lib test integration
+      - run: flutter analyze
+      # Fails under 60% line coverage, the same floor as the company's public site.
+      - run: flutter test --coverage
+      - run: sh tool/check_coverage.sh 60
+      - run: flutter build web --release --wasm

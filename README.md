@@ -9,7 +9,7 @@ Planning repository for the Arandas Tech platform: an owner-controlled AI compan
 | [Database](supabase/migrations) | 38 tables with row-level security, an append-only audit log and a finance ledger | Built |
 | [Platform services](packages/core) | Rules engine, approvals, connector gateway, store, ledger, CRM, API and an MCP server for the bots | Built on mock connectors. 67 tests pass. |
 | [Storefront](apps/web) | The public site in Arabic and English: services, licenses, lead form, test checkout, order status | Built. Not deployed. |
-| Owner app | The owner's dashboard and approval inbox, in Flutter | Planned |
+| [Owner app](apps/owner) | The owner's dashboard and approval inbox, in Flutter: today, approvals, money, activity, pause | Built. 17 tests pass. Not released. |
 
 See the [runbook](docs/runbook.md) for how to run it and what must happen before anything goes live.
 

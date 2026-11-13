@@ -11,7 +11,7 @@ How to run, check and connect what is in this repository. The plan it implements
 | Platform services and API | `packages/core` | Built. 67 tests pass, including the nine-step acceptance run of blueprint §15. |
 | MCP server for the bots | `packages/core/src/api/mcp.ts` | Built and tested through the API. Not yet tried from a real MCP client. |
 | Public site and storefront | `apps/web` | Built. Arabic and English, lead form, test checkout, order status. A browser smoke test passes. Not deployed. |
-| Owner app (Flutter) | `apps/owner` | Planned |
+| Owner app (Flutter) | `apps/owner` | Built. Arabic and English, demo mode and sign-in with the owner token. 17 tests pass and a live test passed against the local API. Not released to any store. |
 | Live connectors | none | Every connector is a mock. No live account is connected. |
 
 ## Run the checks
@@ -94,4 +94,5 @@ These are the owner's steps. Nothing here has been done.
 - Demo mode (`demo: true`) seeds a demo owner, approved sample data and a test product. Never use it with live accounts.
 - The store sells digital and physical products in separate orders.
 - Authentication accepts an owner token or a Supabase JWT signed with a shared secret. Two-step sign-in is not built yet.
+- The owner app keeps the owner token in memory only and has no push notifications yet. See `apps/owner/README.md`.
 - There is no rate limiting by IP address. Put the API behind the host's own protection before launch.
