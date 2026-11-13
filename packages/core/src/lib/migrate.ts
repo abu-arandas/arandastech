@@ -37,6 +37,13 @@ export async function deployMigrations(db: Db): Promise<{ applied: string[]; boo
     await t.query(
       `create table if not exists ops.applied_migrations (name text primary key, applied_at timestamptz not null default now())`,
     );
+    // Made here, under the lock, so two deploys at once never race to create them. checkInstallMode and ensureSecrets fill them.
+    await t.query(
+      `create table if not exists ops.install (key text primary key, value text not null, set_at timestamptz not null default now())`,
+    );
+    await t.query(
+      `create table if not exists ops.secrets (name text primary key, value text not null, created_at timestamptz not null default now())`,
+    );
 
     const [auth] = await t.query<{ present: boolean }>(`select to_regprocedure('auth.uid()') is not null as present`);
     const bootstrapped = !auth?.present;
@@ -69,13 +76,10 @@ export async function deployMigrations(db: Db): Promise<{ applied: string[]; boo
 /**
  * Remembers whether a database was installed in demo mode, and refuses to switch either way.
  * Demo mode publishes the catalog and adds a demo owner and a test product. None of that may reach live customers,
- * so a live install needs a database of its own. Run after deployMigrations, which creates the ops schema.
+ * so a live install needs a database of its own. Run after deployMigrations, which creates ops.install.
  */
 export async function checkInstallMode(db: Db, demo: boolean): Promise<void> {
   const wanted = demo ? 'demo' : 'live';
-  await db.query(
-    `create table if not exists ops.install (key text primary key, value text not null, set_at timestamptz not null default now())`,
-  );
   // A database installed before this record existed: test products exist only in demo mode, so they give it away.
   const [found] = await db.query<{ demo: boolean }>(
     `select exists (select 1 from public.products where is_test) as demo`,

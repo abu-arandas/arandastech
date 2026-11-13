@@ -86,6 +86,19 @@ describe('deploying to a hosted database', () => {
     }
   });
 
+  it('lets two first deploys run at once', async () => {
+    const other = await createTestDb({ empty: true });
+    try {
+      const runs = await Promise.all([deployMigrations(other.db), deployMigrations(other.db)]);
+      expect(runs.filter((run) => run.applied.length > 0)).toHaveLength(1);
+      await Promise.all([checkInstallMode(other.db, true), checkInstallMode(other.db, true)]);
+      const made = await Promise.all([ensureSecrets(other.db), ensureSecrets(other.db)]);
+      expect(made.flat().sort()).toEqual(Object.keys(SECRETS).sort());
+    } finally {
+      await other.drop();
+    }
+  });
+
   it('reads no secrets from a database that was never deployed', async () => {
     const other = await createTestDb();
     try {

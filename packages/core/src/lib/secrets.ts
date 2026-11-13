@@ -13,12 +13,9 @@ export type SecretName = keyof typeof SECRETS;
 /**
  * Makes each missing secret once and keeps it in ops.secrets, so no person or tool has to make, copy or paste it.
  * A secret that already exists is never changed. Returns the names it made, never the values.
- * Run after deployMigrations, which creates the ops schema and closes it to everyone but the database owner.
+ * Run after deployMigrations, which creates ops.secrets and closes the ops schema to everyone but the database owner.
  */
 export async function ensureSecrets(db: Db): Promise<SecretName[]> {
-  await db.query(
-    `create table if not exists ops.secrets (name text primary key, value text not null, created_at timestamptz not null default now())`,
-  );
   const made: SecretName[] = [];
   for (const name of Object.keys(SECRETS) as SecretName[]) {
     const rows = await db.query(
