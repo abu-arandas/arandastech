@@ -31,10 +31,9 @@ jobs:
       # The agent team files must match their sources and stay inside OpenMausBot's documented limits.
       - run: npm run agents:check
       - run: npm run typecheck
-      # Applies every migration to a fresh PostgreSQL, then runs all tests. Fails under 60% line coverage.
+      # Applies every migration to a fresh PostgreSQL, then runs all tests: the platform's (fails under 60% line coverage)
+      # and the site's translation test (fails when a text has no Arabic). Then the site must build.
       - run: npm test
-      # The site's translation test fails when a text has no Arabic. Then the site must build.
-      - run: npm test -w @zirr/web
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1

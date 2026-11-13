@@ -1,0 +1,49 @@
+name: Owner app on the web
+
+# Publishes the owner app's web build to GitHub Pages, free for a public repository:
+# https://abu-arandas.github.io/arandastech/
+# The app asks for the server address and the owner token at sign-in, so the build holds no secrets.
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/owner/**', '.github/workflows/owner-web.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/owner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build web --release --base-href /arandastech/ --no-web-resources-cdn
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/owner/build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
