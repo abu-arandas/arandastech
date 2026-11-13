@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation';
 import { call } from '@/lib/platform';
-import { type Locale, t } from '@/lib/i18n';
+import { isLocale, type Locale, t } from '@/lib/i18n';
 
 async function send(formData: FormData): Promise<void> {
   'use server';
-  const locale = String(formData.get('locale')) as Locale;
+  // Only a known locale goes into the redirect, so a changed form field cannot send the visitor to another site.
+  const raw = String(formData.get('locale'));
+  const locale: Locale = isLocale(raw) ? raw : 'en';
   const text = (name: string): string => String(formData.get(name) ?? '').trim();
   const result = await call('POST', '/api/public/leads', {
     name: text('name'), email: text('email'), phone: text('phone') || undefined, message: text('message'),

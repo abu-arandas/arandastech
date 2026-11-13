@@ -1,10 +1,12 @@
 import { notFound, redirect } from 'next/navigation';
 import { call } from '@/lib/platform';
-import { type Locale, t } from '@/lib/i18n';
+import { isLocale, type Locale, t } from '@/lib/i18n';
 
 async function pay(formData: FormData): Promise<void> {
   'use server';
-  const locale = String(formData.get('locale')) as Locale;
+  // Only a known locale goes into the redirect, so a changed form field cannot send the visitor to another site.
+  const raw = String(formData.get('locale'));
+  const locale: Locale = isLocale(raw) ? raw : 'en';
   // Stands in for the payment provider: it sends the platform a signed notice, as a real provider would.
   const result = await call<{ order_number: string }>('POST', '/api/demo/pay', { session: String(formData.get('session')) });
   // The buyer leaves with the order number already filled in, so they can look the order up straight away.

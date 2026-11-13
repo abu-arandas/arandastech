@@ -1,20 +1,22 @@
 import { randomUUID } from 'node:crypto';
 import { notFound, redirect } from 'next/navigation';
 import { call } from '@/lib/platform';
-import { type Locale, money, pick, t } from '@/lib/i18n';
+import { isLocale, type Locale, money, pick, t } from '@/lib/i18n';
 
 type L = { en: string; ar: string };
 interface Product { kind: string; name: L; variants: Array<{ sku: string; name: L; price_minor: number; currency: string }> }
 
 async function order(formData: FormData): Promise<void> {
   'use server';
-  const locale = String(formData.get('locale')) as Locale;
+  // Only a known locale goes into the redirect, so a changed form field cannot send the visitor to another site.
+  const raw = String(formData.get('locale'));
+  const locale: Locale = isLocale(raw) ? raw : 'en';
   const text = (name: string): string => String(formData.get(name) ?? '').trim();
   const result = await call<{ session: string }>('POST', '/api/public/checkout', {
     items: [{ sku: text('sku'), quantity: 1 }], buyer: { name: text('name'), email: text('email') }, locale,
     shippingAddress: text('address') || undefined, idempotencyKey: text('key'),
   });
-  if (!result.ok) redirect(`/${locale}/checkout/${text('sku')}?error=${encodeURIComponent(result.error ?? '')}`);
+  if (!result.ok) redirect(`/${locale}/checkout/${encodeURIComponent(text('sku'))}?error=${encodeURIComponent(result.error ?? '')}`);
   // A live provider would host this page. In the first build it is a test page that takes no money.
   redirect(`/${locale}/pay/${result.data.session}`);
 }
