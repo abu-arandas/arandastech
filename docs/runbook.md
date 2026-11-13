@@ -70,7 +70,7 @@ node apps/web/e2e/smoke.mjs http://localhost:3100
 
 Everything here runs on free plans. The storefront and the API run on Vercel's Hobby plan. The database is any PostgreSQL 16 or later: a free Neon database from the Vercel Marketplace, or a Supabase project. The owner app's web build is on GitHub Pages, which is free for a public repository.
 
-1. Create a Vercel project from this repository with the root directory `apps/web`. `apps/web/vercel.json` sets the build to `npm run db:deploy`, then `next build`.
+1. Create a Vercel project from this repository with the root directory `apps/web`, and set Deployment Protection to previews only so the live site is public. `apps/web/vercel.json` installs from the repository root, then builds with `npm run db:deploy` and `next build`. Node.js is 22, as in CI.
 2. Link the database.
    - Neon from the Vercel Marketplace adds `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` for you.
    - On Supabase, set `DATABASE_URL` to the transaction pooler address (port 6543) and `DATABASE_URL_UNPOOLED` to the session pooler address (port 5432).
