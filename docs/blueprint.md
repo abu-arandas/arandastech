@@ -1551,7 +1551,7 @@ Nothing was removed. Every capability, rule, step and list item in version 1.0 i
 
 ## Appendix C: What changed in version 2.1
 
-The company and its products took the name Zirr (زِرّ, "button") on 12 November 2026. This version follows it. Nothing else changed.
+The company and its products took the name Zirr (زِرّ, "button") on 12 November 2026. This version follows it. Apart from the two points under the table, nothing else changed.
 
 | Before | Now |
 |---|---|

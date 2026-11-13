@@ -188,7 +188,7 @@ export async function seedCompany(db: Db, options: { demo: boolean; now: Date })
 
   for (const product of PRODUCTS) {
     await db.query(
-      `insert into products (id, slug, kind, name, summary, status, published_at) values ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7) on conflict (slug) do nothing`,
+      `insert into products (id, slug, kind, name, summary, status, published_at) values ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7) on conflict do nothing`,
       [product.id, product.slug, product.kind, json(product.name), json(product.summary), demo ? 'published' : 'draft', demo ? now : null],
     );
     for (const [index, v] of product.variants.entries()) {
@@ -221,13 +221,13 @@ export async function seedCompany(db: Db, options: { demo: boolean; now: Date })
   if (!demo) return;
 
   await db.query(
-    `insert into staff_members (user_id, email, display_name, role) values ($1, 'owner@example.test', 'Demo owner', 'owner') on conflict (user_id) do nothing`,
+    `insert into staff_members (user_id, email, display_name, role) values ($1, 'owner@example.test', 'Demo owner', 'owner') on conflict do nothing`,
     [DEMO_OWNER_ID],
   );
   await db.query(`insert into suppliers (id, name, status, notes) values ($1, 'Mock supplier', 'approved', 'Exists only in demo mode.') on conflict (id) do nothing`, [DEMO_SUPPLIER_ID]);
   await db.query(
     `insert into products (id, slug, kind, name, summary, status, supplier_id, delivery_days, is_test, published_at)
-     values ('00000000-0000-4000-8000-0000000000b9', 'test-physical', 'physical', $1::jsonb, $2::jsonb, 'published', $3, 3, true, $4) on conflict (slug) do nothing`,
+     values ('00000000-0000-4000-8000-0000000000b9', 'test-physical', 'physical', $1::jsonb, $2::jsonb, 'published', $3, 3, true, $4) on conflict do nothing`,
     [json(t('Test product (physical)', 'منتج تجريبي (مادي)')), json(t('Exists only to exercise the order loop in demo mode.', 'موجود فقط لتجربة دورة الطلب في الوضع التجريبي.')), DEMO_SUPPLIER_ID, now],
   );
   await db.query(

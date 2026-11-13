@@ -35,6 +35,14 @@ describe('deploying to a hosted database', () => {
     expect(published).toEqual([]);
   });
 
+  it('keeps installing after the owner renames a product', async () => {
+    const platform = createPlatform(test.db, { demo: true, webhookSecrets: secrets });
+    await install(platform);
+    await test.db.query(`update products set slug = 'retail' where slug = 'zirr-retail'`);
+    await install(platform);
+    expect(await test.db.query(`select slug from products where slug like '%retail'`)).toEqual([{ slug: 'retail' }]);
+  });
+
   it('refuses a database that has the schema but no record of its migrations', async () => {
     const other = await createTestDb();
     try {

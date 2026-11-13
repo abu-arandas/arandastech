@@ -10,7 +10,7 @@
     "apps/web"
   ],
   "scripts": {
-    "test": "npm run test -w @zirr/core",
+    "test": "npm run test -w @zirr/core && npm run test -w @zirr/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --check \"**/*.{ts,tsx,mjs,json,md,css}\"",
