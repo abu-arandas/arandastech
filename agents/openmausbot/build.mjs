@@ -1,9 +1,9 @@
-// Builds arandas-tech.md, the one-file version of the team that OpenMausBot imports from Templates -> Import,
-// from the same sources the team file uses: arandas-tech.team.yaml, brief.md, souls/ and skills/.
+// Builds zirr.md, the one-file version of the team that OpenMausBot imports from Templates -> Import,
+// from the same sources the team file uses: zirr.team.yaml, brief.md, souls/ and skills/.
 // Also checks both files against the limits OpenMausBot documents, so a bad edit fails here and not on import.
 //
-//   node agents/openmausbot/build.mjs           write arandas-tech.md
-//   node agents/openmausbot/build.mjs --check   fail if arandas-tech.md is out of date or anything is invalid
+//   node agents/openmausbot/build.mjs           write zirr.md
+//   node agents/openmausbot/build.mjs --check   fail if zirr.md is out of date or anything is invalid
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -20,14 +20,14 @@ const bytes = (text) => Buffer.byteLength(text, 'utf8');
 // ---------------------------------------------------------------- What the team file does not hold
 
 const identity = {
-  id: 'arandas-tech',
+  id: 'zirr',
   release: '1.0.0',
-  name: 'Arandas Tech Company Team',
+  name: 'Zirr Company Team',
   tagline: 'Eight AI departments that run a software studio and its store, with the owner approving everything that matters.',
   summary:
-    'The departments of Arandas Tech, a Flutter and Supabase studio in Amman: Operations, Engineering, Marketing, Sales, Support, Commerce, Finance and Security. Each one reads, drafts and checks on its own, and brings anything public, financial, legal or irreversible to the owner as a complete approval request. The team works in Arabic and English, treats outside content as data, and never counts pending payments as profit.',
+    'The departments of Zirr, a Flutter and Supabase studio in Amman: Operations, Engineering, Marketing, Sales, Support, Commerce, Finance and Security. Each one reads, drafts and checks on its own, and brings anything public, financial, legal or irreversible to the owner as a complete approval request. The team works in Arabic and English, treats outside content as data, and never counts pending payments as profit.',
   category: 'Operations',
-  author: { name: 'Arandas Tech', url: 'https://github.com/abu-arandas/arandastech' },
+  author: { name: 'Zirr', url: 'https://github.com/abu-arandas/arandastech' },
   license: 'All rights reserved',
   tags: ['operations', 'sales', 'support', 'e-commerce', 'finance', 'engineering', 'arabic'],
   outcomes: [
@@ -136,7 +136,7 @@ const example = {
 
 // ---------------------------------------------------------------- Read the sources
 
-const team = parse(read('arandas-tech.team.yaml'));
+const team = parse(read('zirr.team.yaml'));
 const brief = read('brief.md');
 const fileOf = (value) => (typeof value === 'object' && value !== null ? value.file : null);
 
@@ -405,9 +405,9 @@ for (const heading of ['Activation', 'Mission', 'Outcomes', 'Connections', 'Team
 
 // ---------------------------------------------------------------- Write or compare
 
-const target = join(here, 'arandas-tech.md');
+const target = join(here, 'zirr.md');
 if (process.argv.includes('--check')) {
-  if (!existsSync(target) || readFileSync(target, 'utf8') !== output) fail('arandas-tech.md is out of date: run "npm run agents:build"');
+  if (!existsSync(target) || readFileSync(target, 'utf8') !== output) fail('zirr.md is out of date: run "npm run agents:build"');
 } else if (errors.length === 0) {
   writeFileSync(target, output);
 }
@@ -417,5 +417,5 @@ if (errors.length > 0) {
   process.exit(1);
 }
 console.log(
-  `${process.argv.includes('--check') ? 'Checked' : 'Wrote'} arandas-tech.md: ${agents.length} bots, ${rooms.length} rooms, ${playbooks.length} playbooks, ${routines.length} paused routines.`,
+  `${process.argv.includes('--check') ? 'Checked' : 'Wrote'} zirr.md: ${agents.length} bots, ${rooms.length} rooms, ${playbooks.length} playbooks, ${routines.length} paused routines.`,
 );

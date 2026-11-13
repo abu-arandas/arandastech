@@ -1,6 +1,6 @@
 ---
 name: license-order
-description: Handle the sale of a source-code license from payment to delivery, support period and refund. Use it for Arandas Tech Retail and Vanguard license orders.
+description: Handle the sale of a source-code license from payment to delivery, support period and refund. Use it for Zirr Retail and Zirr Boutique license orders.
 ---
 
 # License order

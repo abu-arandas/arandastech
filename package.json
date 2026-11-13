@@ -1,5 +1,5 @@
 {
-  "name": "arandastech",
+  "name": "zirr-platform",
   "private": true,
   "type": "module",
   "engines": {
@@ -10,14 +10,14 @@
     "apps/web"
   ],
   "scripts": {
-    "test": "npm run test -w @arandas/core",
+    "test": "npm run test -w @zirr/core",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --check \"**/*.{ts,tsx,mjs,json,md,css}\"",
     "db:reset": "tsx packages/core/scripts/db-reset.ts",
     "demo": "tsx packages/core/scripts/demo.ts",
-    "dev": "npm run dev -w @arandas/web",
-    "build": "npm run build -w @arandas/web",
+    "dev": "npm run dev -w @zirr/web",
+    "build": "npm run build -w @zirr/web",
     "agents:build": "node agents/openmausbot/build.mjs",
     "agents:check": "node agents/openmausbot/build.mjs --check"
   },

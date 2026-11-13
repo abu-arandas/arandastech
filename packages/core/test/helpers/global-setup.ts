@@ -1,8 +1,8 @@
 import { createDb } from '../../src/lib/db';
 import { applyMigrations } from '../../src/lib/migrate';
 
-export const ADMIN_URL = process.env.TEST_DATABASE_URL ?? 'postgres://arandas:arandas@localhost:5432/postgres';
-export const TEMPLATE = 'arandas_test_template';
+export const ADMIN_URL = process.env.TEST_DATABASE_URL ?? 'postgres://zirr:zirr@localhost:5432/postgres';
+export const TEMPLATE = 'zirr_test_template';
 
 const withDatabase = (url: string, name: string): string => {
   const parsed = new URL(url);

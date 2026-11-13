@@ -1,9 +1,9 @@
-import 'package:arandas_owner/app.dart';
-import 'package:arandas_owner/controllers/owner_controller.dart';
-import 'package:arandas_owner/services/api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:zirr_owner/app.dart';
+import 'package:zirr_owner/controllers/owner_controller.dart';
+import 'package:zirr_owner/services/api.dart';
 
 /// Opens every screen at a phone's and a laptop's width, in both languages. Any overflow fails the test.
 void main() {

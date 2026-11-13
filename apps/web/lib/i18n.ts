@@ -4,9 +4,14 @@ export const isLocale = (value: string): value is Locale => value === 'en' || va
 
 /** Every piece of interface text, in both languages. lib/i18n.test.ts fails when a text has no Arabic. */
 export const TEXT = {
-  brand: { en: 'Arandas Tech', ar: 'أرندس تك' },
-  tagline: { en: 'Software that shops and brands run on', ar: 'برمجيات تعمل عليها المتاجر والعلامات التجارية' },
-  intro: { en: 'A Flutter and Supabase studio in Amman. A white-label Flutter team for agencies, and ready products for retail, in Arabic and English.', ar: 'شركة برمجيات في عمّان. نبني أنظمة نقاط البيع وإدارة الفروع والمتاجر الإلكترونية وتطبيقات الجوال، بالعربي والإنجليزي.' },
+  brand: { en: 'Zirr', ar: 'زِرّ' },
+  // The name as the logo spells it: all lower case in English.
+  wordmark: { en: 'zirr', ar: 'زِرّ' },
+  tagline: { en: 'Flutter apps for agencies, and the products to start them from', ar: 'تطبيقات Flutter للوكالات، ومنتجات جاهزة تبدأ منها' },
+  intro: {
+    en: 'A Flutter and Supabase studio in Amman. We build Arabic and English apps under your agency’s name, and we make our own products for shops that you can license and ship.',
+    ar: 'استوديو Flutter وSupabase في عمّان. نبني تطبيقات بالعربي والإنجليزي باسم وكالتك، ونصنع منتجاتنا الخاصة لمحلات التجزئة لتشتري ترخيصها وتطلقها.',
+  },
   services: { en: 'Services', ar: 'الخدمات' },
   products: { en: 'Source-code licenses', ar: 'تراخيص الكود المصدري' },
   includes: { en: 'What you get', ar: 'ماذا تحصل عليه' },

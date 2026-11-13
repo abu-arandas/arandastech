@@ -1,4 +1,4 @@
-# The Arandas Tech house rules. Every product starts from this file; a rule turned off in a product says why.
+# The Zirr house rules. Every product starts from this file; a rule turned off in a product says why.
 include: package:flutter_lints/flutter.yaml
 
 analyzer:

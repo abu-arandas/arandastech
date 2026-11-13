@@ -20,7 +20,7 @@ const owner = { by: OWNER, isOwner: true };
 const email = (overrides: Record<string, unknown> = {}) => ({
   to: 'lead@example.com',
   subject: 'Your enquiry',
-  body: 'Thank you for writing to Arandas Tech.',
+  body: 'Thank you for writing to Zirr.',
   locale: 'en',
   ...overrides,
 });
@@ -72,7 +72,7 @@ describe('action levels', () => {
   });
 
   it('sets the level from the action, not from the requester: a public issue is Level 2', async () => {
-    const priv = await gateway.propose({ type: 'github.create_issue', payload: { repository: 'abu-arandas/ERP', title: 'Checkout', body: '', public: false }, requester: { kind: 'agent', id: 'engineering' } });
+    const priv = await gateway.propose({ type: 'github.create_issue', payload: { repository: 'abu-arandas/zirr-retail', title: 'Checkout', body: '', public: false }, requester: { kind: 'agent', id: 'engineering' } });
     const pub = await gateway.propose({ type: 'github.create_issue', payload: { repository: 'abu-arandas/arandastech', title: 'Checkout', body: '', public: true }, requester: { kind: 'agent', id: 'engineering' } });
     expect(priv.action.level).toBe(1);
     expect(priv.action.status).toBe('executed');

@@ -1,7 +1,8 @@
 import 'dart:io';
 
-import 'package:arandas_owner/l10n/ar.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zirr_owner/config/brand.dart';
+import 'package:zirr_owner/l10n/ar.dart';
 
 /// Every text passed to `.tr` in lib/ must have Arabic, and no Arabic entry may be left over.
 void main() {
@@ -13,6 +14,7 @@ void main() {
   }
   // Texts chosen at run time, which the scan above cannot see.
   const dynamicTexts = {
+    Brand.wordmark,
     'Today',
     'Approvals',
     'Money',

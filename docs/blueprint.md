@@ -1,18 +1,18 @@
-# Arandas Tech
+# Zirr
 
 **AI company blueprint: digital services and online commerce**
 
 | | |
 |---|---|
-| **Document version** | 2.0, replacing 1.0 |
+| **Document version** | 2.1, replacing 2.0 |
 | **Status** | Product and implementation plan, waiting on the owner decisions in [§20](#20-owner-decisions) |
 | **Business model** | Digital services plus online commerce |
 | **Primary operator** | The owner, through an owner-controlled AI company platform |
-| **Last updated** | 11 November 2026 |
+| **Last updated** | 13 November 2026, for the Zirr rebrand ([Appendix C](#appendix-c-what-changed-in-version-21)) |
 
 ## Summary
 
-Arandas Tech is a Flutter and Supabase studio in Amman that sells software services and source-code licenses. This blueprint describes the platform that lets its owner run and grow that business with AI departments doing the routine work, while the owner approves everything that matters.
+Zirr (زِرّ) is a Flutter and Supabase studio in Amman that sells software services and source-code licenses. This blueprint describes the platform that lets its owner run and grow that business with AI departments doing the routine work, while the owner approves everything that matters.
 
 | | |
 |---|---|
@@ -23,7 +23,7 @@ Arandas Tech is a Flutter and Supabase studio in Amman that sells software servi
 | **How it gets built** | Decisions first, then one thin end-to-end slice on mock connectors ([§15](#15-first-build-the-vertical-slice)), then six build phases that each end with a test ([§14](#14-roadmap)). |
 | **What it needs first** | The owner's answers in [§20](#20-owner-decisions). Markets, first offers, the payment route and the launch budget block everything else. |
 
-The objective is a platform that helps Arandas Tech attract customers, sell services and products, deliver them reliably, collect payments, protect customers and business accounts, measure real profit, and grow through owner-approved reinvestment.
+The objective is a platform that helps Zirr attract customers, sell services and products, deliver them reliably, collect payments, protect customers and business accounts, measure real profit, and grow through owner-approved reinvestment.
 
 ## Contents
 
@@ -63,6 +63,7 @@ The objective is a platform that helps Arandas Tech attract customers, sell serv
 
 - [A. Glossary](#appendix-a-glossary)
 - [B. What changed from version 1.0](#appendix-b-what-changed-from-version-10)
+- [C. What changed in version 2.1](#appendix-c-what-changed-in-version-21)
 
 ## How to read this document
 
@@ -91,15 +92,15 @@ The platform is an AI-powered company operating system. It lets one founder or a
 
 It is a coordinated AI company, not one unrestricted chatbot. Each department has a defined job, defined tools and defined limits, and every action passes through the same rules and lands in the same record.
 
-### 1.2 Where Arandas Tech starts
+### 1.2 Where Zirr starts
 
-The platform is not built for an empty company. This is the starting position, taken from the company's public website and GitHub profile on 11 November 2026. Correct anything that is out of date.
+The platform is not built for an empty company. This is the starting position, taken from the company's public website and GitHub profile on 11 November 2026, with the names the company took when it became Zirr on 12 November 2026. Correct anything that is out of date.
 
 | | Today |
 |---|---|
 | **Company** | A Flutter and Supabase studio in Amman, Jordan, building apps for clients since 2021 |
 | **Services** | A white-label Flutter team for agencies (fixed-price Project, Monthly team, Review and rescue); custom Android, iPhone and web apps; web apps and dashboards in React; online stores with a back office; AI features added to existing products |
-| **Products** | Arandas Tech Retail (online shop, back office and point of sale, sold as source code and as a done-for-you setup); EA POS (installed locally); Vanguard (a storefront, sold as source code); Arandas Clinic (for small clinics in Jordan) |
+| **Products** | Zirr Retail (online shop, back office and point of sale, sold as source code and as a done-for-you setup); Zirr POS (a till for shops, cafés and restaurants, installed locally); Zirr Boutique (a storefront, sold as source code) |
 | **How it sells** | The company website and GitHub profile; WhatsApp for sales and support; a Facebook Page; PayPal payment links for licenses |
 | **Languages** | Arabic and English in every build, with right-to-left layouts |
 | **Engineering standard** | One starter template for every app; zero analyzer issues; tests with a 60% coverage floor; row-level security on every table, with SQL tests; CI on every pull request; deployments on Vercel |
@@ -108,13 +109,13 @@ The platform is not built for an empty company. This is the starting position, t
 Four consequences shape the rest of this document:
 
 1. **The first offers already exist.** The launch services and the launch catalog are the ones on sale now ([§3](#3-business-model-two-revenue-engines)).
-2. **Arabic and English are requirements.** Every customer-facing page, template and AI draft works in both languages, as every Arandas Tech build already does.
+2. **Arabic and English are requirements.** Every customer-facing page, template and AI draft works in both languages, as every Zirr build already does.
 3. **WhatsApp is a primary channel.** Sales and support happen there today, so it is a launch connector, not a future one ([§9](#9-integrations)).
 4. **The house standard applies.** The platform is built on the company's own stack and to its own quality bar ([§11](#11-technical-architecture), [§17](#17-quality-assurance)).
 
 ### 1.3 What the platform does
 
-| Area | The platform helps Arandas Tech… |
+| Area | The platform helps Zirr… |
 |---|---|
 | **Grow** | find potential customers, and market its digital services and products |
 | **Sell** | sell websites, software, automation, SEO, content, support and technical services, and sell approved physical or digital products through an online store |
@@ -141,7 +142,7 @@ Four consequences shape the rest of this document:
 - **Professional advice.** The platform does not replace a qualified accountant, tax professional or lawyer.
 - **Capital.** The platform is not a lender. It does not borrow, use credit or spend money the company does not have.
 - **Shortcuts around providers.** No password automation, no scraping, no fake engagement.
-- **A product for other companies, for now.** This version serves Arandas Tech only. Selling it to others would change the architecture and the provider approvals it needs, so it is a separate decision ([§20](#20-owner-decisions), decision 24).
+- **A product for other companies, for now.** This version serves Zirr only. Selling it to others would change the architecture and the provider approvals it needs, so it is a separate decision ([§20](#20-owner-decisions), decision 24).
 
 ## 2. Governance: who decides what
 
@@ -284,7 +285,7 @@ These are the numbers the platform enforces. The owner sets them, and each chang
 
 ## 3. Business model: two revenue engines
 
-Arandas Tech earns in two ways that feed each other. A license buyer who needs changes becomes a services customer. A services customer who wants a shop becomes a product customer.
+Zirr earns in two ways that feed each other. A license buyer who needs changes becomes a services customer. A services customer who wants a shop becomes a product customer.
 
 Both engines share one platform: one customer record, one brand, one approval inbox and one audit log. They keep separate accounting, offers, margins, fulfillment records and reports, so that the results of one never hide the results of the other.
 
@@ -298,7 +299,7 @@ Both engines share one platform: one customer record, one brand, one approval in
 | **Monthly team** | Agencies with a steady pipeline | Reserved Flutter days each month, a shared board and a weekly call | Cancel with a month's notice | Minimum days, and what happens to unused days |
 | **Review and rescue** | Teams whose Flutter app is late, slow or hard to change | A written audit of lints, tests, security and architecture, with an ordered plan to fix what matters | Report in five working days; fixes optional | Size limit per audit, price tiers |
 | **Done-for-you store** | Fashion sellers in Jordan and the Gulf | A branded online shop with stock and orders, hosted, updated and supported | Setup fee plus a monthly fee | Service levels, contract term |
-| **EA POS installation** | Shops, cafés and restaurants in Amman | An installed point of sale after a 14-day free trial | One-off price | Support terms after installation |
+| **Zirr POS installation** | Shops, cafés and restaurants in Amman | An installed point of sale after a 14-day free trial | One-off price | Support terms after installation |
 
 Prices are kept in business memory, not in this document, so that there is one place to change them.
 
@@ -312,7 +313,7 @@ Prices are kept in business memory, not in this document, so that there is one p
 | **Engineer** | GitHub repository organization; technical documentation; software testing and maintenance; security and performance reviews |
 | **Run** | Website hosting and maintenance packages; analytics dashboards and reports |
 
-The company sells the Build family today, along with parts of Engineer and Run. The Automate and Grow families are new ground. A service from them should go on sale only after the platform has done that job well for Arandas Tech itself, because that record is both the proof and the case study.
+The company sells the Build family today, along with parts of Engineer and Run. The Automate and Grow families are new ground. A service from them should go on sale only after the platform has done that job well for Zirr itself, because that record is both the proof and the case study.
 
 **Every service is a package.** A package record has:
 
@@ -331,7 +332,7 @@ The company sells the Build family today, along with parts of Engineer and Run. 
 
 ### 3.2 Online commerce
 
-**The first catalog is digital and already on sale:** source-code licenses for Arandas Tech Retail (developer and agency) and Vanguard (regular and extended). Today a license is bought through a payment link. The platform puts a real order behind each sale:
+**The first catalog is digital and already on sale:** source-code licenses for Zirr Retail (developer and agency) and Zirr Boutique (regular and extended). Today a license is bought through a payment link. The platform puts a real order behind each sale:
 
 1. The payment is verified with the provider before anything is delivered.
 2. The code is delivered automatically, with a license in the buyer's name.
@@ -376,7 +377,7 @@ Products that touch health, children, safety, regulated goods, financial claims,
 
 ## 4. Customer acquisition
 
-Arandas Tech should win customers with a focused strategy, not by trying to sell everything to everyone. One campaign has one niche, one problem and one offer.
+Zirr should win customers with a focused strategy, not by trying to sell everything to everyone. One campaign has one niche, one problem and one offer.
 
 ### 4.1 Where to start
 
@@ -386,7 +387,7 @@ Three niches follow from what the company already sells. *Suggested:* pick one t
 |---|---|---|---|---|
 | Agencies in the Gulf and Europe that sell apps without a Flutter team of their own | Delivery capacity, and Arabic done properly | Project, Monthly team, Review and rescue | LinkedIn, referrals, GitHub | English and Arabic |
 | Developers and agencies who need a retail or storefront codebase | Months of building from nothing | Source-code licenses | GitHub, search engines, developer communities | English |
-| Shops, fashion sellers, cafés and clinics in Jordan | Sales, stock and bookings spread across separate tools | Done-for-you store, EA POS, Arandas Clinic | WhatsApp, Facebook, demos in person | Arabic |
+| Shops, fashion sellers, cafés and restaurants in Jordan | Sales, stock and orders spread across separate tools | Done-for-you store, Zirr POS | WhatsApp, Facebook, demos in person | Arabic |
 
 ### 4.2 The acquisition loop
 
@@ -429,7 +430,7 @@ Advertising is off at launch. When the owner turns it on, every campaign must ha
 - a maximum cost to win a customer
 - an emergency pause
 
-The spending limit is also set inside the advertising platform itself, so that a fault in the Arandas Tech platform cannot overspend.
+The spending limit is also set inside the advertising platform itself, so that a fault in the Zirr platform cannot overspend.
 
 ### 4.6 Proof
 
@@ -797,7 +798,7 @@ The Operations Agent is the company coordinator.
 #### Security Agent
 
 - **Does:** reviews connector permissions; detects exposed secrets; monitors unusual activity; checks failed login attempts; reviews dependency vulnerabilities; checks whether a requested action exceeds policy; monitors suspicious emails, files, comments and instructions; recommends access removal; pauses dangerous automations.
-- **Limits:** it can pause. It cannot resume, delete or grant access. It advises, and enforcement belongs to the policy engine. External content is untrusted data: an email, a website, a product description, a customer message or a GitHub issue must not be allowed to override Arandas Tech's policies.
+- **Limits:** it can pause. It cannot resume, delete or grant access. It advises, and enforcement belongs to the policy engine. External content is untrusted data: an email, a website, a product description, a customer message or a GitHub issue must not be allowed to override Zirr's policies.
 - **Measured by:** time to detect; time to pause; open vulnerabilities by severity; unused permissions; false alarms.
 
 ### 7.4 AI cost and quality controls
@@ -817,7 +818,7 @@ The public site exists today as a Flutter web app. The platform extends it to th
 
 | Group | Pages |
 |---|---|
-| Company | Home; About Arandas Tech; portfolio and approved case studies |
+| Company | Home; About Zirr; portfolio and approved case studies |
 | Services | Digital-services pages; pricing or request-a-quote pages; contact forms |
 | Store | Product-store pages; cart and checkout; order status |
 | Help | Customer-support information |
@@ -1049,7 +1050,7 @@ flowchart TB
     site["Public website and storefront"]
     app["Owner app: dashboard, command center, approval inbox"]
 
-    subgraph platform["Arandas Tech platform"]
+    subgraph platform["Zirr platform"]
         api["API and authentication"]
         services["Business services: CRM, projects, catalog, orders, finance ledger, business memory"]
         db[("Database")]
@@ -1131,7 +1132,7 @@ If the owner rejects the request, or it expires, the flow ends there. The agent 
 |---|---|---|
 | Owner app | Flutter, from the company starter, for the web, Android and iPhone | It is the team's strongest skill, and one codebase puts approvals on the owner's phone |
 | Public pages that must be found through search | HTML-first: Jaspr to stay in Dart, or Next.js to use the team's React and TypeScript | Flutter's own guidance for marketing content ([§9.3](#93-provider-constraints-to-plan-around)) |
-| Store checkout | The payment provider's hosted checkout | Card data never reaches Arandas Tech's systems |
+| Store checkout | The payment provider's hosted checkout | Card data never reaches Zirr's systems |
 | Database, authentication and storage | Supabase: PostgreSQL with row-level security, two-step sign-in and encrypted storage for approved documents and media | It is already the company standard |
 | Platform services | TypeScript on Node.js for the agent runtime, policy engine and connector gateway, with Supabase Edge Functions for webhooks | Typed, already in the team's stack, and able to run long jobs |
 | Background jobs | A durable queue with retries and idempotency. A queue inside PostgreSQL is enough to start. | No extra system to run |
@@ -1321,7 +1322,7 @@ The best first build is a vertical slice: a thin version of the whole business l
 
 The slice contains:
 
-- the Arandas Tech public homepage
+- the Zirr public homepage
 - one service package
 - a small product catalog
 - a customer lead form
@@ -1449,7 +1450,7 @@ Decisions 1 to 15 are from version 1.0. Decisions 16 to 24 are new. A suggested 
 
 | # | Decision | Why it matters | Suggested answer | Needed by |
 |---|---|---|---|---|
-| 1 | Which countries will Arandas Tech serve? | It sets the legal pages, tax, delivery, payment methods and languages | Jordan for local products, the Gulf and Europe for agency work, and worldwide for licenses, each checked before it is added | Phase 0 |
+| 1 | Which countries will Zirr serve? | It sets the legal pages, tax, delivery, payment methods and languages | Jordan for local products, the Gulf and Europe for agency work, and worldwide for licenses, each checked before it is added | Phase 0 |
 | 2 | Which digital services will launch first? | It focuses the marketing and the package records | Project, and Review and rescue | Phase 0 |
 | 3 | Which product niche will launch first? | It defines the first catalog | Source-code licenses for retail and storefront apps | Phase 0 |
 | 4 | Will products be dropshipped, affiliate-based, digital, print-on-demand or stocked? | It decides whether suppliers, shipping and stock exist at all | Digital first | Phase 0 |
@@ -1460,19 +1461,19 @@ Decisions 1 to 15 are from version 1.0. Decisions 16 to 24 are new. A suggested 
 | 9 | What advertising budget limit is acceptable? | It caps the largest avoidable loss | Zero at launch | Phase 6 |
 | 10 | Which developers will build and maintain the system? | It sets the stack, the pace and who reviews AI-written code | Owner sets | Phase 0 |
 | 11 | Should the first interface be web-only, mobile-only or both? | It sets the scope of the first build | Both, from one Flutter codebase, with the web and Android first | Phase 1 |
-| 12 | What brand voice should Arandas Tech use? | Every draft depends on it | One page for each language, kept in business memory | Phase 1 |
+| 12 | What brand voice should Zirr use? | Every draft depends on it | One page for each language, kept in business memory | Phase 1 |
 | 13 | What customer support hours and response standards should apply? | Customers are promised them | Amman working hours, with stated response targets | Phase 2 |
 | 14 | What percentage of settled profit may be reinvested? | It sets the reinvestment budget | See the policy sheet | Phase 5 |
 | 15 | What amount requires a second approval or additional review? | It protects against one large mistake | See the policy sheet | Phase 1 |
 | 16 | What is the company's legal form, and where is it registered? | Contracts, invoices, tax and provider verification all need it | Settle with the accountant | Phase 0 |
-| 17 | What is the exact spelling of the brand, and which domain and social handles go with it? | Version 1.0 wrote "Arandas Teck" and the website writes "Arandas Tech" | "Arandas Tech", with a matching domain | Phase 0 |
+| 17 | What is the brand, and which domain and social handles go with it? | Every page, template, email and handle carries it | Decided on 12 November 2026: Zirr (زِرّ). The domain and the social handles are still open. | Phase 0 |
 | 18 | Which currencies are used for prices and for the books? | Prices, the ledger and reports depend on it | Dinars and dollars for prices, and one of them for reporting | Phase 0 |
 | 19 | What is the launch budget before the first revenue? | Some costs cannot wait ([§6.6](#66-reinvestment-proposals)) | A monthly ceiling that covers the domain, hosting, backups, email and AI usage | Phase 0 |
 | 20 | Is the storefront built thin on hosted checkout, or run on a hosted commerce platform? | It is the largest single choice of scope | Build thin | Phase 3 |
 | 21 | Do the public pages move to HTML? | It decides whether customers can find the company through search | Yes, for service, product, article and legal pages | Phase 2 |
 | 22 | Which AI provider is used, and what is the monthly AI spending cap? | Cost, data terms and quality depend on it | One provider behind the gateway, with a cap set before Phase 1 | Phase 1 |
 | 23 | Does the current WhatsApp number move to the Business Platform? | It changes how the owner talks to customers today | Decide after checking Meta's current rules for using the app and the API on one number | Phase 4 |
-| 24 | Will the platform serve Arandas Tech only, or be sold to others later? | It changes the architecture and the approvals needed | Arandas Tech only for now. If it is sold later, sell it the way the company sells its other products: as source code that each buyer runs. | Phase 6 |
+| 24 | Will the platform serve Zirr only, or be sold to others later? | It changes the architecture and the approvals needed | Zirr only for now. If it is sold later, sell it the way the company sells its other products: as source code that each buyer runs. | Phase 6 |
 
 ---
 
@@ -1511,7 +1512,7 @@ Nothing was removed. Every capability, rule, step and list item in version 1.0 i
 
 **Corrected**
 
-- The name is written "Arandas Tech", as on the company's website and profiles. Version 1.0 wrote "Arandas Teck". Decision 17 confirms the spelling.
+- The name was written "Arandas Tech", as on the company's website and profiles at the time. Version 1.0 wrote "Arandas Teck". The company has since become Zirr ([Appendix C](#appendix-c-what-changed-in-version-21)).
 - The architecture diagram, which was missing from version 1.0, is restored ([§11.1](#111-system-overview)).
 
 **Reorganized**
@@ -1522,7 +1523,7 @@ Nothing was removed. Every capability, rule, step and list item in version 1.0 i
 
 **Grounded in the existing business**
 
-- A starting position ([§1.2](#12-where-arandas-tech-starts)), launch packages and a first catalog taken from what the company sells today ([§3](#3-business-model-two-revenue-engines)), starting niches ([§4.1](#41-where-to-start)) and a stack built on the company's own ([§11.3](#113-suggested-stack)).
+- A starting position ([§1.2](#12-where-zirr-starts)), launch packages and a first catalog taken from what the company sells today ([§3](#3-business-model-two-revenue-engines)), starting niches ([§4.1](#41-where-to-start)) and a stack built on the company's own ([§11.3](#113-suggested-stack)).
 - Arabic and English throughout, and WhatsApp as a launch connector.
 
 **Added**
@@ -1547,3 +1548,18 @@ Nothing was removed. Every capability, rule, step and list item in version 1.0 i
 - Public pages in HTML, with Flutter kept for the apps.
 - Services on sale from Phase 2, with invoices sent by hand until the payment connector is live.
 - A deposit on service projects.
+
+## Appendix C: What changed in version 2.1
+
+The company and its products took the name Zirr (زِرّ, "button") on 12 November 2026. This version follows it. Nothing else changed.
+
+| Before | Now |
+|---|---|
+| Arandas Tech | Zirr (زِرّ) |
+| Arandas Tech Retail | Zirr Retail (زِرّ للتجزئة) |
+| EA POS | Zirr POS (زِرّ كاشير) |
+| Vanguard | Zirr Boutique (زِرّ بوتيك) |
+| The company starter | Zirr Starter (قالب زِرّ) |
+
+- Decision 17 is answered: the brand is Zirr. The domain and the social handles are still open.
+- Arandas Clinic is no longer a product, so it is gone from the starting position ([§1.2](#12-where-zirr-starts)) and the starting niches ([§4.1](#41-where-to-start)).

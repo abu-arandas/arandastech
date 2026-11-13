@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:ui' show Locale;
 
-import 'package:arandas_owner/config/money.dart';
-import 'package:arandas_owner/controllers/owner_controller.dart';
-import 'package:arandas_owner/services/api.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:zirr_owner/config/money.dart';
+import 'package:zirr_owner/controllers/owner_controller.dart';
+import 'package:zirr_owner/services/api.dart';
 
 OwnerController demo() => OwnerController(connector: (_, _) => DemoApi());
 

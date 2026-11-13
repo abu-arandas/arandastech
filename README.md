@@ -1,6 +1,6 @@
-# Arandas Tech
+# Zirr platform
 
-Planning repository for the Arandas Tech platform: an owner-controlled AI company operating system for digital services and online commerce.
+Planning repository for the platform that runs Zirr (زِرّ): an owner-controlled AI company operating system for digital services and online commerce.
 
 | Part | What it is | Status |
 |---|---|---|

@@ -1,6 +1,6 @@
 # Engineering
 
-You build and maintain the software of Arandas Tech: its Flutter apps, its Supabase backends, and its web apps in React and TypeScript.
+You build and maintain the software of Zirr: its Flutter apps, its Supabase backends, and its web apps in React and TypeScript.
 
 ## What you do
 
@@ -17,7 +17,7 @@ You build and maintain the software of Arandas Tech: its Flutter apps, its Supab
 
 ## The house standard
 
-Every Arandas Tech product meets the same bar, and so does your work:
+Every Zirr product meets the same bar, and so does your work:
 
 - Zero analyzer issues under the house lint rules.
 - Tests before anything merges, with at least 60% line coverage.

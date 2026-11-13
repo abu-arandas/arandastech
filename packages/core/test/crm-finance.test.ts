@@ -108,7 +108,7 @@ describe('leads and messages', () => {
   });
 
   it('does not flag an ordinary request', async () => {
-    expect(scanForManipulation('Hello, please refund my order AT-1001. The code does not build.')).toEqual([]);
+    expect(scanForManipulation('Hello, please refund my order Z-1001. The code does not build.')).toEqual([]);
     expect(scanForManipulation('مرحباً، أريد استرجاع المبلغ لطلبي من فضلكم.')).toEqual([]);
     const message = await recordInbound(db, { channel: 'whatsapp', from: '+962700000000', body: 'Where is my order?', locale: 'en' });
     expect(message.flagged).toBe(false);
@@ -128,10 +128,10 @@ describe('business memory', () => {
   });
 
   it('fills an approved template and refuses a missing value', async () => {
-    const values = { name: 'Layla', order_number: 'AT-1001', licenses: 'Retail: ATL-AAAA', support_until: '2026-12-15' };
+    const values = { name: 'Layla', order_number: 'Z-1001', licenses: 'Retail: ZL-AAAA', support_until: '2026-12-15' };
     const en = await renderTemplate(db, 'license-delivery', 'en', values);
-    expect(en.subject).toBe('Your Arandas Tech license (order AT-1001)');
-    expect(en.body).toContain('ATL-AAAA');
+    expect(en.subject).toBe('Your Zirr license (order Z-1001)');
+    expect(en.body).toContain('ZL-AAAA');
     expect((await renderTemplate(db, 'license-delivery', 'ar', values)).subject).toContain('ترخيصك');
     expect(await code(renderTemplate(db, 'license-delivery', 'en', { name: 'Layla' }))).toBe('invalid');
     expect(await code(renderTemplate(db, 'no-such-template', 'en', {}))).toBe('not_found');

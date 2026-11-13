@@ -99,11 +99,11 @@ class DemoApi implements PlatformApi {
       'expires_at': '2026-11-18T09:05:00Z',
       'action': {
         'action_type': 'gmail.send_email',
-        'summary': 'Send an email to nour@agency.example: "شكراً لتواصلك مع أرندس تك"',
+        'summary': 'Send an email to nour@agency.example: "شكراً لتواصلك مع زِرّ"',
         'payload': {
           'to': 'nour@agency.example',
-          'subject': 'شكراً لتواصلك مع أرندس تك',
-          'body': 'مرحباً نور،\n\nشكراً لرسالتك. نرسل لك تقديراً مكتوباً خلال يومَي عمل.\n\nأرندس تك',
+          'subject': 'شكراً لتواصلك مع زِرّ',
+          'body': 'مرحباً نور،\n\nشكراً لرسالتك. نرسل لك تقديراً مكتوباً خلال يومَي عمل.\n\nزِرّ',
         },
         'recipient': 'nour@agency.example',
         'cost_minor': 0,

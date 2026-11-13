@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/owner_controller.dart';
+import 'widgets/brand_mark.dart';
 
 /// Connects the app to a platform with the owner token, or opens the demo.
 class SignInPage extends StatefulWidget {
@@ -27,7 +28,8 @@ class _SignInPageState extends State<SignInPage> {
     final c = Get.find<OwnerController>();
     return Scaffold(
       appBar: AppBar(
-        title: Text('Arandas Tech'.tr),
+        title: const BrandTitle(),
+        bottom: const PreferredSize(preferredSize: Size.fromHeight(6), child: StitchLine()),
         actions: [TextButton(onPressed: c.toggleLanguage, child: Obx(() => Text(c.locale.value.languageCode == 'ar' ? 'English' : 'العربية')))],
       ),
       body: Center(

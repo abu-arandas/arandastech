@@ -1,4 +1,4 @@
-# The Arandas Tech departments in OpenMausBot
+# The Zirr departments in OpenMausBot
 
 This folder turns the eight AI departments of the [blueprint](../../docs/blueprint.md) into a team you can install in [OpenMausBot](https://github.com/milind-soni/OpenMausBot), an open-source desktop app in which each bot is an AI agent running on the Claude, Codex or Grok command-line tool you are already signed in to.
 
@@ -50,18 +50,18 @@ cd arandastech/agents/openmausbot
 Look at the plan first. This changes nothing:
 
 ```bash
-openmausbot team apply arandas-tech.team.yaml --dry-run
+openmausbot team apply zirr.team.yaml --dry-run
 ```
 
 Then apply it:
 
 ```bash
-openmausbot team apply arandas-tech.team.yaml
+openmausbot team apply zirr.team.yaml
 ```
 
 Running the same command again later updates the team to match the file and prints `No changes.` when nothing differs.
 
-**Without the command line:** in the desktop app, open Teams, choose Import, and either pick `arandas-tech.md` from disk or paste its public address on GitHub. A review screen shows what will be created. Bots imported this way start at "Full access", so open the department's menu straight away, choose "Set for all bots in this department" and pick "Ask for approval".
+**Without the command line:** in the desktop app, open Teams, choose Import, and either pick `zirr.md` from disk or paste its public address on GitHub. A review screen shows what will be created. Bots imported this way start at "Full access", so open the department's menu straight away, choose "Set for all bots in this department" and pick "Ask for approval".
 
 ### 3. Set the four safeguards
 
@@ -113,7 +113,7 @@ The blueprint asks for more than instructions: approvals tied to the exact paylo
 | A department's standing instructions | `souls/<department>.md` | Rebuild and apply |
 | The rules every bot shares | `brief.md` | Rebuild and apply |
 | A skill | `skills/<name>/SKILL.md` | Rebuild and apply |
-| Bots, rooms, titles | `arandas-tech.team.yaml` | Rebuild and apply |
+| Bots, rooms, titles | `zirr.team.yaml` | Rebuild and apply |
 | Routines, colours, listing text | `build.mjs` | Rebuild |
 
 Rebuild the one-file version from the repository root:

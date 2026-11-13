@@ -1,7 +1,7 @@
-# The Arandas Tech departments as an OpenMausBot team.
+# The Zirr departments as an OpenMausBot team.
 #
-#   openmausbot team apply arandas-tech.team.yaml --dry-run   # show the plan, change nothing
-#   openmausbot team apply arandas-tech.team.yaml             # create or update the team
+#   openmausbot team apply zirr.team.yaml --dry-run   # show the plan, change nothing
+#   openmausbot team apply zirr.team.yaml             # create or update the team
 #
 # Every bot starts at "Ask for approval" with no computer. That is deliberate: OpenMausBot's own default is
 # "Full access". After applying, set each bot's Permissions -> Sending on your behalf to "Ask every time"
@@ -12,12 +12,12 @@
 version: 1
 
 defaults:
-  team: Arandas Tech
+  team: Zirr
   approval: ask
   computer: 'off'
 
 teams:
-  - name: Arandas Tech
+  - name: Zirr
     brief: { file: brief.md }
     prune: false
 
@@ -95,7 +95,7 @@ bots:
 
 rooms:
   - name: Company
-    team: Arandas Tech
+    team: Zirr
     members: [Operations, Engineering, Marketing, Sales, Support, Commerce, Finance, Security]
     responder: Operations
     brief: >-
@@ -106,7 +106,7 @@ rooms:
       report against the plan, including what failed or was skipped.
 
   - name: Growth
-    team: Arandas Tech
+    team: Zirr
     members: [Marketing, Sales, Support]
     responder: Sales
     brief: >-
@@ -117,7 +117,7 @@ rooms:
       language, Arabic or English.
 
   - name: Store and money
-    team: Arandas Tech
+    team: Zirr
     members: [Commerce, Finance, Support]
     responder: Commerce
     brief: >-
@@ -128,7 +128,7 @@ rooms:
       and the recipient. Never describe pending payments or gross sales as profit.
 
   - name: Engineering and security
-    team: Arandas Tech
+    team: Zirr
     members: [Engineering, Security]
     responder: Engineering
     brief: >-
