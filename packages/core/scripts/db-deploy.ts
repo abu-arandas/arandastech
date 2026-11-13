@@ -2,7 +2,7 @@
 //   npm run db:deploy   uses DATABASE_URL_UNPOOLED, POSTGRES_URL_NON_POOLING or DATABASE_URL, in that order
 // On Vercel it runs inside the build for production deploys only, so a preview never changes the live database.
 import { createDb } from '../src/lib/db';
-import { deployMigrations } from '../src/lib/migrate';
+import { checkInstallMode, deployMigrations } from '../src/lib/migrate';
 import { createPlatform, install } from '../src/platform';
 
 const target = process.env.VERCEL_ENV;
@@ -18,7 +18,10 @@ const demo = process.env.DEMO_MODE === 'true';
 const db = createDb(url, 1);
 try {
   const { applied, bootstrapped } = await deployMigrations(db);
+  // A database stays in the mode it was installed in, so demo data never reaches live customers.
+  await checkInstallMode(db, demo);
   // install() only adds what is missing, so the owner's own edits survive every deploy.
+  // The departments' names and missions are the exception: they always follow the code, and nothing else edits them.
   await install(createPlatform(db, { demo, webhookSecrets: { payments: 'unused', supplier: 'unused' } }));
   console.log(
     [

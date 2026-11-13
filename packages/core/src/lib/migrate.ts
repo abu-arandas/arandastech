@@ -65,3 +65,21 @@ export async function deployMigrations(db: Db): Promise<{ applied: string[]; boo
     return { applied, bootstrapped };
   });
 }
+
+/**
+ * Remembers whether a database was installed in demo mode, and refuses to switch either way.
+ * Demo mode publishes the catalog and adds a demo owner and a test product. None of that may reach live customers,
+ * so a live install needs a database of its own. Run after deployMigrations, which creates the ops schema.
+ */
+export async function checkInstallMode(db: Db, demo: boolean): Promise<void> {
+  const wanted = demo ? 'demo' : 'live';
+  await db.query(
+    `create table if not exists ops.install (key text primary key, value text not null, set_at timestamptz not null default now())`,
+  );
+  await db.query(`insert into ops.install (key, value) values ('mode', $1) on conflict (key) do nothing`, [wanted]);
+  const [row] = await db.query<{ value: string }>(`select value from ops.install where key = 'mode'`);
+  if (row?.value !== wanted)
+    throw new Error(
+      `This database was installed in ${row?.value} mode, but DEMO_MODE asks for ${wanted} mode. Use a fresh database for ${wanted} mode.`,
+    );
+}
