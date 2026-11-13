@@ -66,6 +66,29 @@ Open http://localhost:3000. With the site running on port 3100 from a production
 node apps/web/e2e/smoke.mjs http://localhost:3100
 ```
 
+## Put it live for free
+
+Everything here runs on free plans. The storefront and the API run on Vercel's Hobby plan. The database is any PostgreSQL 16 or later: a free Neon database from the Vercel Marketplace, or a Supabase project. The owner app's web build is on GitHub Pages, which is free for a public repository.
+
+1. Create a Vercel project from this repository with the root directory `apps/web`. `apps/web/vercel.json` sets the build to `npm run db:deploy`, then `next build`.
+2. Link the database.
+   - Neon from the Vercel Marketplace adds `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` for you.
+   - On Supabase, set `DATABASE_URL` to the transaction pooler address (port 6543) and `DATABASE_URL_UNPOOLED` to the session pooler address (port 5432).
+3. Set the other variables from `apps/web/.env.example` for Production:
+   - `OWNER_API_TOKEN`, `PAYMENTS_WEBHOOK_SECRET` and `SUPPLIER_WEBHOOK_SECRET`, each a long random string,
+   - `OWNER_USER_ID`,
+   - `OWNER_APP_ORIGIN=https://abu-arandas.github.io`, so the owner app on GitHub Pages may call the API,
+   - `DEMO_MODE=true` while payments are test payments only.
+4. Deploy. Each production build runs `npm run db:deploy` first. It:
+   - adds the Supabase roles and `auth.uid()` when the database is a plain PostgreSQL,
+   - applies only the migrations the database has not had yet, records each one in `ops.applied_migrations`, and does it all in one transaction, so a failure changes nothing and the build stops,
+   - installs the starting data, adding only what is missing, so the owner's own edits survive.
+
+   Preview builds skip it, so a preview never changes the live database.
+5. For the owner app, set Pages to deploy from GitHub Actions in the repository settings. Each push to `main` that touches `apps/owner` publishes https://abu-arandas.github.io/arandastech/ through `.github/workflows/owner-web.yml`. Sign in there with the site's address and the owner token.
+
+Free plans keep little or no backup history. Move the database to a paid plan before real customers pay.
+
 ## How the pieces fit
 
 1. A bot (in OpenMausBot) or the owner app calls the API.
@@ -82,7 +105,7 @@ These are the owner's steps. Nothing here has been done.
 | Step | Why |
 |---|---|
 | Decide the Phase 0 items in blueprint §20 | Markets, payment route and launch budget block everything else |
-| Create a Supabase project and apply `supabase/migrations` | The platform needs a database. Use a paid plan for backups. |
+| Move the database to a paid plan | Free plans keep little or no backup history. See "Put it live for free" for the rest. |
 | Set `OWNER_API_TOKEN`, the webhook secrets and one token per department | The API refuses every caller without them |
 | Set the real payment fee in the policy sheet | Margins are calculated from it. It starts at zero. |
 | Replace each mock connector with a live one, reading first | No live account is connected today |

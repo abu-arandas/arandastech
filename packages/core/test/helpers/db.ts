@@ -7,11 +7,11 @@ export interface TestDb {
   drop(): Promise<void>;
 }
 
-/** A fresh, fully migrated database for one test file. */
-export async function createTestDb(): Promise<TestDb> {
+/** A fresh, fully migrated database for one test file, or an empty one with `empty`. */
+export async function createTestDb(options: { empty?: boolean } = {}): Promise<TestDb> {
   const name = `zirr_test_${randomBytes(6).toString('hex')}`;
   const admin = createDb(ADMIN_URL, 1);
-  await admin.query(`create database ${name} template ${TEMPLATE}`);
+  await admin.query(options.empty ? `create database ${name}` : `create database ${name} template ${TEMPLATE}`);
   await admin.close();
   const db = createDb(withDatabase(ADMIN_URL, name), 5);
   return {
