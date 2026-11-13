@@ -75,17 +75,19 @@ Everything here runs on free plans. The storefront and the API run on Vercel's H
    - Neon from the Vercel Marketplace adds `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` for you.
    - On Supabase, set `DATABASE_URL` to the transaction pooler address (port 6543) and `DATABASE_URL_UNPOOLED` to the session pooler address (port 5432).
 3. Set the other variables from `apps/web/.env.example` for Production:
-   - `OWNER_API_TOKEN`, `PAYMENTS_WEBHOOK_SECRET` and `SUPPLIER_WEBHOOK_SECRET`, each a long random string,
    - `OWNER_USER_ID`,
    - `OWNER_APP_ORIGIN=https://abu-arandas.github.io`, so the owner app on GitHub Pages may call the API,
    - `DEMO_MODE=true` while payments are test payments only. A database stays in the mode it was first installed in, so going live later means a fresh database, and demo data never reaches customers.
+
+   You do not make `OWNER_API_TOKEN`, `PAYMENTS_WEBHOOK_SECRET` or `SUPPLIER_WEBHOOK_SECRET`. The first deploy makes each one in the database, in `ops.secrets`, and the site reads them from there. A variable you set yourself wins, for example the webhook secret a live payment provider gives you.
 4. Deploy. Each production build runs `npm run db:deploy` first. It:
    - adds the Supabase roles and `auth.uid()` when the database is a plain PostgreSQL,
    - applies only the migrations the database has not had yet, records each one in `ops.applied_migrations`, and does it all in one transaction, so a failure changes nothing and the build stops,
-   - installs the starting data, adding only what is missing, so the owner's own edits survive.
+   - installs the starting data, adding only what is missing, so the owner's own edits survive,
+   - makes the owner token and webhook secrets once, when they are missing, and logs only their names.
 
    Preview builds skip it, so a preview never changes the live database.
-5. For the owner app, set Pages to deploy from GitHub Actions in the repository settings. Each push to `main` that touches `apps/owner` publishes https://abu-arandas.github.io/arandastech/ through `.github/workflows/owner-web.yml`. Sign in there with the site's address and the owner token.
+5. For the owner app, set Pages to deploy from GitHub Actions in the repository settings. Each push to `main` that touches `apps/owner` publishes https://abu-arandas.github.io/arandastech/ through `.github/workflows/owner-web.yml`. Sign in there with the site's address and the owner token. To see the token, open the database's SQL editor (in Vercel: Storage, the database, Open in Neon, SQL Editor) and run `select value from ops.secrets where name = 'owner_api_token';`. To change it, set `OWNER_API_TOKEN` in Vercel and redeploy.
 
 Free plans keep little or no backup history. Move the database to a paid plan before real customers pay.
 
@@ -106,7 +108,7 @@ These are the owner's steps. Nothing here has been done.
 |---|---|
 | Decide the Phase 0 items in blueprint §20 | Markets, payment route and launch budget block everything else |
 | Move the database to a paid plan | Free plans keep little or no backup history. See "Put it live for free" for the rest. |
-| Set `OWNER_API_TOKEN`, the webhook secrets and one token per department | The API refuses every caller without them |
+| Set the live payment provider's webhook secret and one token per department | The first deploy makes the owner token and stand-in webhook secrets. A live provider signs with its own secret, and each bot needs its own token. |
 | Set the real payment fee in the policy sheet | Margins are calculated from it. It starts at zero. |
 | Replace each mock connector with a live one, reading first | No live account is connected today |
 | Review the email templates and the Arabic marked "new wording" in `packages/core/src/company.ts` | They reach customers |

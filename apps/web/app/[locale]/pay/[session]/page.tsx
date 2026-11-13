@@ -6,8 +6,9 @@ async function pay(formData: FormData): Promise<void> {
   'use server';
   const locale = String(formData.get('locale')) as Locale;
   // Stands in for the payment provider: it sends the platform a signed notice, as a real provider would.
-  const result = await call('POST', '/api/demo/pay', { session: String(formData.get('session')) });
-  redirect(`/${locale}/order?${result.ok ? 'paid=1' : 'error=1'}`);
+  const result = await call<{ order_number: string }>('POST', '/api/demo/pay', { session: String(formData.get('session')) });
+  // The buyer leaves with the order number already filled in, so they can look the order up straight away.
+  redirect(`/${locale}/order?${result.ok ? `paid=1&number=${encodeURIComponent(result.data.order_number)}` : 'error=1'}`);
 }
 
 export default async function Pay({ params }: { params: Promise<{ locale: string; session: string }> }) {

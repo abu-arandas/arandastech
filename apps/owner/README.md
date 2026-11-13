@@ -23,7 +23,7 @@ The name, colours and font are in [`lib/config/brand.dart`](lib/config/brand.dar
 flutter run -d chrome
 ```
 
-To sign in to a real platform, start the site (`npm run dev -w @zirr/web`), then enter its address and the `OWNER_API_TOKEN`. When the app runs in a browser, set `OWNER_APP_ORIGIN` on the site to the app's address.
+To sign in to a real platform, start the site (`npm run dev -w @zirr/web`), then enter its address and the `OWNER_API_TOKEN`. When the app runs in a browser, set `OWNER_APP_ORIGIN` on the site to the app's address. On the hosted site the first deploy makes the token; `docs/runbook.md` ("Put it live for free") says where to read it.
 
 ## Check it
 

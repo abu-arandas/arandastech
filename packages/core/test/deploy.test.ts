@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { checkInstallMode, deployMigrations } from '../src/lib/migrate';
+import { ensureSecrets, readSecrets, SECRETS } from '../src/lib/secrets';
 import { createPlatform, install } from '../src/platform';
 import { createTestDb, type TestDb } from './helpers/db';
 
@@ -60,6 +61,35 @@ describe('deploying to a hosted database', () => {
       await checkInstallMode(other.db, true);
       await checkInstallMode(other.db, true);
       await expect(checkInstallMode(other.db, false)).rejects.toThrow(/installed in demo mode/);
+    } finally {
+      await other.drop();
+    }
+  });
+
+  it('makes each secret once, keeps it, and closes it to the app roles', async () => {
+    const names = Object.keys(SECRETS).sort();
+    expect((await ensureSecrets(test.db)).sort()).toEqual(names);
+    const first = await readSecrets(test.db);
+    expect(Object.keys(first).sort()).toEqual(names);
+    for (const value of Object.values(first)) expect(value).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(new Set(Object.values(first)).size).toBe(names.length);
+
+    expect(await ensureSecrets(test.db)).toEqual([]);
+    expect(await readSecrets(test.db)).toEqual(first);
+
+    for (const role of ['anon', 'authenticated']) {
+      const [access] = await test.db.query<{ usage: boolean }>(
+        `select has_schema_privilege($1, 'ops', 'usage') as usage`,
+        [role],
+      );
+      expect(access?.usage).toBe(false);
+    }
+  });
+
+  it('reads no secrets from a database that was never deployed', async () => {
+    const other = await createTestDb();
+    try {
+      expect(await readSecrets(other.db)).toEqual({});
     } finally {
       await other.drop();
     }
