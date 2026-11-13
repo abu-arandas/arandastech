@@ -75,7 +75,7 @@ export function registerRoutes(router: Router, platform: Platform): void {
     const results = [];
     // A real provider often sends the same notice more than once. The demo can do the same.
     for (let i = 0; i < body.deliveries; i += 1) results.push(await store.handlePaymentWebhook(event.body, event.signature));
-    return { payment_ref: `pay_${order.number}`, results };
+    return { order_number: order.number, payment_ref: `pay_${order.number}`, results };
   });
 
   router.add('POST', '/api/demo/settle', 'demo', async ({ json }) => {

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { checkInstallMode, deployMigrations } from '../src/lib/migrate';
+import { chooseSecret, ensureSecrets, PLACEHOLDER, readSecrets, SECRETS } from '../src/lib/secrets';
 import { createPlatform, install } from '../src/platform';
 import { createTestDb, type TestDb } from './helpers/db';
 
@@ -60,6 +61,57 @@ describe('deploying to a hosted database', () => {
       await checkInstallMode(other.db, true);
       await checkInstallMode(other.db, true);
       await expect(checkInstallMode(other.db, false)).rejects.toThrow(/installed in demo mode/);
+    } finally {
+      await other.drop();
+    }
+  });
+
+  it('makes each secret once, keeps it, and closes it to the app roles', async () => {
+    const names = Object.keys(SECRETS).sort();
+    expect((await ensureSecrets(test.db)).sort()).toEqual(names);
+    const first = await readSecrets(test.db);
+    expect(Object.keys(first).sort()).toEqual(names);
+    for (const value of Object.values(first)) expect(value).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(new Set(Object.values(first)).size).toBe(names.length);
+
+    expect(await ensureSecrets(test.db)).toEqual([]);
+    expect(await readSecrets(test.db)).toEqual(first);
+
+    for (const role of ['anon', 'authenticated']) {
+      const [access] = await test.db.query<{ usage: boolean }>(
+        `select has_schema_privilege($1, 'ops', 'usage') as usage`,
+        [role],
+      );
+      expect(access?.usage).toBe(false);
+    }
+  });
+
+  it('lets two first deploys run at once', async () => {
+    const other = await createTestDb({ empty: true });
+    try {
+      const runs = await Promise.all([deployMigrations(other.db), deployMigrations(other.db)]);
+      expect(runs.filter((run) => run.applied.length > 0)).toHaveLength(1);
+      await Promise.all([checkInstallMode(other.db, true), checkInstallMode(other.db, true)]);
+      const made = await Promise.all([ensureSecrets(other.db), ensureSecrets(other.db)]);
+      expect(made.flat().sort()).toEqual(Object.keys(SECRETS).sort());
+    } finally {
+      await other.drop();
+    }
+  });
+
+  it('never lets the example placeholder stand in for a secret on a hosted site', () => {
+    expect(chooseSecret('set-by-owner', 'made-by-deploy', true)).toBe('set-by-owner');
+    expect(chooseSecret(undefined, 'made-by-deploy', true)).toBe('made-by-deploy');
+    expect(chooseSecret(PLACEHOLDER, 'made-by-deploy', true)).toBe('made-by-deploy');
+    expect(chooseSecret(PLACEHOLDER, undefined, true)).toBeUndefined();
+    expect(chooseSecret('', undefined, true)).toBeUndefined();
+    expect(chooseSecret(PLACEHOLDER, undefined, false)).toBe(PLACEHOLDER);
+  });
+
+  it('reads no secrets from a database that was never deployed', async () => {
+    const other = await createTestDb();
+    try {
+      expect(await readSecrets(other.db)).toEqual({});
     } finally {
       await other.drop();
     }
