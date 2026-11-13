@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { checkInstallMode, deployMigrations } from '../src/lib/migrate';
-import { ensureSecrets, readSecrets, SECRETS } from '../src/lib/secrets';
+import { chooseSecret, ensureSecrets, PLACEHOLDER, readSecrets, SECRETS } from '../src/lib/secrets';
 import { createPlatform, install } from '../src/platform';
 import { createTestDb, type TestDb } from './helpers/db';
 
@@ -97,6 +97,15 @@ describe('deploying to a hosted database', () => {
     } finally {
       await other.drop();
     }
+  });
+
+  it('never lets the example placeholder stand in for a secret on a hosted site', () => {
+    expect(chooseSecret('set-by-owner', 'made-by-deploy', true)).toBe('set-by-owner');
+    expect(chooseSecret(undefined, 'made-by-deploy', true)).toBe('made-by-deploy');
+    expect(chooseSecret(PLACEHOLDER, 'made-by-deploy', true)).toBe('made-by-deploy');
+    expect(chooseSecret(PLACEHOLDER, undefined, true)).toBeUndefined();
+    expect(chooseSecret('', undefined, true)).toBeUndefined();
+    expect(chooseSecret(PLACEHOLDER, undefined, false)).toBe(PLACEHOLDER);
   });
 
   it('reads no secrets from a database that was never deployed', async () => {

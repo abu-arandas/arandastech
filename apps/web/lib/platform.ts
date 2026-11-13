@@ -1,4 +1,4 @@
-import { createApi, createDb, createPlatform, type Db, type Platform, readSecrets, SECRETS, type SecretName } from '@zirr/core';
+import { chooseSecret, createApi, createDb, createPlatform, type Db, type Platform, readSecrets, SECRETS, type SecretName } from '@zirr/core';
 
 type Api = ReturnType<typeof createApi>;
 type Server = { platform: Platform; api: Api };
@@ -22,11 +22,13 @@ async function build(): Promise<Server> {
 
 async function connect(db: Db): Promise<Server> {
   // A setting wins. Without one, the secret db:deploy made in the database is used, so nobody has to copy it by hand.
+  // The example's change-me never counts on Vercel, so a copied example file cannot open the site to a known token.
   const stored = await readSecrets(db);
-  const secret = (name: SecretName): string | undefined => process.env[SECRETS[name]] || stored[name];
+  const hosted = Boolean(process.env.VERCEL_ENV);
+  const secret = (name: SecretName): string | undefined => chooseSecret(process.env[SECRETS[name]], stored[name], hosted);
   const required = (name: SecretName): string => {
     const value = secret(name);
-    if (!value) throw new Error(`${SECRETS[name]} is not set, and the database has none. See apps/web/.env.example.`);
+    if (!value) throw new Error(`${SECRETS[name]} is not set (or is the example's placeholder), and the database has none. See apps/web/.env.example.`);
     return value;
   };
   const platform = createPlatform(db, {

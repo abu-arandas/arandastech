@@ -27,6 +27,23 @@ export async function ensureSecrets(db: Db): Promise<SecretName[]> {
   return made;
 }
 
+/** The value apps/web/.env.example gives each secret. It is known to everyone, so it never stands in for a real one. */
+export const PLACEHOLDER = 'change-me';
+
+/**
+ * Picks the secret the site uses: a real setting first, then the one db:deploy kept in the database.
+ * The example's placeholder counts as unset. Only a local run, not a hosted one, may fall back to it.
+ */
+export function chooseSecret(
+  setting: string | undefined,
+  stored: string | undefined,
+  hosted: boolean,
+): string | undefined {
+  if (setting && setting !== PLACEHOLDER) return setting;
+  if (stored) return stored;
+  return hosted ? undefined : setting || undefined;
+}
+
 /** The secrets kept in the database. Empty when the database was never deployed with db:deploy, as in local development. */
 export async function readSecrets(db: Db): Promise<Partial<Record<SecretName, string>>> {
   const [table] = await db.query<{ present: boolean }>(`select to_regclass('ops.secrets') is not null as present`);
