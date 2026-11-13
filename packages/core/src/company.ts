@@ -2,7 +2,8 @@ import { type Db, json } from './lib/db';
 import type { Localized } from './lib/types';
 
 /**
- * What Arandas Tech sells today, taken from the company's public website on 11 November 2026 (blueprint 1.2 and 3).
+ * What Zirr sells today, taken from the company's public website on 11 November 2026 and renamed with the Zirr rebrand
+ * of 12 November 2026 (blueprint 1.2 and 3).
  * The English and Arabic wording is the company's own published text, except where a comment says "new wording".
  *
  * In a real installation everything arrives as a draft for the owner to approve. In demo mode it arrives approved and
@@ -83,9 +84,9 @@ const PACKAGES = [
     to_confirm: ['service levels', 'contract term'],
   },
   {
-    id: 'ea-pos-installation',
+    id: 'zirr-pos-installation',
     sort: 5,
-    name: t('EA POS installation', 'تركيب EA POS'),
+    name: t('Zirr POS installation', 'تركيب زِرّ كاشير'),
     // Arabic here is new wording, based on the company's Arabic profile text. For the owner to review.
     outcome: t('A point of sale for shops, cafés and restaurants, installed for you in Amman after a 14-day free trial.', 'نظام كاشير للمطاعم والكافيهات والمحلات، نركّبه عندك في عمّان مع تجربة مجانية 14 يوماً.'),
     audience: t('Shops, cafés and restaurants in Amman', 'المحلات والكافيهات والمطاعم في عمّان'),
@@ -100,9 +101,9 @@ const PACKAGES = [
 const PRODUCTS = [
   {
     id: '00000000-0000-4000-8000-0000000000b1',
-    slug: 'arandas-tech-retail',
+    slug: 'zirr-retail',
     kind: 'digital',
-    name: t('Arandas Tech Retail', 'أرندس تك للتجزئة'),
+    name: t('Zirr Retail', 'زِرّ للتجزئة'),
     summary: t(
       'An online shop, a back office and a point of sale in one Flutter app, sold as source code you can brand and resell.',
       'متجر إلكتروني ولوحة إدارة ونقطة بيع في تطبيق Flutter واحد، يُباع ككود مصدري تضع عليه علامتك.',
@@ -130,23 +131,23 @@ const PRODUCTS = [
   },
   {
     id: '00000000-0000-4000-8000-0000000000b2',
-    slug: 'vanguard',
+    slug: 'zirr-boutique',
     kind: 'digital',
-    name: t('Vanguard', 'Vanguard'),
+    name: t('Zirr Boutique', 'زِرّ بوتيك'),
     summary: t(
       'An editorial Flutter Web storefront with colour and size variants, promotion rules and Stripe checkout, and an admin panel for the team.',
       'واجهة متجر Flutter Web بطابع مجلّات الأزياء، بألوان ومقاسات وقواعد عروض ودفع عبر Stripe، ولوحة إدارة للفريق.',
     ),
     variants: [
-      // The Arabic names of the two Vanguard licenses are new wording. The support period is not published, so it is 0.
-      { sku: 'VANGUARD-REGULAR', name: t('Regular license', 'الترخيص العادي'), summary: t('', ''), includes: [], price_minor: 3900, support_days: 0, license_kind: 'regular' },
-      { sku: 'VANGUARD-EXTENDED', name: t('Extended license', 'الترخيص الموسّع'), summary: t('', ''), includes: [], price_minor: 14900, support_days: 0, license_kind: 'extended' },
+      // The Arabic names of the two Zirr Boutique licenses are new wording. The support period is not published, so it is 0.
+      { sku: 'BOUTIQUE-REGULAR', name: t('Regular license', 'الترخيص العادي'), summary: t('', ''), includes: [], price_minor: 3900, support_days: 0, license_kind: 'regular' },
+      { sku: 'BOUTIQUE-EXTENDED', name: t('Extended license', 'الترخيص الموسّع'), summary: t('', ''), includes: [], price_minor: 14900, support_days: 0, license_kind: 'extended' },
     ],
   },
 ] as const;
 
 const FAQS: Array<[string, Localized, Localized]> = [
-  ['who-owns-the-code', t('Who owns the code?', 'من يملك الكود؟'), t('You do, for the work you pay for. Our own products (the starter, the retail app and the clinic system) are licensed to you instead.', 'أنت، في العمل الذي تدفع ثمنه. أما منتجاتنا (القالب وأرندس تك للتجزئة ونظام العيادات) فتحصل على ترخيص لاستخدامها.')],
+  ['who-owns-the-code', t('Who owns the code?', 'من يملك الكود؟'), t('You do, for the work you pay for. Our own products (the starter, the retail app and the till) are licensed to you instead.', 'أنت، في العمل الذي تدفع ثمنه. أما منتجاتنا (القالب وزِرّ للتجزئة والكاشير) فتحصل على ترخيص لاستخدامها.')],
   ['talk-to-our-client', t('Will you talk to our client?', 'هل تتواصلون مع عميلنا؟'), t('Only if you want us to. By default we talk to you, and your client never sees our name.', 'فقط إن أردت ذلك. نتواصل معك أنت عادةً، ولا يرى عميلك اسمنا أبداً.')],
   ['time-zone', t('What time zone do you work in?', 'ما هو توقيت عملكم؟'), t('Amman, UTC+3, which overlaps the whole working day in the Gulf and most of it in Europe.', 'توقيت عمّان UTC+3، ويتقاطع مع يوم العمل كاملاً في الخليج ومعظمه في أوروبا.')],
   ['how-do-you-charge', t('How do you charge?', 'كيف تحسبون الأسعار؟'), t('A fixed price per project, or a monthly fee for reserved days. Ask on WhatsApp for current rates.', 'سعر ثابت لكل مشروع، أو رسوم شهرية لأيام محجوزة. اسألنا على واتساب عن الأسعار الحالية.')],
@@ -158,18 +159,18 @@ const TEMPLATES = {
   'license-delivery': {
     title: 'License delivery email',
     en: {
-      subject: 'Your Arandas Tech license (order {{order_number}})',
-      body: 'Hello {{name}},\n\nThank you for your order {{order_number}}. Your license is in your name:\n\n{{licenses}}\n\nEmail support for this license runs until: {{support_until}}.\n\nAn invitation to the source code will follow at this email address.\n\nArandas Tech',
+      subject: 'Your Zirr license (order {{order_number}})',
+      body: 'Hello {{name}},\n\nThank you for your order {{order_number}}. Your license is in your name:\n\n{{licenses}}\n\nEmail support for this license runs until: {{support_until}}.\n\nAn invitation to the source code will follow at this email address.\n\nZirr',
     },
     ar: {
-      subject: 'ترخيصك من أرندس تك (الطلب {{order_number}})',
-      body: 'مرحباً {{name}}،\n\nشكراً لطلبك رقم {{order_number}}. هذا ترخيصك، وهو باسمك:\n\n{{licenses}}\n\nالدعم عبر البريد لهذا الترخيص مستمر حتى: {{support_until}}.\n\nستصلك دعوة إلى الكود المصدري على هذا البريد.\n\nأرندس تك',
+      subject: 'ترخيصك من زِرّ (الطلب {{order_number}})',
+      body: 'مرحباً {{name}}،\n\nشكراً لطلبك رقم {{order_number}}. هذا ترخيصك، وهو باسمك:\n\n{{licenses}}\n\nالدعم عبر البريد لهذا الترخيص مستمر حتى: {{support_until}}.\n\nستصلك دعوة إلى الكود المصدري على هذا البريد.\n\nزِرّ',
     },
   },
   'order-shipped': {
     title: 'Order shipped email',
-    en: { subject: 'Your order {{order_number}} is on its way', body: 'Hello {{name}},\n\nYour order {{order_number}} has been shipped. Tracking: {{tracking}}.\n\nArandas Tech' },
-    ar: { subject: 'طلبك رقم {{order_number}} في الطريق', body: 'مرحباً {{name}}،\n\nتم شحن طلبك رقم {{order_number}}. رقم التتبّع: {{tracking}}.\n\nأرندس تك' },
+    en: { subject: 'Your order {{order_number}} is on its way', body: 'Hello {{name}},\n\nYour order {{order_number}} has been shipped. Tracking: {{tracking}}.\n\nZirr' },
+    ar: { subject: 'طلبك رقم {{order_number}} في الطريق', body: 'مرحباً {{name}}،\n\nتم شحن طلبك رقم {{order_number}}. رقم التتبّع: {{tracking}}.\n\nزِرّ' },
   },
 } as const;
 
@@ -207,9 +208,12 @@ export async function seedCompany(db: Db, options: { demo: boolean; now: Date })
   };
   for (const [key, question, answer] of FAQS) await memory(`faq:${key}`, 'faq', question.en, { question, answer });
   for (const [key, template] of Object.entries(TEMPLATES)) await memory(`template:${key}`, 'template', template.title, { en: template.en, ar: template.ar }, 'internal');
-  await memory('brand:company', 'brand', 'Who Arandas Tech is', {
-    name: t('Arandas Tech', 'أرندس تك'),
-    description: t('A Flutter and Supabase studio in Amman, Jordan. A white-label Flutter team for agencies, and ready products for retail and clinics, in Arabic and English.', 'شركة برمجيات في عمّان. نبني أنظمة نقاط البيع وإدارة الفروع والمتاجر الإلكترونية وتطبيقات الجوال، بالعربي والإنجليزي.'),
+  await memory('brand:company', 'brand', 'Who Zirr is', {
+    name: t('Zirr', 'زِرّ'),
+    description: t(
+      'A Flutter and Supabase studio in Amman, Jordan. We build Arabic and English apps under your agency’s name, and we make our own products for shops that you can license and ship.',
+      'استوديو Flutter وSupabase في عمّان. نبني تطبيقات بالعربي والإنجليزي باسم وكالتك، ونصنع منتجاتنا الخاصة لمحلات التجزئة لتشتري ترخيصها وتطلقها.',
+    ),
     languages: ['en', 'ar'],
     time_zone: 'Asia/Amman',
   });

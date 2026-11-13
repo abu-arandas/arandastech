@@ -256,7 +256,7 @@ export async function handleMcp(platform: Platform, agent: Actor & { id: string 
       return rpc(message.id, {
         protocolVersion: SUPPORTED_VERSIONS.includes(asked) ? asked : '2025-06-18',
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: 'arandas-platform', title: 'Arandas Tech platform', version: '0.1.0' },
+        serverInfo: { name: 'zirr-platform', title: 'Zirr platform', version: '0.1.0' },
         instructions: `You are connected as the ${agent.id} department. Call get_rules first. You can read and propose. Only the owner approves. ${NOTICE}`,
       });
     }

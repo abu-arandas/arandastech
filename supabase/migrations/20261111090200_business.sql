@@ -132,7 +132,7 @@ create sequence public.order_number_seq start 1001;
 
 create table public.orders (
   id uuid primary key default gen_random_uuid(),
-  number text not null unique default ('AT-' || nextval('public.order_number_seq')),
+  number text not null unique default ('Z-' || nextval('public.order_number_seq')),
   idempotency_key text not null unique,
   customer_id uuid references public.customers (id),
   buyer_name text not null,

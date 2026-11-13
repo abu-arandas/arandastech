@@ -42,7 +42,7 @@ async function buy(sku: string, options: { quantity?: number; address?: string; 
 describe('catalog and checkout', () => {
   it('lists what is published', async () => {
     const catalog = await t.platform.store.catalog();
-    expect(catalog.map((p) => p.slug)).toEqual(['arandas-tech-retail', 'vanguard', 'test-physical']);
+    expect(catalog.map((p) => p.slug)).toEqual(['zirr-retail', 'zirr-boutique', 'test-physical']);
     expect(catalog[0]!.variants.map((v) => v.sku)).toEqual(['RETAIL-DEV', 'RETAIL-AGENCY']);
   });
 
@@ -55,7 +55,7 @@ describe('catalog and checkout', () => {
   });
 
   it('returns the same order for a repeated checkout request', async () => {
-    const input = { items: [{ sku: 'VANGUARD-REGULAR', quantity: 1 }], buyer, locale: 'en' as const, idempotencyKey: 'same-key-twice' };
+    const input = { items: [{ sku: 'BOUTIQUE-REGULAR', quantity: 1 }], buyer, locale: 'en' as const, idempotencyKey: 'same-key-twice' };
     const first = await t.platform.store.createCheckout(input);
     const second = await t.platform.store.createCheckout(input);
     expect(second.duplicate).toBe(true);
@@ -156,7 +156,7 @@ describe('a license sale, from payment to refund', () => {
   });
 
   it('marks a refund the owner rejects as rejected, and moves no money', async () => {
-    const { order } = await buy('VANGUARD-EXTENDED');
+    const { order } = await buy('BOUTIQUE-EXTENDED');
     const { refundId } = await t.platform.store.proposeRefund(order.id, { reason: 'Changed their mind.' }, { kind: 'agent', id: 'support' });
     const [request] = await pendingFor('payments.refund');
     await t.platform.gateway.decide(request!.id, { decision: 'reject', ...asOwner, note: 'Outside the license terms.' });
@@ -232,7 +232,7 @@ describe('safeguards', () => {
   it('asks the owner before delivering when no standing rule covers it', async () => {
     const [rule] = await db.query<{ id: string }>(`select id from standing_rules where name = 'License delivery'`);
     await revokeRule(db, rule!.id, OWNER, true);
-    const { order } = await buy('VANGUARD-REGULAR');
+    const { order } = await buy('BOUTIQUE-REGULAR');
     expect((await t.platform.store.order(order.id)).status).toBe('fulfilling');
     const [request] = (await pendingFor('gmail.send_email')).filter((r) => r.action.payload.order_id === order.id);
     expect(request!.level).toBe(2);

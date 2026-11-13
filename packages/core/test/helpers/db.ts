@@ -9,7 +9,7 @@ export interface TestDb {
 
 /** A fresh, fully migrated database for one test file. */
 export async function createTestDb(): Promise<TestDb> {
-  const name = `arandas_test_${randomBytes(6).toString('hex')}`;
+  const name = `zirr_test_${randomBytes(6).toString('hex')}`;
   const admin = createDb(ADMIN_URL, 1);
   await admin.query(`create database ${name} template ${TEMPLATE}`);
   await admin.close();

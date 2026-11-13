@@ -24,7 +24,7 @@ Install once:
 npm install
 ```
 
-Point the tests at a PostgreSQL role that can create databases. The default is `postgres://arandas:arandas@localhost:5432/postgres`:
+Point the tests at a PostgreSQL role that can create databases. The default is `postgres://zirr:zirr@localhost:5432/postgres`:
 
 ```bash
 export TEST_DATABASE_URL=postgres://USER:PASSWORD@localhost:5432/postgres
@@ -44,7 +44,7 @@ npx vitest run test/acceptance.test.ts --root packages/core
 
 ## Run the site locally
 
-Create a local demo database (this drops `arandas_dev` if it exists):
+Create a local demo database (this drops `zirr_dev` if it exists):
 
 ```bash
 npm run db:reset

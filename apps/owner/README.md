@@ -1,6 +1,6 @@
 # Owner app
 
-The owner's dashboard and approval inbox for the Arandas Tech platform, in Flutter. Arabic and English.
+The owner's dashboard and approval inbox for the Zirr platform, in Flutter. Arabic and English.
 
 | Tab | What it shows |
 |---|---|
@@ -11,6 +11,10 @@ The owner's dashboard and approval inbox for the Arandas Tech platform, in Flutt
 
 Anyone signed in can pause the agents. Only the owner can resume them. A Level 3 approval asks the owner to retype the amount and the recipient.
 
+## Brand
+
+The name, colours and font are in [`lib/config/brand.dart`](lib/config/brand.dart). The web page's title and icons are in `web/`, and the Android name and icons in `android/app/src/main/`.
+
 ## Run it
 
 "Open the demo" on the sign-in page uses sample data inside the app and needs no server.
@@ -19,7 +23,7 @@ Anyone signed in can pause the agents. Only the owner can resume them. A Level 3
 flutter run -d chrome
 ```
 
-To sign in to a real platform, start the site (`npm run dev -w @arandas/web`), then enter its address and the `OWNER_API_TOKEN`. When the app runs in a browser, set `OWNER_APP_ORIGIN` on the site to the app's address.
+To sign in to a real platform, start the site (`npm run dev -w @zirr/web`), then enter its address and the `OWNER_API_TOKEN`. When the app runs in a browser, set `OWNER_APP_ORIGIN` on the site to the app's address.
 
 ## Check it
 

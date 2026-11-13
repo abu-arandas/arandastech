@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../config/money.dart';
 import '../controllers/owner_controller.dart';
 import '../services/api.dart';
+import 'widgets/brand_mark.dart';
 
 /// The owner's four screens. The pause control is on every one of them (blueprint 8.2).
 class HomePage extends StatefulWidget {
@@ -27,7 +28,8 @@ class _HomePageState extends State<HomePage> {
       final scheme = Theme.of(context).colorScheme;
       return Scaffold(
         appBar: AppBar(
-          title: Text(c.api.value?.isDemo ?? false ? '${'Arandas Tech'.tr} · ${'Demo'.tr}' : 'Arandas Tech'.tr),
+          title: BrandTitle(suffix: c.api.value?.isDemo ?? false ? 'Demo'.tr : null),
+          bottom: const PreferredSize(preferredSize: Size.fromHeight(6), child: StitchLine()),
           actions: [
             IconButton(tooltip: 'Refresh'.tr, onPressed: c.reload, icon: const Icon(Icons.refresh)),
             TextButton(onPressed: c.toggleLanguage, child: Text(c.locale.value.languageCode == 'ar' ? 'English' : 'العربية')),

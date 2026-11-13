@@ -246,7 +246,7 @@ export function levelOf(spec: ActionSpec<Record<string, unknown>>, payload: Reco
 
 /** The connectors the platform knows, with the status each one starts in. Live accounts are connected by the owner. */
 export const CONNECTORS = [
-  { id: 'platform', name: 'Arandas Tech platform', status: 'live', note: 'Internal actions, such as publishing a product.' },
+  { id: 'platform', name: 'Zirr platform', status: 'live', note: 'Internal actions, such as publishing a product.' },
   { id: 'gmail', name: 'Gmail', status: 'built', note: 'Mock only. Needs a company mailbox and Google authorization.' },
   { id: 'whatsapp', name: 'WhatsApp', status: 'built', note: 'Mock only. Needs a WhatsApp Business Platform number.' },
   { id: 'buffer', name: 'Buffer', status: 'built', note: 'Mock only. Needs the owner to connect a Buffer account.' },

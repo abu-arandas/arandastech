@@ -72,7 +72,7 @@ describe('the nine steps', () => {
     const seen = await bot('sales', 'list_leads', { stage: 'new' });
     expect(seen.data.leads.find((l: Json) => l.id === state.leadId).message.untrusted).toBe(true);
 
-    const reply = { to: 'nour@agency.example', subject: 'شكراً لتواصلك مع أرندس تك', body: 'مرحباً نور،\n\nشكراً لرسالتك. نرسل لك تقديراً مكتوباً خلال يومَي عمل.\n\nأرندس تك', locale: 'ar', lead_id: state.leadId };
+    const reply = { to: 'nour@agency.example', subject: 'شكراً لتواصلك مع زِرّ', body: 'مرحباً نور،\n\nشكراً لرسالتك. نرسل لك تقديراً مكتوباً خلال يومَي عمل.\n\nزِرّ', locale: 'ar', lead_id: state.leadId };
     const proposed = await bot('sales', 'propose_action', { type: 'gmail.send_email', payload: reply, evidence: [{ kind: 'lead', id: state.leadId }] });
     expect(proposed.data.status).toBe('pending');
     expect(await deliveries('gmail')).toHaveLength(0);
@@ -115,7 +115,7 @@ describe('the nine steps', () => {
     expect(order.status).toBe('delivered');
     const email = (await deliveries('gmail')).find((d) => d.payload.order_id === order.id);
     expect(email!.payload.to).toBe('layla@example.com');
-    expect(email!.payload.body).toMatch(/ATL-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}/);
+    expect(email!.payload.body).toMatch(/ZL-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}/);
     expect((await call('GET', `/api/public/orders/${order.number}?email=layla@example.com`)).body.status).toBe('delivered');
     expect((await call('GET', `/api/public/orders/${order.number}?email=other@example.com`)).status).toBe(404);
 
@@ -272,7 +272,7 @@ describe('access', () => {
     for (const forbidden of ['approve', 'decide', 'resume', 'create_rule', 'set_policy']) expect(sales).not.toContain(forbidden);
 
     expect((await bot('sales', 'propose_action', { type: 'store.publish_product', payload: {} })).data.error.code).toBe('forbidden');
-    expect((await bot('engineering', 'propose_action', { type: 'github.create_issue', payload: { repository: 'abu-arandas/ERP', title: 'New checkout feature', body: 'Scope to follow.', public: false } })).data.status).toBe('executed');
+    expect((await bot('engineering', 'propose_action', { type: 'github.create_issue', payload: { repository: 'abu-arandas/zirr-retail', title: 'New checkout feature', body: 'Scope to follow.', public: false } })).data.status).toBe('executed');
     expect((await bot('finance', 'money_summary', { currency: 'USD' })).data.currency).toBe('USD');
     expect((await bot('sales', 'my_actions')).data.actions.length).toBeGreaterThan(0);
     expect((await bot('sales', 'get_rules')).data.department.id).toBe('sales');
@@ -280,7 +280,7 @@ describe('access', () => {
 
   it('answers the MCP handshake', async () => {
     const init = await call('POST', '/api/mcp', { token: tokenOf.sales, body: { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '1' } } } });
-    expect(init.body.result).toMatchObject({ protocolVersion: '2025-06-18', serverInfo: { name: 'arandas-platform' } });
+    expect(init.body.result).toMatchObject({ protocolVersion: '2025-06-18', serverInfo: { name: 'zirr-platform' } });
     expect((await call('POST', '/api/mcp', { token: tokenOf.sales, body: { jsonrpc: '2.0', method: 'notifications/initialized' } })).status).toBe(202);
     expect((await call('POST', '/api/mcp', { token: tokenOf.sales, body: { jsonrpc: '2.0', id: 2, method: 'no/such' } })).body.error.code).toBe(-32601);
   });

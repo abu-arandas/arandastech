@@ -1,6 +1,6 @@
 /// Arabic for every text the app shows, keyed by the English. test/translations_test.dart fails when one is missing.
 const ar = <String, String>{
-  'Arandas Tech': 'أرندس تك',
+  'zirr': 'زِرّ',
   'Owner app': 'تطبيق المالك',
   'Platform address': 'عنوان المنصّة',
   'Owner token': 'رمز المالك',

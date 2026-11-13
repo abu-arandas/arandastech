@@ -1,7 +1,7 @@
-import { createApi, createDb, createPlatform, type Platform } from '@arandas/core';
+import { createApi, createDb, createPlatform, type Platform } from '@zirr/core';
 
 type Api = ReturnType<typeof createApi>;
-const globals = globalThis as { __arandas?: { platform: Platform; api: Api } };
+const globals = globalThis as { __zirr?: { platform: Platform; api: Api } };
 
 const need = (name: string): string => {
   const value = process.env[name];
@@ -11,7 +11,7 @@ const need = (name: string): string => {
 
 /** One platform per server process, built from the environment on first use. */
 export function server(): { platform: Platform; api: Api } {
-  if (!globals.__arandas) {
+  if (!globals.__zirr) {
     const platform = createPlatform(createDb(need('DATABASE_URL')), {
       demo: process.env.DEMO_MODE === 'true',
       webhookSecrets: { payments: need('PAYMENTS_WEBHOOK_SECRET'), supplier: need('SUPPLIER_WEBHOOK_SECRET') },
@@ -22,9 +22,9 @@ export function server(): { platform: Platform; api: Api } {
       supabaseJwtSecret: process.env.SUPABASE_JWT_SECRET || undefined,
       agentTokens: JSON.parse(process.env.AGENT_TOKENS || '{}') as Record<string, string>,
     });
-    globals.__arandas = { platform, api };
+    globals.__zirr = { platform, api };
   }
-  return globals.__arandas;
+  return globals.__zirr;
 }
 
 /** Calls the same API the owner app and the bots use, without going over the network. */

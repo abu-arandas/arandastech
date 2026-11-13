@@ -1,4 +1,4 @@
-package tech.arandas.arandas_owner
+package com.zirr.owner
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -416,7 +416,7 @@ export class Store {
         await this.db.query<{ license_key: string; support_until: Date | null }>(
           `insert into licenses (order_item_id, license_key, kind, holder_name, holder_email, issued_at, support_until) values ($1, $2, $3, $4, $5, $6, $7)
            on conflict (order_item_id) do update set holder_name = excluded.holder_name returning license_key, support_until`,
-          [item.id, `ATL-${randomToken(2)}-${randomToken(2)}-${randomToken(2)}`.toUpperCase(), variant.license_kind ?? 'standard', order.buyer_name, order.buyer_email, now, until],
+          [item.id, `ZL-${randomToken(2)}-${randomToken(2)}-${randomToken(2)}`.toUpperCase(), variant.license_kind ?? 'standard', order.buyer_name, order.buyer_email, now, until],
         ),
       );
       lines.push(`${pick(item.title, order.locale)}: ${license.license_key}`);

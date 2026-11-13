@@ -14,13 +14,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: arandas
-          POSTGRES_PASSWORD: arandas
+          POSTGRES_USER: zirr
+          POSTGRES_PASSWORD: zirr
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U arandas" --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U zirr" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      TEST_DATABASE_URL: postgres://arandas:arandas@localhost:5432/postgres
+      TEST_DATABASE_URL: postgres://zirr:zirr@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,7 +34,7 @@ jobs:
       # Applies every migration to a fresh PostgreSQL, then runs all tests. Fails under 60% line coverage.
       - run: npm test
       # The site's translation test fails when a text has no Arabic. Then the site must build.
-      - run: npm test -w @arandas/web
+      - run: npm test -w @zirr/web
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1

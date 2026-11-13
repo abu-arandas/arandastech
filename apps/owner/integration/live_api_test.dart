@@ -2,9 +2,9 @@
 //   API_URL=http://localhost:3100 OWNER_TOKEN=... flutter test integration/live_api_test.dart
 import 'dart:io';
 
-import 'package:arandas_owner/controllers/owner_controller.dart';
-import 'package:arandas_owner/services/api.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zirr_owner/controllers/owner_controller.dart';
+import 'package:zirr_owner/services/api.dart';
 
 void main() {
   final url = Platform.environment['API_URL'];
