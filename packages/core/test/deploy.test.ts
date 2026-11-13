@@ -64,4 +64,15 @@ describe('deploying to a hosted database', () => {
       await other.drop();
     }
   });
+
+  it('recognises a demo database installed before the mode was recorded', async () => {
+    const other = await createTestDb({ empty: true });
+    try {
+      await deployMigrations(other.db);
+      await install(createPlatform(other.db, { demo: true, webhookSecrets: secrets }));
+      await expect(checkInstallMode(other.db, false)).rejects.toThrow(/installed in demo mode/);
+    } finally {
+      await other.drop();
+    }
+  });
 });

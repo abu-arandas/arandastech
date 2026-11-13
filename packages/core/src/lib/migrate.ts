@@ -76,7 +76,12 @@ export async function checkInstallMode(db: Db, demo: boolean): Promise<void> {
   await db.query(
     `create table if not exists ops.install (key text primary key, value text not null, set_at timestamptz not null default now())`,
   );
-  await db.query(`insert into ops.install (key, value) values ('mode', $1) on conflict (key) do nothing`, [wanted]);
+  // A database installed before this record existed: test products exist only in demo mode, so they give it away.
+  const [found] = await db.query<{ demo: boolean }>(
+    `select exists (select 1 from public.products where is_test) as demo`,
+  );
+  const first = found?.demo ? 'demo' : wanted;
+  await db.query(`insert into ops.install (key, value) values ('mode', $1) on conflict (key) do nothing`, [first]);
   const [row] = await db.query<{ value: string }>(`select value from ops.install where key = 'mode'`);
   if (row?.value !== wanted)
     throw new Error(
