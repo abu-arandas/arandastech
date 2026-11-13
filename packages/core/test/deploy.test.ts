@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { deployMigrations } from '../src/lib/migrate';
+import { checkInstallMode, deployMigrations } from '../src/lib/migrate';
 import { createPlatform, install } from '../src/platform';
 import { createTestDb, type TestDb } from './helpers/db';
 
@@ -48,6 +48,29 @@ describe('deploying to a hosted database', () => {
     try {
       await expect(deployMigrations(other.db)).rejects.toThrow(/no record of its migrations/);
       expect(await other.db.query(`select to_regclass('ops.applied_migrations') as t`)).toEqual([{ t: null }]);
+    } finally {
+      await other.drop();
+    }
+  });
+
+  it('keeps a database in the mode it was installed in', async () => {
+    const other = await createTestDb({ empty: true });
+    try {
+      await deployMigrations(other.db);
+      await checkInstallMode(other.db, true);
+      await checkInstallMode(other.db, true);
+      await expect(checkInstallMode(other.db, false)).rejects.toThrow(/installed in demo mode/);
+    } finally {
+      await other.drop();
+    }
+  });
+
+  it('recognises a demo database installed before the mode was recorded', async () => {
+    const other = await createTestDb({ empty: true });
+    try {
+      await deployMigrations(other.db);
+      await install(createPlatform(other.db, { demo: true, webhookSecrets: secrets }));
+      await expect(checkInstallMode(other.db, false)).rejects.toThrow(/installed in demo mode/);
     } finally {
       await other.drop();
     }

@@ -78,7 +78,7 @@ Everything here runs on free plans. The storefront and the API run on Vercel's H
    - `OWNER_API_TOKEN`, `PAYMENTS_WEBHOOK_SECRET` and `SUPPLIER_WEBHOOK_SECRET`, each a long random string,
    - `OWNER_USER_ID`,
    - `OWNER_APP_ORIGIN=https://abu-arandas.github.io`, so the owner app on GitHub Pages may call the API,
-   - `DEMO_MODE=true` while payments are test payments only.
+   - `DEMO_MODE=true` while payments are test payments only. A database stays in the mode it was first installed in, so going live later means a fresh database, and demo data never reaches customers.
 4. Deploy. Each production build runs `npm run db:deploy` first. It:
    - adds the Supabase roles and `auth.uid()` when the database is a plain PostgreSQL,
    - applies only the migrations the database has not had yet, records each one in `ops.applied_migrations`, and does it all in one transaction, so a failure changes nothing and the build stops,
