@@ -78,17 +78,22 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
 
 /// A whole number that counts up to [value] the first time it shows, then simply changes.
 class CountUp extends StatefulWidget {
-  const CountUp(this.value, {this.style, super.key});
+  const CountUp(this.value, {this.id, this.style, super.key});
 
   final int value;
+
+  /// Names the figure, so it counts up once per app run, not again each time its tab comes back.
+  final Object? id;
   final TextStyle? style;
+
+  static final _seen = <Object>{};
 
   @override
   State<CountUp> createState() => _CountUpState();
 }
 
 class _CountUpState extends State<CountUp> {
-  var _counted = false;
+  late var _counted = widget.id != null && CountUp._seen.contains(widget.id);
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +103,10 @@ class _CountUpState extends State<CountUp> {
       tween: Tween(begin: 0, end: widget.value.toDouble()),
       duration: Motion.slow + Motion.medium,
       curve: Curves.easeOutCubic,
-      onEnd: () => setState(() => _counted = true),
+      onEnd: () {
+        if (widget.id case final id?) CountUp._seen.add(id);
+        setState(() => _counted = true);
+      },
       builder: (context, v, _) => Text('${v.round()}', style: shown, semanticsLabel: '${widget.value}'),
     );
   }

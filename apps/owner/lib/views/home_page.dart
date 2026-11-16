@@ -136,7 +136,7 @@ class _Today extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CountUp(value, style: Theme.of(context).textTheme.headlineMedium),
+                            CountUp(value, id: label, style: Theme.of(context).textTheme.headlineMedium),
                             const SizedBox(height: 4),
                             Text(label.tr),
                           ],

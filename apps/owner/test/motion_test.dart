@@ -20,6 +20,14 @@ void main() {
     expect(find.text('41'), findsOneWidget, reason: 'a later change shows at once, with no second count');
   });
 
+  testWidgets('a named figure does not count again when its tab comes back', (tester) async {
+    await tester.pumpWidget(_host(const CountUp(12, id: 'leads')));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(_host(const SizedBox()));
+    await tester.pumpWidget(_host(const CountUp(12, id: 'leads')));
+    expect(find.text('12'), findsOneWidget);
+  });
+
   testWidgets('with reduce motion the figure is there at once', (tester) async {
     await tester.pumpWidget(_host(const CountUp(7), reduce: true));
     expect(find.text('7'), findsOneWidget);

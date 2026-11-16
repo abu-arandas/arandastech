@@ -73,6 +73,8 @@ export function Motion({ home, secret }: { home: string; secret: string }) {
 export function Celebrate({ kind, once }: { kind: Celebration; once?: string }) {
   useEffect(() => {
     const key = once ? `zirr-celebrated:${once}` : null;
+    // With reduced motion nothing is thrown, so nothing is used up either.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     try {
       if (key && sessionStorage.getItem(key)) return;
     } catch {
