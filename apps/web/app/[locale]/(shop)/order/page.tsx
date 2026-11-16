@@ -38,6 +38,12 @@ export default async function Order({
           <Celebrate kind="rain" once={`paid-${query.number ?? ''}`} />
         </>
       )}
+      {/* A payment that could not be confirmed says so plainly. */}
+      {query.error && !query.paid && (
+        <p className="error" role="alert">
+          {t('payFailed', locale)}
+        </p>
+      )}
       <form method="get" className="enter" style={{ animationDelay: '80ms' }}>
         <label>
           {t('orderNumber', locale)}

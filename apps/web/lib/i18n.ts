@@ -37,6 +37,10 @@ export const TEXT = {
   lookUp: { en: 'Look up', ar: 'ابحث' },
   notFound: { en: 'No order matches that number and email address.', ar: 'لا يوجد طلب بهذا الرقم وهذا البريد.' },
   paidThanks: { en: 'Thank you. Your payment was confirmed.', ar: 'شكراً لك. تم تأكيد الدفع.' },
+  payFailed: {
+    en: 'We could not confirm the payment, so the order is not paid. Please try again from the product page.',
+    ar: 'لم نتمكّن من تأكيد الدفع، لذلك لم يُدفع الطلب. يُرجى المحاولة مرة أخرى من صفحة المنتج.',
+  },
   demoBanner: { en: 'Demo mode: sample data and test payments only.', ar: 'وضع تجريبي: بيانات نموذجية ومدفوعات تجريبية فقط.' },
   testProduct: { en: 'Test product', ar: 'منتج تجريبي' },
   // The site's sense of humour: only on the not-found page, while a page loads, the logo's secret and the footer.

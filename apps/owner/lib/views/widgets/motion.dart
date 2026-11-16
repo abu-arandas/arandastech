@@ -77,21 +77,29 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
 }
 
 /// A whole number that counts up to [value] the first time it shows, then simply changes.
-class CountUp extends StatelessWidget {
+class CountUp extends StatefulWidget {
   const CountUp(this.value, {this.style, super.key});
 
   final int value;
   final TextStyle? style;
 
   @override
+  State<CountUp> createState() => _CountUpState();
+}
+
+class _CountUpState extends State<CountUp> {
+  var _counted = false;
+
+  @override
   Widget build(BuildContext context) {
-    final shown = style?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
-    if (reduceMotion(context)) return Text('$value', style: shown);
+    final shown = widget.style?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+    if (_counted || reduceMotion(context)) return Text('${widget.value}', style: shown);
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: value.toDouble()),
+      tween: Tween(begin: 0, end: widget.value.toDouble()),
       duration: Motion.slow + Motion.medium,
       curve: Curves.easeOutCubic,
-      builder: (context, v, _) => Text('${v.round()}', style: shown, semanticsLabel: '$value'),
+      onEnd: () => setState(() => _counted = true),
+      builder: (context, v, _) => Text('${v.round()}', style: shown, semanticsLabel: '${widget.value}'),
     );
   }
 }
