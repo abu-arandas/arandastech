@@ -25,6 +25,7 @@ const ar = <String, String>{
   'Flagged messages': 'رسائل مشبوهة',
   'Open alerts': 'تنبيهات مفتوحة',
   'Nothing is waiting for you.': 'لا شيء بانتظارك.',
+  'Inbox clear. Enjoy the quiet.': 'لا طلبات معلّقة. استمتع بالهدوء.',
   'Level': 'المستوى',
   'Requested by': 'طلبه',
   'Recipient': 'المستلم',

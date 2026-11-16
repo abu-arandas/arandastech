@@ -8,9 +8,13 @@ async function pay(formData: FormData): Promise<void> {
   const raw = String(formData.get('locale'));
   const locale: Locale = isLocale(raw) ? raw : 'en';
   // Stands in for the payment provider: it sends the platform a signed notice, as a real provider would.
-  const result = await call<{ order_number: string }>('POST', '/api/demo/pay', { session: String(formData.get('session')) });
+  const result = await call<{ order_number: string }>('POST', '/api/demo/pay', {
+    session: String(formData.get('session')),
+  });
   // The buyer leaves with the order number already filled in, so they can look the order up straight away.
-  redirect(`/${locale}/order?${result.ok ? `paid=1&number=${encodeURIComponent(result.data.order_number)}` : 'error=1'}`);
+  redirect(
+    `/${locale}/order?${result.ok ? `paid=1&number=${encodeURIComponent(result.data.order_number)}` : 'error=1'}`,
+  );
 }
 
 export default async function Pay({ params }: { params: Promise<{ locale: string; session: string }> }) {
@@ -19,9 +23,11 @@ export default async function Pay({ params }: { params: Promise<{ locale: string
   if (process.env.DEMO_MODE !== 'true') notFound();
   return (
     <>
-      <h1>{t('testPayment', locale)}</h1>
-      <p className="notice">{t('testPaymentNote', locale)}</p>
-      <form action={pay}>
+      <h1 className="enter">{t('testPayment', locale)}</h1>
+      <p className="notice enter" style={{ animationDelay: '80ms' }}>
+        {t('testPaymentNote', locale)}
+      </p>
+      <form action={pay} className="enter" style={{ animationDelay: '160ms' }}>
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="session" value={session} />
         <button type="submit">{t('payNow', locale)}</button>
