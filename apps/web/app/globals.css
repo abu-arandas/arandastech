@@ -104,7 +104,8 @@ footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-betwe
 @keyframes roll-in { from { translate: calc(var(--from) * 180px) 0; rotate: calc(var(--from) * -540deg); } }
 @keyframes hop { 50% { translate: 0 -28px; } }
 @keyframes draw { from { stroke-dashoffset: 1; } }
-@keyframes toast { from { opacity: 0; translate: -50% 16px; } }
+@keyframes toast { from { opacity: 0; translate: 0 16px; } }
+@keyframes fade { from { opacity: 0; } }
 
 /* The header's stitch sews itself in from the start edge, once, as the page opens. */
 header.site::after { animation: sew 700ms var(--enter) 250ms both; }
@@ -119,7 +120,8 @@ header.site .brand.shake svg { animation: wiggle 520ms var(--ease); }
 
 /* A page's title rises word by word, and what follows comes in after it. */
 .rise .w { display: inline-block; animation: rise var(--t-slow) var(--enter) both; animation-delay: calc(80ms + var(--i) * var(--stagger)); }
-.enter { animation: rise var(--t-slow) var(--enter) both; animation-delay: var(--d, 0ms); }
+/* Checkout, payment and order look-up are calm: they only fade in. */
+.enter { animation: fade var(--t-slow) var(--enter) both; animation-delay: var(--d, 0ms); }
 
 /* Scroll reveals, once each: only when the script that plays them is there (html.js-motion, set in the layout). If it
    has not started after three seconds, nothing stays hidden. */
@@ -141,11 +143,11 @@ header.site .brand.shake svg { animation: wiggle 520ms var(--ease); }
 
 /* The logo's secret says thanks here. */
 .toast {
-  position: fixed; inset-block-end: 24px; inset-inline-start: 50%; translate: -50% 0; z-index: 20;
+  /* Centred by its margins, so it sits in the middle in both directions and only rises as it comes in. */
+  position: fixed; inset-block-end: 24px; inset-inline: 0; margin-inline: auto; width: fit-content; max-width: calc(100% - 32px); z-index: 20;
   background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 12px; box-shadow: var(--shadow-lift);
   animation: toast var(--t-slow) var(--pop) both;
 }
-[dir='rtl'] .toast { inset-inline-start: auto; inset-inline-end: 50%; translate: 50% 0; }
 
 /* The lost button on the not-found page rolls in from the end of the line; clicked, it hops. */
 .lost { display: grid; justify-items: center; text-align: center; gap: 12px; padding-block: 32px; }

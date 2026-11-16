@@ -72,16 +72,24 @@ export function Motion({ home, secret }: { home: string; secret: string }) {
  */
 export function Celebrate({ kind, once }: { kind: Celebration; once?: string }) {
   useEffect(() => {
-    if (once) {
-      const key = `zirr-celebrated:${once}`;
-      try {
-        if (sessionStorage.getItem(key)) return;
-        sessionStorage.setItem(key, '1');
-      } catch {
-        // Private windows may refuse storage; celebrating twice is fine.
-      }
+    const key = once ? `zirr-celebrated:${once}` : null;
+    // With reduced motion nothing is thrown, so nothing is used up either.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    try {
+      if (key && sessionStorage.getItem(key)) return;
+    } catch {
+      // Private windows may refuse storage; celebrating twice is fine.
     }
-    const timer = window.setTimeout(() => celebrate(kind), 250);
+    // The moment is marked as celebrated only when the confetti is actually thrown, so leaving the page within the
+    // first quarter second does not use it up.
+    const timer = window.setTimeout(() => {
+      try {
+        if (key) sessionStorage.setItem(key, '1');
+      } catch {
+        // As above.
+      }
+      celebrate(kind);
+    }, 250);
     return () => window.clearTimeout(timer);
   }, [kind, once]);
   return null;

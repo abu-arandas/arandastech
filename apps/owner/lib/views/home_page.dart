@@ -80,11 +80,12 @@ class _HomePageState extends State<HomePage> {
           destinations: [
             for (var i = 0; i < tabs.length; i++)
               NavigationDestination(
-                // The count pops when a new request lands.
-                icon: i == 1 && c.approvals.isNotEmpty
+                // The count pops when a new request lands, the first one included (the badge is always there, only
+                // hidden at zero, so going from none to one is a change it sees).
+                icon: i == 1
                     ? PopOnChange(
                         value: c.approvals.length,
-                        child: Badge(label: Text('${c.approvals.length}'), child: Icon(icons[i])),
+                        child: Badge(isLabelVisible: c.approvals.isNotEmpty, label: Text('${c.approvals.length}'), child: Icon(icons[i])),
                       )
                     : Icon(icons[i]),
                 label: tabs[i].tr,
@@ -135,7 +136,7 @@ class _Today extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CountUp(value, style: Theme.of(context).textTheme.headlineMedium),
+                            CountUp(value, id: label, style: Theme.of(context).textTheme.headlineMedium),
                             const SizedBox(height: 4),
                             Text(label.tr),
                           ],
@@ -340,38 +341,36 @@ class _Money extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          for (final (i, s) in summaries.indexed)
-            Appear(
-              delay: Motion.stagger * i,
-              child: Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(s['currency'] as String, style: Theme.of(context).textTheme.titleLarge),
-                      const SizedBox(height: 4),
-                      Text(
-                        (_status[s['status']] ?? s['status'] as String).tr,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: s['status'] == 'not_safe_to_spend' ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
-                        ),
+          // Money never moves: the cards are simply there.
+          for (final s in summaries)
+            Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s['currency'] as String, style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 4),
+                    Text(
+                      (_status[s['status']] ?? s['status'] as String).tr,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: s['status'] == 'not_safe_to_spend' ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
                       ),
-                      const Divider(height: 24),
-                      // Pending money is shown apart from the waterfall: it is not the company's yet.
-                      _line(context, 'Pending'.tr, s['pending_revenue'] as int, s['currency'] as String, muted: true),
-                      for (final (key, label) in _lines)
-                        _line(
-                          context,
-                          label.tr,
-                          (s['waterfall'] as Json)[key] as int,
-                          s['currency'] as String,
-                          strong: key == 'available_cash' || key == 'confirmed_net_profit',
-                        ),
-                    ],
-                  ),
+                    ),
+                    const Divider(height: 24),
+                    // Pending money is shown apart from the waterfall: it is not the company's yet.
+                    _line(context, 'Pending'.tr, s['pending_revenue'] as int, s['currency'] as String, muted: true),
+                    for (final (key, label) in _lines)
+                      _line(
+                        context,
+                        label.tr,
+                        (s['waterfall'] as Json)[key] as int,
+                        s['currency'] as String,
+                        strong: key == 'available_cash' || key == 'confirmed_net_profit',
+                      ),
+                  ],
                 ),
               ),
             ),
