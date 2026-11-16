@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import localFont from 'next/font/local';
 import { notFound } from 'next/navigation';
 import { isLocale, t } from '@/lib/i18n';
+import { Motion } from '@/app/_components/motion';
 import '../globals.css';
 
 /** Rubik, the house font for Arabic and English (SIL Open Font License 1.1), served from this site. */
@@ -21,6 +22,12 @@ function Mark() {
   );
 }
 
+/**
+ * Runs before the first paint: marks the page as one whose reveals the script will play, unless the visitor asked for
+ * reduced motion. Without it (no JavaScript) everything simply shows.
+ */
+const MOTION = `if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('js-motion')`;
+
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
@@ -29,12 +36,21 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return { title: `${t('brand', locale)} · ${t('tagline', locale)}`, description: t('intro', locale) };
 }
 
-export default async function LocaleLayout({ children, params }: { children: ReactNode; params: Promise<{ locale: string }> }) {
+export default async function LocaleLayout({
+  children,
+  params,
+}: {
+  children: ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const other = locale === 'en' ? 'ar' : 'en';
   return (
-    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} className={rubik.variable}>
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} className={rubik.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: MOTION }} />
+      </head>
       <body>
         {process.env.DEMO_MODE === 'true' && <div className="banner">{t('demoBanner', locale)}</div>}
         <header className="site">
@@ -48,11 +64,22 @@ export default async function LocaleLayout({ children, params }: { children: Rea
               <a href={`/${locale}#products`}>{t('products', locale)}</a>
               <a href={`/${locale}/contact`}>{t('contact', locale)}</a>
               <a href={`/${locale}/order`}>{t('orderStatus', locale)}</a>
-              <a href={`/${other}`} lang={other}>{t('otherLanguage', locale)}</a>
+              <a href={`/${other}`} lang={other}>
+                {t('otherLanguage', locale)}
+              </a>
             </nav>
           </div>
         </header>
         <main className="wrap">{children}</main>
+        <footer className="site">
+          <div className="wrap">
+            <span>
+              © {new Date().getFullYear()} {t('brand', locale)}
+            </span>
+            <span>{t('smile', locale)}</span>
+          </div>
+        </footer>
+        <Motion home={`/${locale}`} secret={t('secret', locale)} />
       </body>
     </html>
   );

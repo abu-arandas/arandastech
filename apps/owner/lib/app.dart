@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart' as legacy;
 import 'package:get/get.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'config/brand.dart';
 import 'controllers/owner_controller.dart';
 import 'l10n/translations.dart';
 import 'views/home_page.dart';
 import 'views/sign_in_page.dart';
+import 'views/widgets/motion.dart';
 
 class OwnerApp extends StatelessWidget {
   const OwnerApp({required this.controller, super.key});
@@ -62,8 +63,6 @@ class OwnerApp extends StatelessWidget {
   Widget build(BuildContext context) => GetMaterialApp(
     title: Brand.name,
     debugShowCheckedModeBanner: false,
-    theme: _theme(Brightness.light),
-    darkTheme: _theme(Brightness.dark),
     initialBinding: BindingsBuilder(() {
       Get.put(controller);
     }),
@@ -71,7 +70,29 @@ class OwnerApp extends StatelessWidget {
     locale: controller.locale.value,
     fallbackLocale: const Locale('en'),
     supportedLocales: const [Locale('en'), Locale('ar')],
-    localizationsDelegates: const [GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate],
-    home: Obx(() => controller.signedIn ? const HomePage() : const SignInPage()),
+    localizationsDelegates: const [
+      // The material_ui delegates (they bring the Cupertino and Widgets ones too) for the pages...
+      ...GlobalMaterialLocalizations.delegates,
+      // ...and the old ones for the flutter/material app GetX 4.7.3 builds underneath. Remove with GetX's move.
+      // ignore: deprecated_member_use
+      legacy.GlobalMaterialLocalizations.delegate,
+      // ignore: deprecated_member_use
+      legacy.GlobalCupertinoLocalizations.delegate,
+    ],
+    // GetX 4.7.3 still builds a legacy (flutter/material) MaterialApp, so its theme: parameter cannot take a
+    // material_ui ThemeData. The material_ui theme and snack-bar host are given to the pages here instead.
+    builder: (context, child) => Theme(
+      data: _theme(MediaQuery.platformBrightnessOf(context)),
+      child: ScaffoldMessenger(child: child ?? const SizedBox.shrink()),
+    ),
+    // Signing in and out cross-fades between the two screens.
+    home: Obx(
+      () => AnimatedSwitcher(
+        duration: Motion.medium,
+        switchInCurve: Motion.enter,
+        switchOutCurve: Motion.exit,
+        child: controller.signedIn ? const HomePage(key: ValueKey('home')) : const SignInPage(key: ValueKey('sign-in')),
+      ),
+    ),
   );
 }

@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../controllers/owner_controller.dart';
 import 'widgets/brand_mark.dart';
+import 'widgets/motion.dart';
 
 /// Connects the app to a platform with the owner token, or opens the demo.
 class SignInPage extends StatefulWidget {
@@ -37,10 +38,18 @@ class _SignInPageState extends State<SignInPage> {
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
+            // The form comes in calmly, top to bottom.
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Owner app'.tr, style: Theme.of(context).textTheme.headlineSmall),
+                const Appear(
+                  child: Align(alignment: AlignmentDirectional.centerStart, child: BrandMark(size: 56)),
+                ),
+                const SizedBox(height: 16),
+                Appear(
+                  delay: Motion.stagger,
+                  child: Text('Owner app'.tr, style: Theme.of(context).textTheme.headlineSmall),
+                ),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _url,

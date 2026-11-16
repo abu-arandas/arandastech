@@ -1,12 +1,13 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../config/money.dart';
 import '../controllers/owner_controller.dart';
 import '../services/api.dart';
 import 'widgets/brand_mark.dart';
+import 'widgets/motion.dart';
 
 /// The owner's four screens. The pause control is on every one of them (blueprint 8.2).
 class HomePage extends StatefulWidget {
@@ -62,7 +63,15 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            Expanded(child: [const _Today(), const _Approvals(), const _Money(), const _Activity()][_tab]),
+            // Tabs fade through, quickly: this is a tool, not a show.
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: Motion.medium,
+                switchInCurve: Motion.enter,
+                switchOutCurve: Motion.exit,
+                child: KeyedSubtree(key: ValueKey(_tab), child: [const _Today(), const _Approvals(), const _Money(), const _Activity()][_tab]),
+              ),
+            ),
           ],
         ),
         bottomNavigationBar: NavigationBar(
@@ -71,7 +80,13 @@ class _HomePageState extends State<HomePage> {
           destinations: [
             for (var i = 0; i < tabs.length; i++)
               NavigationDestination(
-                icon: i == 1 && c.approvals.isNotEmpty ? Badge(label: Text('${c.approvals.length}'), child: Icon(icons[i])) : Icon(icons[i]),
+                // The count pops when a new request lands.
+                icon: i == 1 && c.approvals.isNotEmpty
+                    ? PopOnChange(
+                        value: c.approvals.length,
+                        child: Badge(label: Text('${c.approvals.length}'), child: Icon(icons[i])),
+                      )
+                    : Icon(icons[i]),
                 label: tabs[i].tr,
               ),
           ],
@@ -108,19 +123,23 @@ class _Today extends StatelessWidget {
             spacing: 12,
             runSpacing: 12,
             children: [
-              for (final (label, value) in tiles)
+              // The tiles come in a step apart and their figures count up once.
+              for (final (i, (label, value)) in tiles.indexed)
                 SizedBox(
                   width: 168,
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('$value', style: Theme.of(context).textTheme.headlineMedium),
-                          const SizedBox(height: 4),
-                          Text(label.tr),
-                        ],
+                  child: Appear(
+                    delay: Motion.stagger * i,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CountUp(value, style: Theme.of(context).textTheme.headlineMedium),
+                            const SizedBox(height: 4),
+                            Text(label.tr),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -185,12 +204,30 @@ class _Approvals extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Get.find<OwnerController>();
     return Obx(() {
-      if (c.approvals.isEmpty) return Center(child: Text('Nothing is waiting for you.'.tr));
+      // The one small celebration: a cleared inbox gets a tick that draws itself.
+      if (c.approvals.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const DrawnTick(),
+              const SizedBox(height: 16),
+              Text('Nothing is waiting for you.'.tr, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Appear(
+                delay: Motion.slow,
+                child: Text('Inbox clear. Enjoy the quiet.'.tr, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ),
+            ],
+          ),
+        );
+      }
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          for (final request in c.approvals)
+          for (final (i, request) in c.approvals.indexed)
             Builder(
+              key: ValueKey(request['id']),
               builder: (context) {
                 final action = request['action'] as Json;
                 final level = request['level'] as int;
@@ -210,55 +247,61 @@ class _Approvals extends StatelessWidget {
                     ),
                   ),
                 );
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Chip(label: Text('${'Level'.tr} $level'), backgroundColor: level == 3 ? scheme.errorContainer : scheme.secondaryContainer),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(action['action_type'] as String, style: Theme.of(context).textTheme.labelMedium)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(action['summary'] as String, style: Theme.of(context).textTheme.titleMedium),
-                        if (action['untrusted_input'] == true)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              'Prompted by outside content. Read it carefully.'.tr,
-                              style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600),
-                            ),
+                return Appear(
+                  delay: Motion.stagger * i,
+                  child: Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Chip(label: Text('${'Level'.tr} $level'), backgroundColor: level == 3 ? scheme.errorContainer : scheme.secondaryContainer),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(action['action_type'] as String, style: Theme.of(context).textTheme.labelMedium)),
+                            ],
                           ),
-                        row('Requested by', '${action['requested_by_kind']} ${action['requested_by_id'] ?? ''}'),
-                        if (action['recipient'] != null) row('Recipient', action['recipient'] as String),
-                        if (cost > 0) row('Cost', formatMoney(cost, action['currency'] as String)),
-                        row('Risk', action['risk'] as String),
-                        row('Expected result', action['expected_result'] as String),
-                        row('Expires', request['expires_at'] as String),
-                        const SizedBox(height: 12),
-                        Text('Exactly what will be sent'.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(top: 6),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
-                          child: SelectableText(const JsonEncoder.withIndent('  ').convert(action['payload'])),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            FilledButton(onPressed: () => level == 3 ? _confirm(context, c, request) : c.decide(request, 'approve'), child: Text('Approve'.tr)),
-                            OutlinedButton(onPressed: () => c.decide(request, 'reject'), child: Text('Reject'.tr)),
-                            TextButton(onPressed: () => c.decide(request, 'postpone'), child: Text('Postpone'.tr)),
-                          ],
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(action['summary'] as String, style: Theme.of(context).textTheme.titleMedium),
+                          if (action['untrusted_input'] == true)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                'Prompted by outside content. Read it carefully.'.tr,
+                                style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          row('Requested by', '${action['requested_by_kind']} ${action['requested_by_id'] ?? ''}'),
+                          if (action['recipient'] != null) row('Recipient', action['recipient'] as String),
+                          if (cost > 0) row('Cost', formatMoney(cost, action['currency'] as String)),
+                          row('Risk', action['risk'] as String),
+                          row('Expected result', action['expected_result'] as String),
+                          row('Expires', request['expires_at'] as String),
+                          const SizedBox(height: 12),
+                          Text('Exactly what will be sent'.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+                            child: SelectableText(const JsonEncoder.withIndent('  ').convert(action['payload'])),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              FilledButton(
+                                onPressed: () => level == 3 ? _confirm(context, c, request) : c.decide(request, 'approve'),
+                                child: Text('Approve'.tr),
+                              ),
+                              OutlinedButton(onPressed: () => c.decide(request, 'reject'), child: Text('Reject'.tr)),
+                              TextButton(onPressed: () => c.decide(request, 'postpone'), child: Text('Postpone'.tr)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -297,35 +340,38 @@ class _Money extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          for (final s in summaries)
-            Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(s['currency'] as String, style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 4),
-                    Text(
-                      (_status[s['status']] ?? s['status'] as String).tr,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: s['status'] == 'not_safe_to_spend' ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
+          for (final (i, s) in summaries.indexed)
+            Appear(
+              delay: Motion.stagger * i,
+              child: Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(s['currency'] as String, style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 4),
+                      Text(
+                        (_status[s['status']] ?? s['status'] as String).tr,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: s['status'] == 'not_safe_to_spend' ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                    ),
-                    const Divider(height: 24),
-                    // Pending money is shown apart from the waterfall: it is not the company's yet.
-                    _line(context, 'Pending'.tr, s['pending_revenue'] as int, s['currency'] as String, muted: true),
-                    for (final (key, label) in _lines)
-                      _line(
-                        context,
-                        label.tr,
-                        (s['waterfall'] as Json)[key] as int,
-                        s['currency'] as String,
-                        strong: key == 'available_cash' || key == 'confirmed_net_profit',
-                      ),
-                  ],
+                      const Divider(height: 24),
+                      // Pending money is shown apart from the waterfall: it is not the company's yet.
+                      _line(context, 'Pending'.tr, s['pending_revenue'] as int, s['currency'] as String, muted: true),
+                      for (final (key, label) in _lines)
+                        _line(
+                          context,
+                          label.tr,
+                          (s['waterfall'] as Json)[key] as int,
+                          s['currency'] as String,
+                          strong: key == 'available_cash' || key == 'confirmed_net_profit',
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -347,7 +393,7 @@ class _Money extends StatelessWidget {
         Text(
           formatMoney(minor, currency),
           textDirection: TextDirection.ltr,
-          style: TextStyle(fontWeight: strong ? FontWeight.w700 : FontWeight.w400),
+          style: TextStyle(fontWeight: strong ? FontWeight.w700 : FontWeight.w400, fontFeatures: const [FontFeature.tabularFigures()]),
         ),
       ],
     ),
