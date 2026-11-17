@@ -7,7 +7,8 @@ import { createPlatform, install } from '../src/platform';
 
 const url = new URL(process.env.DATABASE_URL ?? 'postgres://zirr:zirr@localhost:5432/zirr_dev');
 const name = url.pathname.slice(1);
-if (!/^[a-z0-9_]+$/.test(name) || !['localhost', '127.0.0.1'].includes(url.hostname)) throw new Error('db:reset only works on a local database');
+if (!/^[a-z0-9_]+$/.test(name) || !['localhost', '127.0.0.1'].includes(url.hostname))
+  throw new Error('db:reset only works on a local database');
 
 const adminUrl = new URL(url);
 adminUrl.pathname = '/postgres';

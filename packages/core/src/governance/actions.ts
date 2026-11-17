@@ -141,7 +141,11 @@ export const ACTION_SPECS = [
     type: 'github.merge_pull_request',
     connector: 'github',
     level: 2,
-    schema: z.strictObject({ repository: z.string().regex(/^[\w.-]+\/[\w.-]+$/), number: z.number().int().positive(), title: z.string().max(200) }),
+    schema: z.strictObject({
+      repository: z.string().regex(/^[\w.-]+\/[\w.-]+$/),
+      number: z.number().int().positive(),
+      title: z.string().max(200),
+    }),
     summarize: (p) => `Merge pull request #${p.number} in ${p.repository}: "${p.title}"`,
     reversible: true,
     risk: 'The change reaches the protected branch. It can be reverted with another commit.',
@@ -186,7 +190,12 @@ export const ACTION_SPECS = [
     type: 'payments.send_invoice',
     connector: 'payments',
     level: 2,
-    schema: z.strictObject({ ...money.shape, to: z.email(), description: z.string().min(1).max(500), package_id: z.string().max(80).optional() }),
+    schema: z.strictObject({
+      ...money.shape,
+      to: z.email(),
+      description: z.string().min(1).max(500),
+      package_id: z.string().max(80).optional(),
+    }),
     summarize: (p) => `Send an invoice for ${formatMoney(p.amount_minor, p.currency)} to ${p.to}`,
     recipient: (p) => p.to,
     reversible: true,
@@ -198,7 +207,14 @@ export const ACTION_SPECS = [
     type: 'payments.refund',
     connector: 'payments',
     level: 3,
-    schema: z.strictObject({ ...money.shape, refund_id: z.uuid(), order_id: z.uuid(), payment_ref: z.string().min(1), to: z.email(), reason: z.string().min(3).max(500) }),
+    schema: z.strictObject({
+      ...money.shape,
+      refund_id: z.uuid(),
+      order_id: z.uuid(),
+      payment_ref: z.string().min(1),
+      to: z.email(),
+      reason: z.string().min(3).max(500),
+    }),
     summarize: (p) => `Refund ${formatMoney(p.amount_minor, p.currency)} to ${p.to}`,
     recipient: (p) => p.to,
     cost: (p) => ({ amount: p.amount_minor, currency: p.currency }),
@@ -211,7 +227,15 @@ export const ACTION_SPECS = [
     type: 'supplier.place_order',
     connector: 'supplier',
     level: 3,
-    schema: z.strictObject({ ...money.shape, shipment_id: z.uuid(), order_id: z.uuid(), supplier_id: z.uuid(), supplier_name: z.string().min(1), items: z.array(z.strictObject({ sku: z.string(), quantity: z.number().int().positive() })).min(1), ship_to: z.string().min(1).max(500) }),
+    schema: z.strictObject({
+      ...money.shape,
+      shipment_id: z.uuid(),
+      order_id: z.uuid(),
+      supplier_id: z.uuid(),
+      supplier_name: z.string().min(1),
+      items: z.array(z.strictObject({ sku: z.string(), quantity: z.number().int().positive() })).min(1),
+      ship_to: z.string().min(1).max(500),
+    }),
     summarize: (p) => `Order from ${p.supplier_name} for ${formatMoney(p.amount_minor, p.currency)}`,
     recipient: (p) => p.supplier_name,
     cost: (p) => ({ amount: p.amount_minor, currency: p.currency }),
@@ -225,7 +249,11 @@ export const ACTION_SPECS = [
     type: 'data.delete',
     connector: 'platform',
     level: 3,
-    schema: z.strictObject({ record_type: z.string().min(1).max(60), record_id: z.string().min(1).max(100), reason: z.string().min(10).max(500) }),
+    schema: z.strictObject({
+      record_type: z.string().min(1).max(60),
+      record_id: z.string().min(1).max(100),
+      reason: z.string().min(10).max(500),
+    }),
     summarize: (p) => `Delete ${p.record_type} ${p.record_id}`,
     reversible: false,
     risk: 'Deleted data cannot be restored except from a backup.',
@@ -234,7 +262,9 @@ export const ACTION_SPECS = [
   }),
 ] as const;
 
-const registry = new Map<string, ActionSpec<never>>(ACTION_SPECS.map((spec) => [spec.type, spec as unknown as ActionSpec<never>]));
+const registry = new Map<string, ActionSpec<never>>(
+  ACTION_SPECS.map((spec) => [spec.type, spec as unknown as ActionSpec<never>]),
+);
 
 export function actionSpec(type: string): ActionSpec<Record<string, unknown>> | null {
   return (registry.get(type) as unknown as ActionSpec<Record<string, unknown>> | undefined) ?? null;
@@ -250,9 +280,19 @@ export const CONNECTORS = [
   { id: 'gmail', name: 'Gmail', status: 'built', note: 'Mock only. Needs a company mailbox and Google authorization.' },
   { id: 'whatsapp', name: 'WhatsApp', status: 'built', note: 'Mock only. Needs a WhatsApp Business Platform number.' },
   { id: 'buffer', name: 'Buffer', status: 'built', note: 'Mock only. Needs the owner to connect a Buffer account.' },
-  { id: 'github', name: 'GitHub', status: 'built', note: 'Mock only. Needs a GitHub App installed on the repositories.' },
+  {
+    id: 'github',
+    name: 'GitHub',
+    status: 'built',
+    note: 'Mock only. Needs a GitHub App installed on the repositories.',
+  },
   { id: 'vercel', name: 'Vercel', status: 'built', note: 'Mock only. Needs an access token limited to the team.' },
-  { id: 'payments', name: 'Payments', status: 'built', note: 'Mock provider. Needs a live provider that can receive and withdraw in Jordan.' },
+  {
+    id: 'payments',
+    name: 'Payments',
+    status: 'built',
+    note: 'Mock provider. Needs a live provider that can receive and withdraw in Jordan.',
+  },
   { id: 'supplier', name: 'Suppliers', status: 'built', note: 'Mock supplier. Needed only for physical products.' },
   { id: 'facebook', name: 'Facebook and Meta', status: 'planned', note: 'Publishing goes through Buffer first.' },
   { id: 'linkedin', name: 'LinkedIn', status: 'planned', note: 'Publishing goes through Buffer first.' },

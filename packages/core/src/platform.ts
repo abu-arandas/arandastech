@@ -24,11 +24,18 @@ export interface Platform {
 }
 
 /** Builds the platform around one database. Every connector is a mock until the owner connects a live account. */
-export function createPlatform(db: Db, config: PlatformConfig, overrides: { clock?: Clock; connectors?: Record<string, Connector> } = {}): Platform {
+export function createPlatform(
+  db: Db,
+  config: PlatformConfig,
+  overrides: { clock?: Clock; connectors?: Record<string, Connector> } = {},
+): Platform {
   const clock = overrides.clock ?? systemClock;
   const connectors = overrides.connectors ?? createMockConnectors();
   const gateway = new Gateway(db, connectors, clock);
-  const store = new Store(db, gateway, clock, { webhookSecrets: config.webhookSecrets, allowTestProducts: config.demo });
+  const store = new Store(db, gateway, clock, {
+    webhookSecrets: config.webhookSecrets,
+    allowTestProducts: config.demo,
+  });
   return { db, clock, config, connectors, gateway, store };
 }
 

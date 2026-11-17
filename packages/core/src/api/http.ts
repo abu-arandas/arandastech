@@ -78,7 +78,11 @@ export function parseJson(body: string): Record<string, unknown> {
 }
 
 export function errorResponse(error: unknown): ApiResponse {
-  if (error instanceof AppError) return { status: error.status, body: { error: { code: error.code, message: error.message, detail: error.detail ?? null } } };
+  if (error instanceof AppError)
+    return {
+      status: error.status,
+      body: { error: { code: error.code, message: error.message, detail: error.detail ?? null } },
+    };
   // Never show an internal error to the caller: it can carry details an outsider should not see.
   return { status: 500, body: { error: { code: 'internal', message: 'Something went wrong on our side.' } } };
 }

@@ -15,7 +15,11 @@ export interface TestPlatform {
   mocks: Record<string, MockConnector>;
   clock: ReturnType<typeof testClock>;
   /** Delivers a signed provider notice, as the mock payment provider would. */
-  paymentEvent(type: string, data: Record<string, unknown>, id?: string): Promise<{ duplicate: boolean; result: string }>;
+  paymentEvent(
+    type: string,
+    data: Record<string, unknown>,
+    id?: string,
+  ): Promise<{ duplicate: boolean; result: string }>;
   supplierEvent(type: string, data: Record<string, unknown>): Promise<{ duplicate: boolean; result: string }>;
 }
 
@@ -24,7 +28,11 @@ export async function createTestPlatform(): Promise<TestPlatform> {
   const test = await createTestDb();
   const clock = testClock();
   const mocks = createMockConnectors();
-  const platform = createPlatform(test.db, { demo: true, webhookSecrets: SECRETS }, { clock: clock.now, connectors: mocks });
+  const platform = createPlatform(
+    test.db,
+    { demo: true, webhookSecrets: SECRETS },
+    { clock: clock.now, connectors: mocks },
+  );
   await install(platform);
   return {
     test,

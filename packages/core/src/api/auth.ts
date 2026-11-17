@@ -33,7 +33,9 @@ export async function authenticate(db: Db, config: AuthConfig, headers: Record<s
   if (config.ownerToken && config.ownerUserId && sameToken(token, config.ownerToken)) userId = config.ownerUserId;
   else if (config.supabaseJwtSecret) {
     try {
-      const { payload } = await jwtVerify(token, new TextEncoder().encode(config.supabaseJwtSecret), { algorithms: ['HS256'] });
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(config.supabaseJwtSecret), {
+        algorithms: ['HS256'],
+      });
       userId = typeof payload.sub === 'string' ? payload.sub : null;
     } catch {
       throw unauthorized();
@@ -41,7 +43,9 @@ export async function authenticate(db: Db, config: AuthConfig, headers: Record<s
   }
   if (!userId) throw unauthorized();
 
-  const staff = (await db.query<{ role: string }>('select role from staff_members where user_id = $1 and active', [userId]))[0];
+  const staff = (
+    await db.query<{ role: string }>('select role from staff_members where user_id = $1 and active', [userId])
+  )[0];
   if (!staff) throw new AppError('forbidden', 'This account is not on the team.', 403);
   return { kind: 'staff', actor: { kind: 'person', id: userId }, isOwner: staff.role === 'owner' };
 }
