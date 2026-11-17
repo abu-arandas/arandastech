@@ -14,7 +14,14 @@ export async function audit(db: Db, entry: AuditEntry): Promise<void> {
   await db.query(
     `insert into audit_events (actor_kind, actor_id, event_type, subject_type, subject_id, data)
      values ($1, $2, $3, $4, $5, $6::jsonb)`,
-    [entry.actor.kind, entry.actor.id, entry.type, entry.subject?.type ?? null, entry.subject?.id ?? null, json(entry.data ?? {})],
+    [
+      entry.actor.kind,
+      entry.actor.id,
+      entry.type,
+      entry.subject?.type ?? null,
+      entry.subject?.id ?? null,
+      json(entry.data ?? {}),
+    ],
   );
 }
 

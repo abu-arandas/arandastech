@@ -7,7 +7,10 @@ export const TEXT = {
   brand: { en: 'Zirr', ar: 'زِرّ' },
   // The name as the logo spells it: all lower case in English.
   wordmark: { en: 'zirr', ar: 'زِرّ' },
-  tagline: { en: 'Flutter apps for agencies, and the products to start them from', ar: 'تطبيقات Flutter للوكالات، ومنتجات جاهزة تبدأ منها' },
+  tagline: {
+    en: 'Flutter apps for agencies, and the products to start them from',
+    ar: 'تطبيقات Flutter للوكالات، ومنتجات جاهزة تبدأ منها',
+  },
   intro: {
     en: 'A Flutter and Supabase studio in Amman. We build Arabic and English apps under your agency’s name, and we make our own products for shops that you can license and ship.',
     ar: 'استوديو Flutter وSupabase في عمّان. نبني تطبيقات بالعربي والإنجليزي باسم وكالتك، ونصنع منتجاتنا الخاصة لمحلات التجزئة لتشتري ترخيصها وتطلقها.',
@@ -25,7 +28,10 @@ export const TEXT = {
   phone: { en: 'Phone (optional)', ar: 'الهاتف (اختياري)' },
   message: { en: 'What do you need?', ar: 'ماذا تحتاج؟' },
   send: { en: 'Send', ar: 'أرسل' },
-  leadThanks: { en: 'Thank you. We have your message and will reply by email.', ar: 'شكراً لك. وصلتنا رسالتك وسنردّ عليك بالبريد.' },
+  leadThanks: {
+    en: 'Thank you. We have your message and will reply by email.',
+    ar: 'شكراً لك. وصلتنا رسالتك وسنردّ عليك بالبريد.',
+  },
   checkout: { en: 'Checkout', ar: 'إتمام الطلب' },
   total: { en: 'Total', ar: 'المجموع' },
   address: { en: 'Delivery address', ar: 'عنوان التوصيل' },
@@ -41,7 +47,10 @@ export const TEXT = {
     en: 'We could not confirm the payment, so the order is not paid. Please try again from the product page.',
     ar: 'لم نتمكّن من تأكيد الدفع، لذلك لم يُدفع الطلب. يُرجى المحاولة مرة أخرى من صفحة المنتج.',
   },
-  demoBanner: { en: 'Demo mode: sample data and test payments only.', ar: 'وضع تجريبي: بيانات نموذجية ومدفوعات تجريبية فقط.' },
+  demoBanner: {
+    en: 'Demo mode: sample data and test payments only.',
+    ar: 'وضع تجريبي: بيانات نموذجية ومدفوعات تجريبية فقط.',
+  },
   testProduct: { en: 'Test product', ar: 'منتج تجريبي' },
   // The site's sense of humour: only on the not-found page, while a page loads, the logo's secret and the footer.
   // Never on prices, payment, orders or errors. The Arabic is written as Arabic, not translated word for word.
@@ -73,7 +82,8 @@ export const TEXT = {
 
 export type TextKey = keyof typeof TEXT;
 export const t = (key: TextKey, locale: Locale): string => TEXT[key][locale];
-export const pick = (text: { en: string; ar: string } | undefined, locale: Locale): string => (text ? text[locale] || text.en : '');
+export const pick = (text: { en: string; ar: string } | undefined, locale: Locale): string =>
+  text ? text[locale] || text.en : '';
 
 const EXPONENT: Record<string, number> = { JOD: 3, USD: 2, EUR: 2 };
 /** "59.00 USD" or "5.000 JOD", from whole minor units. */

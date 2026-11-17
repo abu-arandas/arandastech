@@ -4,7 +4,14 @@ import { conflict, notFound } from '../lib/errors';
 import { payloadHash } from '../lib/hash';
 import type { Actor, Clock } from '../lib/types';
 import { actionSpec } from './actions';
-import { type ActionRow, type ApprovalRequestRow, createApprovalRequest, decideApproval, type DecisionInput, expireDueApprovals } from './approvals';
+import {
+  type ActionRow,
+  type ApprovalRequestRow,
+  createApprovalRequest,
+  decideApproval,
+  type DecisionInput,
+  expireDueApprovals,
+} from './approvals';
 import { audit } from './audit';
 import { activePause, type PauseTarget } from './pause';
 import { evaluate, type Guard } from './policy';
@@ -12,7 +19,11 @@ import { noteRuleFailure, recordRuleUse } from './rules';
 import { getPolicy } from './settings';
 
 /** Runs in the platform itself for actions on the `platform` connector, such as publishing a product. */
-export type InternalHandler = (db: Db, payload: Record<string, unknown>, action: ActionRow) => Promise<Record<string, unknown>>;
+export type InternalHandler = (
+  db: Db,
+  payload: Record<string, unknown>,
+  action: ActionRow,
+) => Promise<Record<string, unknown>>;
 /** Runs after an action has executed, to record what it changed: a ledger posting, an order status. */
 export type Effect = (db: Db, action: ActionRow, result: Record<string, unknown>) => Promise<void>;
 
@@ -80,15 +91,27 @@ export class Gateway {
 
   async propose(proposal: Proposal): Promise<ProposalResult> {
     const now = this.clock();
-    const untrusted = proposal.untrustedInput === true || (proposal.requester.kind === 'agent' && (await this.readOutsideContentRecently(proposal.requester.id, now)));
-    const decision = await evaluate(this.db, proposal.type, proposal.payload, { requester: proposal.requester, untrustedInput: untrusted, now }, this.guardsFor(proposal.type));
+    const untrusted =
+      proposal.untrustedInput === true ||
+      (proposal.requester.kind === 'agent' && (await this.readOutsideContentRecently(proposal.requester.id, now)));
+    const decision = await evaluate(
+      this.db,
+      proposal.type,
+      proposal.payload,
+      { requester: proposal.requester, untrustedInput: untrusted, now },
+      this.guardsFor(proposal.type),
+    );
     const hash = payloadHash(decision.payload);
     // Without an explicit key, the same action proposed twice on one day is one action (duplicate-action detection).
     const key = proposal.idempotencyKey ?? `${proposal.type}:${hash}:${now.toISOString().slice(0, 10)}`;
 
-    const existing = maybeOne(await this.db.query<ActionRow>('select * from actions where idempotency_key = $1', [key]));
+    const existing = maybeOne(
+      await this.db.query<ActionRow>('select * from actions where idempotency_key = $1', [key]),
+    );
     if (existing) {
-      const request = maybeOne(await this.db.query<ApprovalRequestRow>('select * from approval_requests where action_id = $1', [existing.id]));
+      const request = maybeOne(
+        await this.db.query<ApprovalRequestRow>('select * from approval_requests where action_id = $1', [existing.id]),
+      );
       return { action: existing, request, duplicate: true };
     }
 
@@ -103,11 +126,32 @@ export class Gateway {
              standing_rule_id, idempotency_key, untrusted_input, decided_at, created_at)
            values ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15::jsonb, $16, $17, $18, $19, $20, $21, $22, $23, $24)
            returning *`,
-          [proposal.type, spec?.connector ?? 'platform', decision.level, decision.outcome, json(decision.payload), hash,
-            spec ? spec.summarize(decision.payload) : `Unknown action ${proposal.type}`, recipient, cost?.amount ?? 0, cost?.currency ?? null,
-            spec?.reversible ?? false, spec?.risk ?? '', spec ? spec.expected(decision.payload) : '', json(proposal.evidence ?? []),
-            json(decision.reasons), proposal.requester.kind, proposal.requester.id, proposal.agentRunId ?? null, proposal.taskId ?? null,
-            decision.rule?.id ?? null, key, untrusted, decision.outcome === 'pending' ? null : now, now],
+          [
+            proposal.type,
+            spec?.connector ?? 'platform',
+            decision.level,
+            decision.outcome,
+            json(decision.payload),
+            hash,
+            spec ? spec.summarize(decision.payload) : `Unknown action ${proposal.type}`,
+            recipient,
+            cost?.amount ?? 0,
+            cost?.currency ?? null,
+            spec?.reversible ?? false,
+            spec?.risk ?? '',
+            spec ? spec.expected(decision.payload) : '',
+            json(proposal.evidence ?? []),
+            json(decision.reasons),
+            proposal.requester.kind,
+            proposal.requester.id,
+            proposal.agentRunId ?? null,
+            proposal.taskId ?? null,
+            decision.rule?.id ?? null,
+            key,
+            untrusted,
+            decision.outcome === 'pending' ? null : now,
+            now,
+          ],
         ),
       );
       let request: ApprovalRequestRow | null = null;
@@ -117,7 +161,14 @@ export class Gateway {
         actor: proposal.requester,
         type: `action.${decision.outcome}`,
         subject: { type: 'action', id: action.id },
-        data: { action_type: action.action_type, level: action.level, payload_hash: hash, reasons: decision.reasons, rule_id: decision.rule?.id ?? null, request_id: request?.id ?? null },
+        data: {
+          action_type: action.action_type,
+          level: action.level,
+          payload_hash: hash,
+          reasons: decision.reasons,
+          rule_id: decision.rule?.id ?? null,
+          request_id: request?.id ?? null,
+        },
       });
       return { action, request };
     });
@@ -145,29 +196,48 @@ export class Gateway {
     const claimed = await this.db.tx(async (tx): Promise<{ action: ActionRow; run: boolean }> => {
       const action = maybeOne(await tx.query<ActionRow>('select * from actions where id = $1 for update', [actionId]));
       if (!action) throw notFound('action');
-      if (!['auto_approved', 'approved', 'failed'].includes(action.status)) throw conflict(`an action in status ${action.status} cannot run`);
-      if (action.status === 'failed' && action.attempts >= MAX_ATTEMPTS) throw conflict('this action has failed too many times');
+      if (!['auto_approved', 'approved', 'failed'].includes(action.status))
+        throw conflict(`an action in status ${action.status} cannot run`);
+      if (action.status === 'failed' && action.attempts >= MAX_ATTEMPTS)
+        throw conflict('this action has failed too many times');
       if (payloadHash(action.payload) !== action.payload_hash) throw conflict('the payload does not match its hash');
       const spec = actionSpec(action.action_type);
       if (!spec) throw conflict(`unknown action type ${action.action_type}`);
       if (action.level >= 2 && !action.standing_rule_id) {
-        const request = maybeOne(await tx.query<ApprovalRequestRow>('select * from approval_requests where action_id = $1', [action.id]));
-        if (!request || request.status !== 'approved' || request.payload_hash !== action.payload_hash) throw conflict('this action has no approval for its current payload');
+        const request = maybeOne(
+          await tx.query<ApprovalRequestRow>('select * from approval_requests where action_id = $1', [action.id]),
+        );
+        if (!request || request.status !== 'approved' || request.payload_hash !== action.payload_hash)
+          throw conflict('this action has no approval for its current payload');
       }
 
-      const targets: PauseTarget[] = [{ scope: 'connector', target: action.connector }, ...(spec.pauseScopes?.(action.payload) ?? [])];
-      if (action.requested_by_kind === 'agent' && action.requested_by_id) targets.push({ scope: 'department', target: action.requested_by_id });
+      const targets: PauseTarget[] = [
+        { scope: 'connector', target: action.connector },
+        ...(spec.pauseScopes?.(action.payload) ?? []),
+      ];
+      if (action.requested_by_kind === 'agent' && action.requested_by_id)
+        targets.push({ scope: 'department', target: action.requested_by_id });
       if (action.standing_rule_id) targets.push({ scope: 'rule', target: action.standing_rule_id });
       const paused = await activePause(tx, targets);
       if (paused) {
         const reason = `paused: ${paused.scope}${paused.target === '*' ? '' : ` ${paused.target}`}`;
         if (action.held_reason !== reason) {
           await tx.query('update actions set held_reason = $2 where id = $1', [action.id, reason]);
-          await audit(tx, { actor: { kind: 'system', id: null }, type: 'action.held', subject: { type: 'action', id: action.id }, data: { reason } });
+          await audit(tx, {
+            actor: { kind: 'system', id: null },
+            type: 'action.held',
+            subject: { type: 'action', id: action.id },
+            data: { reason },
+          });
         }
         return { action: { ...action, held_reason: reason }, run: false };
       }
-      const executing = one(await tx.query<ActionRow>(`update actions set status = 'executing', held_reason = null, attempts = attempts + 1, error = null where id = $1 returning *`, [action.id]));
+      const executing = one(
+        await tx.query<ActionRow>(
+          `update actions set status = 'executing', held_reason = null, attempts = attempts + 1, error = null where id = $1 returning *`,
+          [action.id],
+        ),
+      );
       return { action: executing, run: true };
     });
     if (!claimed.run) return claimed.action;
@@ -183,14 +253,27 @@ export class Gateway {
       } else {
         const connector = this.connectors[action.connector];
         if (!connector) throw new Error(`connector ${action.connector} is not available`);
-        result = await connector.execute(action.action_type, action.payload, { db: this.db, idempotencyKey: action.idempotency_key });
+        result = await connector.execute(action.action_type, action.payload, {
+          db: this.db,
+          idempotencyKey: action.idempotency_key,
+        });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return this.db.tx(async (tx) => {
-        const failed = one(await tx.query<ActionRow>(`update actions set status = 'failed', error = $2 where id = $1 returning *`, [action.id, message]));
+        const failed = one(
+          await tx.query<ActionRow>(`update actions set status = 'failed', error = $2 where id = $1 returning *`, [
+            action.id,
+            message,
+          ]),
+        );
         await tx.query(`update connectors set last_error = $2 where id = $1`, [action.connector, message]);
-        await audit(tx, { actor: { kind: 'system', id: null }, type: 'action.failed', subject: { type: 'action', id: action.id }, data: { error: message, attempt: failed.attempts } });
+        await audit(tx, {
+          actor: { kind: 'system', id: null },
+          type: 'action.failed',
+          subject: { type: 'action', id: action.id },
+          data: { error: message, attempt: failed.attempts },
+        });
         if (failed.standing_rule_id) await noteRuleFailure(tx, failed.standing_rule_id, { kind: 'system', id: null });
         return failed;
       });
@@ -198,9 +281,19 @@ export class Gateway {
 
     // Phase 3: record the result, then what it changed.
     const executed = await this.db.tx(async (tx) => {
-      const done = one(await tx.query<ActionRow>(`update actions set status = 'executed', result = $2::jsonb, executed_at = $3 where id = $1 returning *`, [action.id, json(result), this.clock()]));
+      const done = one(
+        await tx.query<ActionRow>(
+          `update actions set status = 'executed', result = $2::jsonb, executed_at = $3 where id = $1 returning *`,
+          [action.id, json(result), this.clock()],
+        ),
+      );
       await tx.query(`update connectors set last_ok_at = now(), last_error = null where id = $1`, [action.connector]);
-      await audit(tx, { actor: { kind: 'system', id: null }, type: 'action.executed', subject: { type: 'action', id: action.id }, data: { action_type: action.action_type, payload_hash: action.payload_hash, result } });
+      await audit(tx, {
+        actor: { kind: 'system', id: null },
+        type: 'action.executed',
+        subject: { type: 'action', id: action.id },
+        data: { action_type: action.action_type, payload_hash: action.payload_hash, result },
+      });
       return done;
     });
     for (const effect of this.effects.get(action.action_type) ?? []) {
@@ -209,11 +302,19 @@ export class Gateway {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         await this.db.tx(async (tx) => {
-          await tx.query(`insert into security_alerts (severity, kind, summary, detail) values ('critical', 'effect_failed', $1, $2::jsonb)`, [
-            `${action.action_type} ran, but recording its result failed. Reconcile it by hand.`,
-            json({ action_id: action.id, error: message }),
-          ]);
-          await audit(tx, { actor: { kind: 'system', id: null }, type: 'action.effect_failed', subject: { type: 'action', id: action.id }, data: { error: message } });
+          await tx.query(
+            `insert into security_alerts (severity, kind, summary, detail) values ('critical', 'effect_failed', $1, $2::jsonb)`,
+            [
+              `${action.action_type} ran, but recording its result failed. Reconcile it by hand.`,
+              json({ action_id: action.id, error: message }),
+            ],
+          );
+          await audit(tx, {
+            actor: { kind: 'system', id: null },
+            type: 'action.effect_failed',
+            subject: { type: 'action', id: action.id },
+            data: { error: message },
+          });
         });
       }
     }
@@ -222,10 +323,15 @@ export class Gateway {
 
   /** Lapses every request that has reached its expiry, and tells the domains whose actions lapsed. */
   async expireDue(): Promise<number> {
-    const before = await this.db.query<{ id: string }>(`select a.id from actions a join approval_requests r on r.action_id = a.id where r.status = 'pending' and r.expires_at <= $1`, [this.clock()]);
+    const before = await this.db.query<{ id: string }>(
+      `select a.id from actions a join approval_requests r on r.action_id = a.id where r.status = 'pending' and r.expires_at <= $1`,
+      [this.clock()],
+    );
     const count = await expireDueApprovals(this.db, this.clock());
     for (const { id } of before) {
-      const action = maybeOne(await this.db.query<ActionRow>(`select * from actions where id = $1 and status = 'expired'`, [id]));
+      const action = maybeOne(
+        await this.db.query<ActionRow>(`select * from actions where id = $1 and status = 'expired'`, [id]),
+      );
       if (action) await this.notifyRejected(action);
     }
     return count;
@@ -233,7 +339,9 @@ export class Gateway {
 
   /** Runs the actions a pause was holding. Called after the owner ends a pause. Held actions are kept, not dropped. */
   async releaseHeld(): Promise<ActionRow[]> {
-    const held = await this.db.query<{ id: string }>(`select id from actions where status in ('auto_approved', 'approved') and held_reason is not null order by created_at`);
+    const held = await this.db.query<{ id: string }>(
+      `select id from actions where status in ('auto_approved', 'approved') and held_reason is not null order by created_at`,
+    );
     const out: ActionRow[] = [];
     for (const { id } of held) out.push(await this.execute(id));
     return out;

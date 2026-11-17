@@ -4,7 +4,11 @@ import type { Db } from './lib/db';
 
 /** The eight departments (blueprint 7.2). Each runs alone up to Level 1; Security may also pause. */
 export const DEPARTMENTS = [
-  { id: 'operations', name: 'Operations', mission: 'Turn goals into coordinated work and keep the owner accurately informed.' },
+  {
+    id: 'operations',
+    name: 'Operations',
+    mission: 'Turn goals into coordinated work and keep the owner accurately informed.',
+  },
   { id: 'engineering', name: 'Engineering', mission: 'Build and maintain the software.' },
   { id: 'marketing', name: 'Marketing', mission: 'Bring the right people to the right offer.' },
   { id: 'sales', name: 'Sales', mission: 'Turn interest into agreed work.' },

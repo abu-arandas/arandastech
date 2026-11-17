@@ -10,6 +10,10 @@ export interface ConnectorContext {
 export interface Connector {
   readonly id: string;
   readonly mode: 'mock' | 'live';
-  execute(actionType: string, payload: Record<string, unknown>, ctx: ConnectorContext): Promise<Record<string, unknown>>;
+  execute(
+    actionType: string,
+    payload: Record<string, unknown>,
+    ctx: ConnectorContext,
+  ): Promise<Record<string, unknown>>;
   health(): Promise<{ ok: boolean; note: string }>;
 }

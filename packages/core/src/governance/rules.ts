@@ -46,7 +46,13 @@ export interface StandingRule {
 }
 
 /** Only the owner creates a standing rule, and every element of blueprint 2.5 is required. */
-export async function createRule(db: Db, rule: NewRule, owner: Actor, isOwner: boolean, now: Date): Promise<StandingRule> {
+export async function createRule(
+  db: Db,
+  rule: NewRule,
+  owner: Actor,
+  isOwner: boolean,
+  now: Date,
+): Promise<StandingRule> {
   if (!isOwner || owner.kind !== 'person' || !owner.id) throw forbidden('Only the owner can create a standing rule.');
   const spec = actionSpec(rule.actionType);
   if (!spec) throw invalid(`unknown action ${rule.actionType}`);
@@ -57,8 +63,10 @@ export async function createRule(db: Db, rule: NewRule, owner: Actor, isOwner: b
     throw forbidden(`${rule.actionType} needs the owner's approval every time during the early stages.`);
   }
   if (!rule.name.trim()) throw invalid('a rule needs a name');
-  if (rule.spendLimitPerActionMinor < 0 || rule.spendLimitPerPeriodMinor < 0) throw invalid('spending limits cannot be negative');
-  if (!Number.isInteger(rule.recipientLimitPerPeriod) || rule.recipientLimitPerPeriod < 1) throw invalid('a rule needs a recipient limit of at least one');
+  if (rule.spendLimitPerActionMinor < 0 || rule.spendLimitPerPeriodMinor < 0)
+    throw invalid('spending limits cannot be negative');
+  if (!Number.isInteger(rule.recipientLimitPerPeriod) || rule.recipientLimitPerPeriod < 1)
+    throw invalid('a rule needs a recipient limit of at least one');
   const maxDays = await getPolicy(db, 'rules.max_lifetime_days');
   const latest = new Date(now.getTime() + maxDays * 86_400_000);
   if (rule.expiresAt <= now) throw invalid('the expiry date is in the past');
@@ -70,12 +78,28 @@ export async function createRule(db: Db, rule: NewRule, owner: Actor, isOwner: b
         `insert into standing_rules (name, action_type, connector, conditions, spend_limit_per_action_minor,
            spend_limit_per_period_minor, currency, recipient_limit_per_period, period, expires_at, max_failures, created_by)
          values ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12) returning *`,
-        [rule.name.trim(), rule.actionType, spec.connector, json(rule.conditions), rule.spendLimitPerActionMinor,
-          rule.spendLimitPerPeriodMinor, rule.currency ?? null, rule.recipientLimitPerPeriod, rule.period, rule.expiresAt,
-          rule.maxFailures ?? 3, owner.id],
+        [
+          rule.name.trim(),
+          rule.actionType,
+          spec.connector,
+          json(rule.conditions),
+          rule.spendLimitPerActionMinor,
+          rule.spendLimitPerPeriodMinor,
+          rule.currency ?? null,
+          rule.recipientLimitPerPeriod,
+          rule.period,
+          rule.expiresAt,
+          rule.maxFailures ?? 3,
+          owner.id,
+        ],
       ),
     );
-    await audit(tx, { actor: owner, type: 'rule.created', subject: { type: 'standing_rule', id: created.id }, data: { name: created.name, action_type: created.action_type, expires_at: created.expires_at.toISOString() } });
+    await audit(tx, {
+      actor: owner,
+      type: 'rule.created',
+      subject: { type: 'standing_rule', id: created.id },
+      data: { name: created.name, action_type: created.action_type, expires_at: created.expires_at.toISOString() },
+    });
     return created;
   });
 }
@@ -98,7 +122,11 @@ export async function matchRule(
   for (const rule of rules) {
     if (rule.conditions.template && rule.conditions.template !== action.payload.template) continue;
     if (rule.conditions.recipient === 'order_buyer') {
-      const order = maybeOne(await db.query<{ buyer_email: string }>('select buyer_email from orders where id = $1', [action.payload.order_id ?? null]));
+      const order = maybeOne(
+        await db.query<{ buyer_email: string }>('select buyer_email from orders where id = $1', [
+          action.payload.order_id ?? null,
+        ]),
+      );
       if (!order || order.buyer_email.toLowerCase() !== String(action.payload.to ?? '').toLowerCase()) continue;
     }
     if (action.costMinor > rule.spend_limit_per_action_minor) continue;
@@ -117,13 +145,32 @@ export async function matchRule(
   return null;
 }
 
-export async function recordRuleUse(db: Db, ruleId: string, actionId: string, spendMinor: number, recipient: string | null, at: Date): Promise<void> {
-  await db.query('insert into standing_rule_uses (rule_id, action_id, spend_minor, recipient, at) values ($1, $2, $3, $4, $5)', [ruleId, actionId, spendMinor, recipient, at]);
+export async function recordRuleUse(
+  db: Db,
+  ruleId: string,
+  actionId: string,
+  spendMinor: number,
+  recipient: string | null,
+  at: Date,
+): Promise<void> {
+  await db.query(
+    'insert into standing_rule_uses (rule_id, action_id, spend_minor, recipient, at) values ($1, $2, $3, $4, $5)',
+    [ruleId, actionId, spendMinor, recipient, at],
+  );
 }
 
 export async function suspendRule(db: Db, ruleId: string, reason: string, by: Actor): Promise<void> {
-  const rows = await db.query(`update standing_rules set status = 'suspended', suspended_reason = $2 where id = $1 and status = 'active' returning id`, [ruleId, reason]);
-  if (rows.length) await audit(db, { actor: by, type: 'rule.suspended', subject: { type: 'standing_rule', id: ruleId }, data: { reason } });
+  const rows = await db.query(
+    `update standing_rules set status = 'suspended', suspended_reason = $2 where id = $1 and status = 'active' returning id`,
+    [ruleId, reason],
+  );
+  if (rows.length)
+    await audit(db, {
+      actor: by,
+      type: 'rule.suspended',
+      subject: { type: 'standing_rule', id: ruleId },
+      data: { reason },
+    });
 }
 
 /** A rule suspends itself when its actions keep failing (blueprint 2.5). */
@@ -147,7 +194,10 @@ export async function revokeRule(db: Db, ruleId: string, owner: Actor, isOwner: 
 }
 
 export async function expireRules(db: Db, now: Date): Promise<number> {
-  const rows = await db.query(`update standing_rules set status = 'expired' where status = 'active' and expires_at <= $1 returning id`, [now]);
+  const rows = await db.query(
+    `update standing_rules set status = 'expired' where status = 'active' and expires_at <= $1 returning id`,
+    [now],
+  );
   return rows.length;
 }
 

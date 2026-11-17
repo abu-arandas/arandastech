@@ -1,169 +1,597 @@
 /* The Zirr house colours (light, then dark), Rubik for Arabic and English, and the thread-orange stitch under the header. */
 :root {
-  --ink: #18202e; --muted: #5e6573; --line: #e2ded4; --bg: #f7f5f0; --soft: #ffffff;
-  --brand: #2b4c8c; --on-brand: #ffffff; --thread: #ee7b30; --thread-text: #b4521a;
-  --warn: #8a4a12; --warn-bg: #fbe9da; --error: #b42318;
+  --ink: #18202e;
+  --muted: #5e6573;
+  --line: #e2ded4;
+  --bg: #f7f5f0;
+  --soft: #ffffff;
+  --brand: #2b4c8c;
+  --on-brand: #ffffff;
+  --thread: #ee7b30;
+  --thread-text: #b4521a;
+  --warn: #8a4a12;
+  --warn-bg: #fbe9da;
+  --error: #b42318;
   --shadow: 0 1px 2px rgb(24 32 46 / 0.06), 0 6px 18px rgb(24 32 46 / 0.06);
   --shadow-lift: 0 2px 4px rgb(24 32 46 / 0.06), 0 16px 32px rgb(24 32 46 / 0.12);
   /* Motion: the calm house curve, a quick-out curve for entrances, a little overshoot for pops and presses. */
-  --ease: cubic-bezier(0.2, 0, 0, 1); --enter: cubic-bezier(0.05, 0.7, 0.1, 1); --pop: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --t-fast: 160ms; --t-hover: 200ms; --t-slow: 520ms; --t-reveal: 600ms; --stagger: 60ms; --rise: 24px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 160ms;
+  --t-hover: 200ms;
+  --t-slow: 520ms;
+  --t-reveal: 600ms;
+  --stagger: 60ms;
+  --rise: 24px;
   /* The side things come in from: the end of the line, so the left in Arabic. */
   --from: 1;
 }
-[dir='rtl'] { --from: -1; }
-@media (max-width: 600px) { :root { --stagger: 40ms; --rise: 16px; } }
+[dir='rtl'] {
+  --from: -1;
+}
+@media (max-width: 600px) {
+  :root {
+    --stagger: 40ms;
+    --rise: 16px;
+  }
+}
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #eef2fa; --muted: #9aa5ba; --line: #2a3448; --bg: #0d121c; --soft: #151c2a;
-    --brand: #8eaef0; --on-brand: #0d121c; --thread: #ff9f5a; --thread-text: #ff9f5a;
-    --warn: #ffc59a; --warn-bg: #3a2414; --error: #ff8a80;
+    --ink: #eef2fa;
+    --muted: #9aa5ba;
+    --line: #2a3448;
+    --bg: #0d121c;
+    --soft: #151c2a;
+    --brand: #8eaef0;
+    --on-brand: #0d121c;
+    --thread: #ff9f5a;
+    --thread-text: #ff9f5a;
+    --warn: #ffc59a;
+    --warn-bg: #3a2414;
+    --error: #ff8a80;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
     --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 16px 32px rgb(0 0 0 / 0.4);
   }
 }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--font-rubik), system-ui, "Segoe UI", Tahoma, sans-serif; }
-a { color: var(--brand); text-underline-offset: 3px; }
-.wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
-header.site { position: relative; border-block-end: 1px solid var(--line); background: var(--soft); }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    16px/1.6 var(--font-rubik),
+    system-ui,
+    'Segoe UI',
+    Tahoma,
+    sans-serif;
+}
+a {
+  color: var(--brand);
+  text-underline-offset: 3px;
+}
+.wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+header.site {
+  position: relative;
+  border-block-end: 1px solid var(--line);
+  background: var(--soft);
+}
 header.site::after {
-  content: ''; position: absolute; inset-inline: 0; inset-block-end: 4px; height: 1.5px;
-  background: repeating-linear-gradient(to right, var(--thread) 0 7px, transparent 7px 12px); opacity: 0.75;
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 4px;
+  height: 1.5px;
+  background: repeating-linear-gradient(to right, var(--thread) 0 7px, transparent 7px 12px);
+  opacity: 0.75;
 }
-header.site .wrap { display: flex; align-items: center; gap: 16px; padding-block: 14px 18px; flex-wrap: wrap; }
-header.site .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.3rem; color: var(--ink); text-decoration: none; margin-inline-end: auto; }
-header.site .brand svg { width: 30px; height: 30px; flex: none; }
-.mark-disc { fill: var(--brand); }
-.mark-ring { fill: none; stroke: var(--bg); stroke-opacity: 0.25; stroke-width: 3; }
-.mark-hole { fill: var(--bg); }
-.mark-lit { fill: var(--thread); }
-header.site nav { display: flex; gap: 16px; flex-wrap: wrap; }
+header.site .wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-block: 14px 18px;
+  flex-wrap: wrap;
+}
+header.site .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--ink);
+  text-decoration: none;
+  margin-inline-end: auto;
+}
+header.site .brand svg {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.mark-disc {
+  fill: var(--brand);
+}
+.mark-ring {
+  fill: none;
+  stroke: var(--bg);
+  stroke-opacity: 0.25;
+  stroke-width: 3;
+}
+.mark-hole {
+  fill: var(--bg);
+}
+.mark-lit {
+  fill: var(--thread);
+}
+header.site nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
 header.site nav a {
-  color: var(--muted); text-decoration: none; font-weight: 500; padding-block-end: 2px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+  padding-block-end: 2px;
   background: linear-gradient(var(--thread), var(--thread)) no-repeat 0 100% / 0 2px;
-  transition: color var(--t-hover) var(--ease), background-size var(--t-hover) var(--ease);
+  transition:
+    color var(--t-hover) var(--ease),
+    background-size var(--t-hover) var(--ease);
 }
-[dir='rtl'] header.site nav a { background-position: 100% 100%; }
-header.site nav a:hover { color: var(--brand); background-size: 100% 2px; }
-.banner { background: var(--warn-bg); color: var(--warn); padding: 8px 16px; text-align: center; font-size: 0.9rem; }
-main.wrap { padding-block: 40px 64px; }
-h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 600; line-height: 1.25; margin: 0 0 12px; }
-h2 { margin: 40px 0 16px; font-size: 1.35rem; font-weight: 600; }
-.lead { color: var(--muted); max-width: 62ch; }
-.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+[dir='rtl'] header.site nav a {
+  background-position: 100% 100%;
+}
+header.site nav a:hover {
+  color: var(--brand);
+  background-size: 100% 2px;
+}
+.banner {
+  background: var(--warn-bg);
+  color: var(--warn);
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+main.wrap {
+  padding-block: 40px 64px;
+}
+h1 {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0 0 12px;
+}
+h2 {
+  margin: 40px 0 16px;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+.lead {
+  color: var(--muted);
+  max-width: 62ch;
+}
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
 .card {
-  border: 1px solid var(--line); border-radius: 14px; padding: 20px; background: var(--soft); box-shadow: var(--shadow);
-  display: flex; flex-direction: column; gap: 8px;
-  transition: transform var(--t-hover) var(--ease), box-shadow var(--t-hover) var(--ease);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  background: var(--soft);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition:
+    transform var(--t-hover) var(--ease),
+    box-shadow var(--t-hover) var(--ease);
 }
-.card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); }
-.card h3 { margin: 0; font-size: 1.1rem; font-weight: 600; }
-.card ul { margin: 0; padding-inline-start: 20px; color: var(--muted); }
-.card .price { font-weight: 600; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
-.card .push { margin-block-start: auto; }
-.tag { display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 99px; background: var(--warn-bg); color: var(--warn); }
-.button, button {
-  display: inline-block; background: var(--brand); color: var(--on-brand); border: 0; border-radius: 10px;
-  padding: 10px 18px; font: inherit; font-weight: 500; text-decoration: none; cursor: pointer; box-shadow: var(--shadow);
-  transition: transform var(--t-fast) var(--pop), box-shadow var(--t-hover) var(--ease);
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
 }
-.button:hover, button:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+.card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.card ul {
+  margin: 0;
+  padding-inline-start: 20px;
+  color: var(--muted);
+}
+.card .price {
+  font-weight: 600;
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+.card .push {
+  margin-block-start: auto;
+}
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.button,
+button {
+  display: inline-block;
+  background: var(--brand);
+  color: var(--on-brand);
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition:
+    transform var(--t-fast) var(--pop),
+    box-shadow var(--t-hover) var(--ease);
+}
+.button:hover,
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
 /* Pressed, a button gives a little, like a real one. */
-.button:active, button:active { transform: scale(0.96); transition-duration: 90ms; }
-@supports (corner-shape: squircle) {
-  .card { corner-shape: squircle; border-radius: 28px; }
-  .button, button, input, textarea { corner-shape: squircle; border-radius: 18px; }
+.button:active,
+button:active {
+  transform: scale(0.96);
+  transition-duration: 90ms;
 }
-form { display: grid; gap: 14px; max-width: 520px; }
-label { display: grid; gap: 6px; font-weight: 500; }
-input, textarea { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); color: var(--ink); width: 100%; }
-input:hover, textarea:hover { border-color: var(--muted); }
-input:focus-visible, textarea:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
-.hp { position: absolute; inset-inline-start: -9999px; }
-.notice { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; background: var(--soft); }
-.error { color: var(--error); }
-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }
-dt { color: var(--muted); }
-dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; }
+@supports (corner-shape: squircle) {
+  .card {
+    corner-shape: squircle;
+    border-radius: 28px;
+  }
+  .button,
+  button,
+  input,
+  textarea {
+    corner-shape: squircle;
+    border-radius: 18px;
+  }
+}
+form {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+}
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 500;
+}
+input,
+textarea {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
+  color: var(--ink);
+  width: 100%;
+}
+input:hover,
+textarea:hover {
+  border-color: var(--muted);
+}
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+.hp {
+  position: absolute;
+  inset-inline-start: -9999px;
+}
+.notice {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: var(--soft);
+}
+.error {
+  color: var(--error);
+}
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+}
+dt {
+  color: var(--muted);
+}
+dd {
+  margin: 0;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
 
-footer.site { border-block-start: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
-footer.site .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-block: 20px; }
+footer.site {
+  border-block-start: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+footer.site .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding-block: 20px;
+}
 
 /* ---------------------------------------------------------------------------------------------------------------
    Motion. The storefront is a shop: lively on the home page, calm at checkout and payment (only the page coming in and
    the buttons' press), one celebration when an order is paid or a message sent. Every animation moves only opacity,
    transform and clip-path, plays once, and stops entirely under prefers-reduced-motion (at the end of this file).
    --------------------------------------------------------------------------------------------------------------- */
-@keyframes rise { from { opacity: 0; translate: 0 var(--rise); } }
-@keyframes sew { from { clip-path: inset(0 100% 0 0); } }
-@keyframes sew-rtl { from { clip-path: inset(0 0 0 100%); } }
-@keyframes press { 0% { transform: scale(1); } 22% { transform: scale(0.84); } 60%, 100% { transform: scale(1); } }
-@keyframes wink { 50% { opacity: 0.15; } }
-@keyframes wiggle { 20% { rotate: -10deg; } 40% { rotate: 8deg; } 60% { rotate: -5deg; } 80% { rotate: 2deg; } }
-@keyframes roll-in { from { translate: calc(var(--from) * 180px) 0; rotate: calc(var(--from) * -540deg); } }
-@keyframes hop { 50% { translate: 0 -28px; } }
-@keyframes draw { from { stroke-dashoffset: 1; } }
-@keyframes toast { from { opacity: 0; translate: 0 16px; } }
-@keyframes fade { from { opacity: 0; } }
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 var(--rise);
+  }
+}
+@keyframes sew {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+@keyframes sew-rtl {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+@keyframes press {
+  0% {
+    transform: scale(1);
+  }
+  22% {
+    transform: scale(0.84);
+  }
+  60%,
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes wink {
+  50% {
+    opacity: 0.15;
+  }
+}
+@keyframes wiggle {
+  20% {
+    rotate: -10deg;
+  }
+  40% {
+    rotate: 8deg;
+  }
+  60% {
+    rotate: -5deg;
+  }
+  80% {
+    rotate: 2deg;
+  }
+}
+@keyframes roll-in {
+  from {
+    translate: calc(var(--from) * 180px) 0;
+    rotate: calc(var(--from) * -540deg);
+  }
+}
+@keyframes hop {
+  50% {
+    translate: 0 -28px;
+  }
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes toast {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
 
 /* The header's stitch sews itself in from the start edge, once, as the page opens. */
-header.site::after { animation: sew 700ms var(--enter) 250ms both; }
-[dir='rtl'] header.site::after { animation-name: sew-rtl; }
+header.site::after {
+  animation: sew 700ms var(--enter) 250ms both;
+}
+[dir='rtl'] header.site::after {
+  animation-name: sew-rtl;
+}
 
 /* The mark: leans in under the pointer with its lit hole winking, presses in when clicked. */
-header.site .brand svg { transition: transform var(--t-fast) var(--pop); }
-header.site .brand:hover svg { transform: rotate(-12deg) scale(1.06); }
-header.site .brand:hover .mark-lit { animation: wink 600ms var(--ease); }
-header.site .brand:active svg { transform: scale(0.86); }
-header.site .brand.shake svg { animation: wiggle 520ms var(--ease); }
+header.site .brand svg {
+  transition: transform var(--t-fast) var(--pop);
+}
+header.site .brand:hover svg {
+  transform: rotate(-12deg) scale(1.06);
+}
+header.site .brand:hover .mark-lit {
+  animation: wink 600ms var(--ease);
+}
+header.site .brand:active svg {
+  transform: scale(0.86);
+}
+header.site .brand.shake svg {
+  animation: wiggle 520ms var(--ease);
+}
 
 /* A page's title rises word by word, and what follows comes in after it. */
-.rise .w { display: inline-block; animation: rise var(--t-slow) var(--enter) both; animation-delay: calc(80ms + var(--i) * var(--stagger)); }
+.rise .w {
+  display: inline-block;
+  animation: rise var(--t-slow) var(--enter) both;
+  animation-delay: calc(80ms + var(--i) * var(--stagger));
+}
 /* Checkout, payment and order look-up are calm: they only fade in. */
-.enter { animation: fade var(--t-slow) var(--enter) both; animation-delay: var(--d, 0ms); }
+.enter {
+  animation: fade var(--t-slow) var(--enter) both;
+  animation-delay: var(--d, 0ms);
+}
 
 /* Scroll reveals, once each: only when the script that plays them is there (html.js-motion, set in the layout). If it
    has not started after three seconds, nothing stays hidden. */
 .js-motion [data-reveal] {
-  opacity: 0; translate: 0 var(--rise);
-  transition: opacity var(--t-reveal) var(--enter) calc(var(--i, 0) * var(--stagger)),
+  opacity: 0;
+  translate: 0 var(--rise);
+  transition:
+    opacity var(--t-reveal) var(--enter) calc(var(--i, 0) * var(--stagger)),
     translate var(--t-reveal) var(--enter) calc(var(--i, 0) * var(--stagger)),
-    transform var(--t-hover) var(--ease), box-shadow var(--t-hover) var(--ease);
+    transform var(--t-hover) var(--ease),
+    box-shadow var(--t-hover) var(--ease);
 }
-.js-motion [data-reveal].in { opacity: 1; translate: none; }
-@keyframes shown { to { opacity: 1; translate: none; } }
-.js-motion:not(.motion-ready) [data-reveal] { animation: shown 0s 3s forwards; }
+.js-motion [data-reveal].in {
+  opacity: 1;
+  translate: none;
+}
+@keyframes shown {
+  to {
+    opacity: 1;
+    translate: none;
+  }
+}
+.js-motion:not(.motion-ready) [data-reveal] {
+  animation: shown 0s 3s forwards;
+}
 
 /* A drawn tick beside good news. */
-.done { display: flex; align-items: center; gap: 12px; }
-.tick { width: 28px; height: 28px; flex: none; }
-.tick circle { fill: none; stroke: var(--brand); stroke-width: 2; opacity: 0.25; }
-.tick path { fill: none; stroke: var(--brand); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: draw 600ms var(--enter) 200ms both; }
+.done {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tick {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+.tick circle {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 2;
+  opacity: 0.25;
+}
+.tick path {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  animation: draw 600ms var(--enter) 200ms both;
+}
 
 /* The logo's secret says thanks here. */
 .toast {
   /* Centred by its margins, so it sits in the middle in both directions and only rises as it comes in. */
-  position: fixed; inset-block-end: 24px; inset-inline: 0; margin-inline: auto; width: fit-content; max-width: calc(100% - 32px); z-index: 20;
-  background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 12px; box-shadow: var(--shadow-lift);
+  position: fixed;
+  inset-block-end: 24px;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  z-index: 20;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 10px 18px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lift);
   animation: toast var(--t-slow) var(--pop) both;
 }
 
 /* The lost button on the not-found page rolls in from the end of the line; clicked, it hops. */
-.lost { display: grid; justify-items: center; text-align: center; gap: 12px; padding-block: 32px; }
-.lost .eyebrow { color: var(--brand); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
-.lost-button { width: 88px; height: 88px; border: 0; padding: 0; background: none; box-shadow: none; cursor: pointer; animation: roll-in 1.4s var(--enter) both; }
-.lost-button:hover, .lost-button:active { transform: none; box-shadow: none; }
-.lost-button.hop { animation: hop 520ms var(--pop); }
-.lost-button svg { width: 100%; height: 100%; }
-.lost .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-.button.quiet { background: var(--soft); color: var(--brand); border: 1px solid var(--line); }
+.lost {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 12px;
+  padding-block: 32px;
+}
+.lost .eyebrow {
+  color: var(--brand);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.lost-button {
+  width: 88px;
+  height: 88px;
+  border: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  cursor: pointer;
+  animation: roll-in 1.4s var(--enter) both;
+}
+.lost-button:hover,
+.lost-button:active {
+  transform: none;
+  box-shadow: none;
+}
+.lost-button.hop {
+  animation: hop 520ms var(--pop);
+}
+.lost-button svg {
+  width: 100%;
+  height: 100%;
+}
+.lost .actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.button.quiet {
+  background: var(--soft);
+  color: var(--brand);
+  border: 1px solid var(--line);
+}
 
 /* While a page loads, the Zirr button presses itself in under an invisible thumb. */
-.loading { display: grid; justify-items: center; gap: 16px; padding-block: 96px; color: var(--muted); }
-.loading svg { width: 48px; height: 48px; animation: press 1100ms var(--pop) infinite; }
+.loading {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding-block: 96px;
+  color: var(--muted);
+}
+.loading svg {
+  width: 48px;
+  height: 48px;
+  animation: press 1100ms var(--pop) infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after { animation: none !important; transition: none !important; }
-  .js-motion [data-reveal] { opacity: 1; translate: none; }
+  *,
+  ::before,
+  ::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .js-motion [data-reveal] {
+    opacity: 1;
+    translate: none;
+  }
 }

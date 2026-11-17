@@ -4,9 +4,18 @@ import { getPolicy } from '../governance/settings';
 
 export type Engine = 'commerce' | 'services' | 'company';
 export type Account =
-  | 'gross_revenue' | 'pending_revenue' | 'settled_revenue'
-  | 'product_cost' | 'service_delivery_cost' | 'advertising_cost' | 'payment_fees'
-  | 'refunds' | 'chargebacks' | 'supplier_obligations' | 'tax_collected' | 'operating_costs';
+  | 'gross_revenue'
+  | 'pending_revenue'
+  | 'settled_revenue'
+  | 'product_cost'
+  | 'service_delivery_cost'
+  | 'advertising_cost'
+  | 'payment_fees'
+  | 'refunds'
+  | 'chargebacks'
+  | 'supplier_obligations'
+  | 'tax_collected'
+  | 'operating_costs';
 
 export interface Posting {
   engine: Engine;
@@ -32,8 +41,18 @@ export async function post(db: Db, postings: Posting[], at: Date): Promise<void>
 
 type Totals = Record<Account, number>;
 const ZERO: Totals = {
-  gross_revenue: 0, pending_revenue: 0, settled_revenue: 0, product_cost: 0, service_delivery_cost: 0, advertising_cost: 0,
-  payment_fees: 0, refunds: 0, chargebacks: 0, supplier_obligations: 0, tax_collected: 0, operating_costs: 0,
+  gross_revenue: 0,
+  pending_revenue: 0,
+  settled_revenue: 0,
+  product_cost: 0,
+  service_delivery_cost: 0,
+  advertising_cost: 0,
+  payment_fees: 0,
+  refunds: 0,
+  chargebacks: 0,
+  supplier_obligations: 0,
+  tax_collected: 0,
+  operating_costs: 0,
 };
 
 export type SpendStatus = 'not_safe_to_spend' | 'limited_reinvestment_available' | 'safe_to_consider_upgrade';
@@ -73,7 +92,14 @@ async function totals(db: Db, currency: string, where = '', params: unknown[] = 
 }
 
 const balanceOf = (t: Totals): number =>
-  t.settled_revenue - t.payment_fees - t.refunds - t.chargebacks - t.product_cost - t.service_delivery_cost - t.advertising_cost - t.operating_costs;
+  t.settled_revenue -
+  t.payment_fees -
+  t.refunds -
+  t.chargebacks -
+  t.product_cost -
+  t.service_delivery_cost -
+  t.advertising_cost -
+  t.operating_costs;
 
 /**
  * What money the company really has in one currency. Every figure is calculated here, from the ledger, and never
@@ -101,7 +127,12 @@ export async function moneySummary(db: Db, currency: string, now: Date): Promise
   const profit = available - hold;
   const shareBps = await getPolicy(db, 'reinvestment.share_bps');
   const budget = profit > 0 ? shareOf(profit, shareBps) : 0;
-  const disputes = (await db.query<{ n: number }>(`select count(*)::int as n from disputes d join payments p on p.id = d.payment_id where d.status = 'open' and p.currency = $1`, [currency]))[0]!.n;
+  const disputes = (
+    await db.query<{ n: number }>(
+      `select count(*)::int as n from disputes d join payments p on p.id = d.payment_id where d.status = 'open' and p.currency = $1`,
+      [currency],
+    )
+  )[0]!.n;
 
   const reasons: string[] = [];
   if (pending > 0 && settled === 0) reasons.push('revenue_pending');
@@ -141,5 +172,7 @@ export async function moneySummary(db: Db, currency: string, now: Date): Promise
 
 /** Currencies that have any posting, so that the dashboard shows one summary per currency. */
 export async function ledgerCurrencies(db: Db): Promise<string[]> {
-  return (await db.query<{ currency: string }>('select distinct currency from ledger_entries order by currency')).map((r) => r.currency);
+  return (await db.query<{ currency: string }>('select distinct currency from ledger_entries order by currency')).map(
+    (r) => r.currency,
+  );
 }

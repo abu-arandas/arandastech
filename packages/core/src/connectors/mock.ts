@@ -22,7 +22,11 @@ export class MockConnector implements Connector {
     for (let i = 0; i < times; i += 1) this.failures.push(new Error(message));
   }
 
-  async execute(actionType: string, payload: Record<string, unknown>, ctx: ConnectorContext): Promise<Record<string, unknown>> {
+  async execute(
+    actionType: string,
+    payload: Record<string, unknown>,
+    ctx: ConnectorContext,
+  ): Promise<Record<string, unknown>> {
     const failure = this.failures.shift();
     if (failure) throw failure;
     const existing = await ctx.db.query<{ result: Record<string, unknown> }>(
@@ -49,7 +53,9 @@ const ref = (prefix: string, key: string): string => `${prefix}_${sha256(key).sl
 /** The mock connectors of the first build (blueprint 15). Each returns the kind of reference its provider would. */
 export function createMockConnectors(): Record<string, MockConnector> {
   return {
-    gmail: new MockConnector('gmail', (type, _payload, key) => (type === 'gmail.create_draft' ? { draft_id: ref('draft', key) } : { message_id: ref('msg', key) })),
+    gmail: new MockConnector('gmail', (type, _payload, key) =>
+      type === 'gmail.create_draft' ? { draft_id: ref('draft', key) } : { message_id: ref('msg', key) },
+    ),
     whatsapp: new MockConnector('whatsapp', (_type, _payload, key) => ({ message_id: ref('wamid', key) })),
     buffer: new MockConnector('buffer', (_type, _payload, key) => ({ post_id: ref('post', key) })),
     github: new MockConnector('github', (type, payload, key) =>
@@ -57,14 +63,35 @@ export function createMockConnectors(): Record<string, MockConnector> {
         ? { number: (parseInt(sha256(key).slice(0, 6), 16) % 900) + 100, repository: payload.repository }
         : { merged: true, sha: sha256(key).slice(0, 40) },
     ),
-    vercel: new MockConnector('vercel', (_type, payload, key) => ({ url: `https://${String(payload.project)}-${sha256(key).slice(0, 8)}.example.test` })),
-    payments: new MockConnector('payments', (type, _payload, key) => (type === 'payments.refund' ? { refund_ref: ref('re', key) } : { invoice_ref: ref('inv', key) })),
-    supplier: new MockConnector('supplier', (_type, _payload, key) => ({ supplier_ref: ref('so', key), tracking: null })),
+    vercel: new MockConnector('vercel', (_type, payload, key) => ({
+      url: `https://${String(payload.project)}-${sha256(key).slice(0, 8)}.example.test`,
+    })),
+    payments: new MockConnector('payments', (type, _payload, key) =>
+      type === 'payments.refund' ? { refund_ref: ref('re', key) } : { invoice_ref: ref('inv', key) },
+    ),
+    supplier: new MockConnector('supplier', (_type, _payload, key) => ({
+      supplier_ref: ref('so', key),
+      tracking: null,
+    })),
   };
 }
 
-export async function listMockDeliveries(db: Db, connector?: string): Promise<Array<{ connector: string; action_type: string; payload: Record<string, unknown>; result: Record<string, unknown>; at: Date }>> {
+export async function listMockDeliveries(
+  db: Db,
+  connector?: string,
+): Promise<
+  Array<{
+    connector: string;
+    action_type: string;
+    payload: Record<string, unknown>;
+    result: Record<string, unknown>;
+    at: Date;
+  }>
+> {
   return connector
-    ? db.query('select connector, action_type, payload, result, at from mock_deliveries where connector = $1 order by at', [connector])
+    ? db.query(
+        'select connector, action_type, payload, result, at from mock_deliveries where connector = $1 order by at',
+        [connector],
+      )
     : db.query('select connector, action_type, payload, result, at from mock_deliveries order by at');
 }

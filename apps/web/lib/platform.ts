@@ -1,4 +1,14 @@
-import { chooseSecret, createApi, createDb, createPlatform, type Db, type Platform, readSecrets, SECRETS, type SecretName } from '@zirr/core';
+import {
+  chooseSecret,
+  createApi,
+  createDb,
+  createPlatform,
+  type Db,
+  type Platform,
+  readSecrets,
+  SECRETS,
+  type SecretName,
+} from '@zirr/core';
 
 type Api = ReturnType<typeof createApi>;
 type Server = { platform: Platform; api: Api };
@@ -25,10 +35,14 @@ async function connect(db: Db): Promise<Server> {
   // The example's change-me never counts on Vercel, so a copied example file cannot open the site to a known token.
   const stored = await readSecrets(db);
   const hosted = Boolean(process.env.VERCEL_ENV);
-  const secret = (name: SecretName): string | undefined => chooseSecret(process.env[SECRETS[name]], stored[name], hosted);
+  const secret = (name: SecretName): string | undefined =>
+    chooseSecret(process.env[SECRETS[name]], stored[name], hosted);
   const required = (name: SecretName): string => {
     const value = secret(name);
-    if (!value) throw new Error(`${SECRETS[name]} is not set (or is the example's placeholder), and the database has none. See apps/web/.env.example.`);
+    if (!value)
+      throw new Error(
+        `${SECRETS[name]} is not set (or is the example's placeholder), and the database has none. See apps/web/.env.example.`,
+      );
     return value;
   };
   const platform = createPlatform(db, {
@@ -54,10 +68,20 @@ export function server(): Promise<Server> {
 }
 
 /** Calls the same API the owner app and the bots use, without going over the network. */
-export async function call<T>(method: string, path: string, body?: unknown): Promise<{ ok: boolean; status: number; data: T; error?: string }> {
+export async function call<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<{ ok: boolean; status: number; data: T; error?: string }> {
   const [pathname, search = ''] = path.split('?');
   const { api } = await server();
-  const response = await api({ method, path: pathname!, query: Object.fromEntries(new URLSearchParams(search)), headers: {}, body: body === undefined ? '' : JSON.stringify(body) });
+  const response = await api({
+    method,
+    path: pathname!,
+    query: Object.fromEntries(new URLSearchParams(search)),
+    headers: {},
+    body: body === undefined ? '' : JSON.stringify(body),
+  });
   const data = response.body as T & { error?: { message: string } };
   return { ok: response.status < 400, status: response.status, data, error: data?.error?.message };
 }

@@ -21,12 +21,30 @@ const staffOf = (caller: Caller) => {
 
 const check = <T>(schema: z.ZodType<T>, value: unknown): T => {
   const parsed = schema.safeParse(value);
-  if (!parsed.success) throw invalid('The request is not complete.', parsed.error.issues.map((issue) => ({ field: issue.path.join('.'), message: issue.message })));
+  if (!parsed.success)
+    throw invalid(
+      'The request is not complete.',
+      parsed.error.issues.map((issue) => ({ field: issue.path.join('.'), message: issue.message })),
+    );
   return parsed.data;
 };
 
-const SCOPES = ['global', 'connector', 'department', 'product', 'supplier', 'orders', 'advertising', 'fulfillment', 'rule'] as const;
-const pauseBody = z.strictObject({ scope: z.enum(SCOPES), target: z.string().max(100).optional(), reason: z.string().max(300).optional() });
+const SCOPES = [
+  'global',
+  'connector',
+  'department',
+  'product',
+  'supplier',
+  'orders',
+  'advertising',
+  'fulfillment',
+  'rule',
+] as const;
+const pauseBody = z.strictObject({
+  scope: z.enum(SCOPES),
+  target: z.string().max(100).optional(),
+  reason: z.string().max(300).optional(),
+});
 
 export function registerRoutes(router: Router, platform: Platform): void {
   const { db, store, gateway, clock } = platform;
@@ -36,14 +54,19 @@ export function registerRoutes(router: Router, platform: Platform): void {
   router.add('GET', '/api/public/catalog', 'public', async () => ({ products: await store.catalog() }));
 
   router.add('GET', '/api/public/packages', 'public', async () => ({
-    packages: await db.query(`select id, name, outcome, audience, deliverables, price_kind from service_packages where status = 'approved' order by sort`),
+    packages: await db.query(
+      `select id, name, outcome, audience, deliverables, price_kind from service_packages where status = 'approved' order by sort`,
+    ),
   }));
 
   router.add('POST', '/api/public/leads', 'public', async ({ json }) => {
     // A field people cannot see. Only a script fills it in, and a script gets a polite nothing.
     if (typeof json.website === 'string' && json.website.trim() !== '') return { received: true };
     const { website: _ignored, ...form } = json;
-    const recent = await db.query(`select 1 from leads where lower(email) = lower($1) and created_at > $2`, [String(form.email ?? ''), new Date(clock().getTime() - 3_600_000)]);
+    const recent = await db.query(`select 1 from leads where lower(email) = lower($1) and created_at > $2`, [
+      String(form.email ?? ''),
+      new Date(clock().getTime() - 3_600_000),
+    ]);
     if (recent.length >= 5) throw new AppError('too_many', 'We have your messages. We will reply soon.', 429);
     const { lead, duplicate } = await createLead(db, form as never, clock());
     return { received: true, duplicate, reference: lead.id.slice(0, 8) };
@@ -60,21 +83,44 @@ export function registerRoutes(router: Router, platform: Platform): void {
     return status;
   });
 
-  router.add('POST', '/api/webhooks/payments', 'public', async ({ request }) => store.handlePaymentWebhook(request.body, request.headers['x-signature']));
-  router.add('POST', '/api/webhooks/supplier', 'public', async ({ request }) => store.handleSupplierWebhook(request.body, request.headers['x-signature']));
+  router.add('POST', '/api/webhooks/payments', 'public', async ({ request }) =>
+    store.handlePaymentWebhook(request.body, request.headers['x-signature']),
+  );
+  router.add('POST', '/api/webhooks/supplier', 'public', async ({ request }) =>
+    store.handleSupplierWebhook(request.body, request.headers['x-signature']),
+  );
 
   // ---------------------------------------------------------------- Demo mode only: stand-ins for the outside world
 
   const secrets = platform.config.webhookSecrets;
 
   router.add('POST', '/api/demo/pay', 'demo', async ({ json }) => {
-    const body = check(z.strictObject({ session: z.string(), deliveries: z.number().int().min(1).max(3).default(1) }), json);
-    const order = (await db.query<{ number: string; total_minor: number; currency: string }>('select number, total_minor, currency from orders where checkout_session = $1', [body.session]))[0];
+    const body = check(
+      z.strictObject({ session: z.string(), deliveries: z.number().int().min(1).max(3).default(1) }),
+      json,
+    );
+    const order = (
+      await db.query<{ number: string; total_minor: number; currency: string }>(
+        'select number, total_minor, currency from orders where checkout_session = $1',
+        [body.session],
+      )
+    )[0];
     if (!order) throw new AppError('not_found', 'No checkout matches that session.', 404);
-    const event = signedEvent(secrets.payments, 'payment.captured', { session: body.session, payment_ref: `pay_${order.number}`, amount_minor: order.total_minor, currency: order.currency }, `evt_capture_${order.number}`);
+    const event = signedEvent(
+      secrets.payments,
+      'payment.captured',
+      {
+        session: body.session,
+        payment_ref: `pay_${order.number}`,
+        amount_minor: order.total_minor,
+        currency: order.currency,
+      },
+      `evt_capture_${order.number}`,
+    );
     const results = [];
     // A real provider often sends the same notice more than once. The demo can do the same.
-    for (let i = 0; i < body.deliveries; i += 1) results.push(await store.handlePaymentWebhook(event.body, event.signature));
+    for (let i = 0; i < body.deliveries; i += 1)
+      results.push(await store.handlePaymentWebhook(event.body, event.signature));
     return { order_number: order.number, payment_ref: `pay_${order.number}`, results };
   });
 
@@ -85,13 +131,28 @@ export function registerRoutes(router: Router, platform: Platform): void {
   });
 
   router.add('POST', '/api/demo/supplier', 'demo', async ({ json }) => {
-    const body = check(z.strictObject({ supplier_ref: z.string(), status: z.enum(['shipped', 'delivered']), tracking: z.string().optional() }), json);
+    const body = check(
+      z.strictObject({
+        supplier_ref: z.string(),
+        status: z.enum(['shipped', 'delivered']),
+        tracking: z.string().optional(),
+      }),
+      json,
+    );
     const event = signedEvent(secrets.supplier, 'shipment.updated', body);
     return store.handleSupplierWebhook(event.body, event.signature);
   });
 
   router.add('POST', '/api/demo/inbound-email', 'demo', async ({ json }) => {
-    const body = check(z.strictObject({ from: z.email(), subject: z.string().max(200).optional(), body: z.string().min(1).max(10_000), locale: z.enum(['en', 'ar']).default('en') }), json);
+    const body = check(
+      z.strictObject({
+        from: z.email(),
+        subject: z.string().max(200).optional(),
+        body: z.string().min(1).max(10_000),
+        locale: z.enum(['en', 'ar']).default('en'),
+      }),
+      json,
+    );
     const message = await recordInbound(db, { channel: 'email', ...body });
     return { message_id: message.id, flagged: message.flagged, flag_reasons: message.flag_reasons };
   });
@@ -112,11 +173,23 @@ export function registerRoutes(router: Router, platform: Platform): void {
       demo: platform.config.demo,
       paused: pauses.some((p) => p.scope === 'global'),
       pauses,
-      approvals: { open: open.length, level_3: open.filter((r) => r.level === 3).length, next_expiry: open.map((r) => r.expires_at).sort((a, b) => a.getTime() - b.getTime())[0] ?? null },
-      held_actions: (await one<{ n: number }>(`select count(*)::int as n from actions where status in ('approved', 'auto_approved') and held_reason is not null`)).n,
+      approvals: {
+        open: open.length,
+        level_3: open.filter((r) => r.level === 3).length,
+        next_expiry: open.map((r) => r.expires_at).sort((a, b) => a.getTime() - b.getTime())[0] ?? null,
+      },
+      held_actions: (
+        await one<{ n: number }>(
+          `select count(*)::int as n from actions where status in ('approved', 'auto_approved') and held_reason is not null`,
+        )
+      ).n,
       leads: await one(`select count(*) filter (where stage = 'new')::int as new, count(*)::int as total from leads`),
-      orders: await one(`select count(*)::int as total, count(*) filter (where status = 'on_hold')::int as on_hold, count(*) filter (where status in ('paid', 'fulfilling', 'shipped'))::int as in_progress from orders`),
-      inbox: await one(`select count(*) filter (where not handled)::int as unhandled, count(*) filter (where flagged and not handled)::int as flagged from messages where direction = 'in'`),
+      orders: await one(
+        `select count(*)::int as total, count(*) filter (where status = 'on_hold')::int as on_hold, count(*) filter (where status in ('paid', 'fulfilling', 'shipped'))::int as in_progress from orders`,
+      ),
+      inbox: await one(
+        `select count(*) filter (where not handled)::int as unhandled, count(*) filter (where flagged and not handled)::int as flagged from messages where direction = 'in'`,
+      ),
       alerts: await one(`select count(*)::int as open from security_alerts where status = 'open'`),
       money: await Promise.all(currencies.map((currency) => moneySummary(db, currency, now))),
     };
@@ -139,13 +212,26 @@ export function registerRoutes(router: Router, platform: Platform): void {
       }),
       json,
     );
-    const { action, request } = await gateway.decide(params.id!, { decision: body.decision, by: staff.actor, isOwner: staff.isOwner, editedPayload: body.edited_payload, confirmation: body.confirmation, note: body.note, postponeHours: body.postpone_hours });
+    const { action, request } = await gateway.decide(params.id!, {
+      decision: body.decision,
+      by: staff.actor,
+      isOwner: staff.isOwner,
+      editedPayload: body.edited_payload,
+      confirmation: body.confirmation,
+      note: body.note,
+      postponeHours: body.postpone_hours,
+    });
     return { action, request };
   });
 
   router.add('GET', '/api/owner/actions', 'staff', async ({ caller, request }) => {
     staffOf(caller);
-    return { actions: await db.query(`select * from actions where ($1::text is null or status = $1) order by created_at desc limit 200`, [request.query.status ?? null]) };
+    return {
+      actions: await db.query(
+        `select * from actions where ($1::text is null or status = $1) order by created_at desc limit 200`,
+        [request.query.status ?? null],
+      ),
+    };
   });
 
   router.add('POST', '/api/owner/actions', 'owner', async ({ caller, json }) => {
@@ -156,13 +242,28 @@ export function registerRoutes(router: Router, platform: Platform): void {
 
   router.add('GET', '/api/owner/action-types', 'staff', async ({ caller }) => {
     staffOf(caller);
-    return { action_types: ACTION_SPECS.map((spec) => ({ type: spec.type, connector: spec.connector, level: typeof spec.level === 'function' ? 'depends on the payload' : spec.level, reversible: spec.reversible, risk: spec.risk, standing_rule: spec.delegable })) };
+    return {
+      action_types: ACTION_SPECS.map((spec) => ({
+        type: spec.type,
+        connector: spec.connector,
+        level: typeof spec.level === 'function' ? 'depends on the payload' : spec.level,
+        reversible: spec.reversible,
+        risk: spec.risk,
+        standing_rule: spec.delegable,
+      })),
+    };
   });
 
   router.add('GET', '/api/owner/audit', 'staff', async ({ caller, request }) => {
     staffOf(caller);
     const limit = Math.min(500, Math.max(1, Number(request.query.limit ?? 100) || 100));
-    return { chain_intact: (await verifyAuditChain(db)) === null, events: await db.query(`select seq, at, actor_kind, actor_id, event_type, subject_type, subject_id, data, hash from audit_events order by seq desc limit $1`, [limit]) };
+    return {
+      chain_intact: (await verifyAuditChain(db)) === null,
+      events: await db.query(
+        `select seq, at, actor_kind, actor_id, event_type, subject_type, subject_id, data, hash from audit_events order by seq desc limit $1`,
+        [limit],
+      ),
+    };
   });
 
   router.add('GET', '/api/owner/leads', 'staff', async ({ caller }) => {
@@ -192,7 +293,10 @@ export function registerRoutes(router: Router, platform: Platform): void {
 
   router.add('POST', '/api/owner/orders/:id/refund', 'staff', async ({ caller, params, json }) => {
     const staff = staffOf(caller);
-    const body = check(z.strictObject({ amount_minor: z.number().int().positive().optional(), reason: z.string().min(3).max(500) }), json);
+    const body = check(
+      z.strictObject({ amount_minor: z.number().int().positive().optional(), reason: z.string().min(3).max(500) }),
+      json,
+    );
     // Proposing a refund is preparation. It still waits in the inbox for the owner's confirmed approval.
     return store.proposeRefund(params.id!, { amountMinor: body.amount_minor, reason: body.reason }, staff.actor);
   });
@@ -225,7 +329,11 @@ export function registerRoutes(router: Router, platform: Platform): void {
 
   router.add('GET', '/api/owner/connectors', 'staff', async ({ caller }) => {
     staffOf(caller);
-    return { connectors: await db.query('select id, name, mode, status, status_note, last_ok_at, last_error from connectors order by name') };
+    return {
+      connectors: await db.query(
+        'select id, name, mode, status, status_note, last_ok_at, last_error from connectors order by name',
+      ),
+    };
   });
 
   router.add('GET', '/api/owner/rules', 'staff', async ({ caller }) => {
@@ -239,10 +347,15 @@ export function registerRoutes(router: Router, platform: Platform): void {
       z.strictObject({
         name: z.string().min(1).max(100),
         action_type: z.string(),
-        conditions: z.strictObject({ template: z.string().optional(), recipient: z.literal('order_buyer').optional() }).default({}),
+        conditions: z
+          .strictObject({ template: z.string().optional(), recipient: z.literal('order_buyer').optional() })
+          .default({}),
         spend_limit_per_action_minor: z.number().int().nonnegative(),
         spend_limit_per_period_minor: z.number().int().nonnegative(),
-        currency: z.string().regex(/^[A-Z]{3}$/).optional(),
+        currency: z
+          .string()
+          .regex(/^[A-Z]{3}$/)
+          .optional(),
         recipient_limit_per_period: z.number().int().positive(),
         period: z.enum(['day', 'week', 'month']),
         expires_at: z.iso.datetime(),
@@ -252,7 +365,18 @@ export function registerRoutes(router: Router, platform: Platform): void {
     );
     const rule = await createRule(
       db,
-      { name: body.name, actionType: body.action_type, conditions: body.conditions, spendLimitPerActionMinor: body.spend_limit_per_action_minor, spendLimitPerPeriodMinor: body.spend_limit_per_period_minor, currency: body.currency, recipientLimitPerPeriod: body.recipient_limit_per_period, period: body.period, expiresAt: new Date(body.expires_at), maxFailures: body.max_failures },
+      {
+        name: body.name,
+        actionType: body.action_type,
+        conditions: body.conditions,
+        spendLimitPerActionMinor: body.spend_limit_per_action_minor,
+        spendLimitPerPeriodMinor: body.spend_limit_per_period_minor,
+        currency: body.currency,
+        recipientLimitPerPeriod: body.recipient_limit_per_period,
+        period: body.period,
+        expiresAt: new Date(body.expires_at),
+        maxFailures: body.max_failures,
+      },
       staff.actor,
       staff.isOwner,
       clock(),
@@ -280,12 +404,20 @@ export function registerRoutes(router: Router, platform: Platform): void {
 
   router.add('GET', '/api/owner/alerts', 'staff', async ({ caller }) => {
     staffOf(caller);
-    return { alerts: await db.query(`select * from security_alerts order by (status = 'open') desc, created_at desc limit 100`) };
+    return {
+      alerts: await db.query(
+        `select * from security_alerts order by (status = 'open') desc, created_at desc limit 100`,
+      ),
+    };
   });
 
   router.add('GET', '/api/owner/memory', 'staff', async ({ caller }) => {
     staffOf(caller);
-    return { items: await db.query(`select key, kind, title, body, source, owner, status, sensitivity, version, review_at from memory_items order by kind, key`) };
+    return {
+      items: await db.query(
+        `select key, kind, title, body, source, owner, status, sensitivity, version, review_at from memory_items order by kind, key`,
+      ),
+    };
   });
 
   router.add('POST', '/api/owner/memory/:key/approve', 'owner', async ({ caller, params }) => {

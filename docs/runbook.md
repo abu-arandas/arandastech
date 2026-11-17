@@ -4,15 +4,15 @@ How to run, check and connect what is in this repository. The plan it implements
 
 ## What exists today
 
-| Part | Where | Status |
-|---|---|---|
-| Agent team for OpenMausBot | `agents/openmausbot` | Built. Not yet applied to a running app. |
-| Database schema | `supabase/migrations` | Built. Applied to a local PostgreSQL 16. Not yet applied to a Supabase project. |
-| Platform services and API | `packages/core` | Built. 67 tests pass, including the nine-step acceptance run of blueprint §15. |
-| MCP server for the bots | `packages/core/src/api/mcp.ts` | Built and tested through the API. Not yet tried from a real MCP client. |
-| Public site and storefront | `apps/web` | Built. Arabic and English, lead form, test checkout, order status. A browser smoke test passes. Not deployed. |
-| Owner app (Flutter) | `apps/owner` | Built. Arabic and English, demo mode and sign-in with the owner token. 17 tests pass and a live test passed against the local API. Not released to any store. |
-| Live connectors | none | Every connector is a mock. No live account is connected. |
+| Part                       | Where                          | Status                                                                                                                                                                                                                                             |
+| -------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent team for OpenMausBot | `agents/openmausbot`           | Built and checked by `npm run agents:check`. Not yet imported into a running OpenMausBot.                                                                                                                                                          |
+| Database schema            | `supabase/migrations`          | Built, four migrations. Live on a free Neon PostgreSQL, applied by `npm run db:deploy` on each production build.                                                                                                                                   |
+| Platform services and API  | `packages/core`                | Built. 77 tests pass, including the nine-step acceptance run of blueprint §15.                                                                                                                                                                     |
+| MCP server for the bots    | `packages/core/src/api/mcp.ts` | Built and tested through the API. Not yet tried from a real MCP client.                                                                                                                                                                            |
+| Public site and storefront | `apps/web`                     | Live at https://zirr-platform-ehab-arandas.vercel.app (Vercel project `zirr-platform`) in demo mode: Arabic and English, lead form, test checkout, order status. Payments are test payments only.                                                  |
+| Owner app (Flutter)        | `apps/owner`                   | Live on GitHub Pages at https://abu-arandas.github.io/arandastech/. Arabic and English. Sign-in with the server address and the owner token, plus an "Open the demo" button that shows sample data and changes nothing. Not released to any store. |
+| Live connectors            | none                           | Every connector is a mock. No live account is connected.                                                                                                                                                                                           |
 
 ## Run the checks
 
@@ -35,6 +35,16 @@ Run everything:
 ```bash
 npm test
 ```
+
+Lint, formatting and types, as CI runs them:
+
+```bash
+npm run lint
+npm run format
+npm run typecheck
+```
+
+`npm run format` only checks. To fix the files, run `npx prettier --write "**/*.{ts,tsx,mjs,json,md,css}"`. The agent team's Markdown is left as written, because `zirr.md` is built from it.
 
 The acceptance run alone:
 
@@ -80,6 +90,7 @@ Everything here runs on free plans. The storefront and the API run on Vercel's H
    - `DEMO_MODE=true` while payments are test payments only. A database stays in the mode it was first installed in, so going live later means a fresh database, and demo data never reaches customers.
 
    You do not make `OWNER_API_TOKEN`, `PAYMENTS_WEBHOOK_SECRET` or `SUPPLIER_WEBHOOK_SECRET`. The first deploy makes each one in the database, in `ops.secrets`, and the site reads them from there. A variable you set yourself wins, for example the webhook secret a live payment provider gives you. The example's `change-me` never counts on Vercel.
+
 4. Deploy. Each production build runs `npm run db:deploy` first. It:
    - adds the Supabase roles and `auth.uid()` when the database is a plain PostgreSQL,
    - applies only the migrations the database has not had yet, records each one in `ops.applied_migrations`, and does it all in one transaction, so a failure changes nothing and the build stops,
@@ -87,6 +98,7 @@ Everything here runs on free plans. The storefront and the API run on Vercel's H
    - makes the owner token and webhook secrets once, when they are missing, and logs only their names.
 
    Preview builds skip it, so a preview never changes the live database.
+
 5. For the owner app, set Pages to deploy from GitHub Actions in the repository settings. Each push to `main` that touches `apps/owner` publishes https://abu-arandas.github.io/arandastech/ through `.github/workflows/owner-web.yml`. Sign in there with the site's address and the owner token. To see the token, open the database's SQL editor (in Vercel: Storage, the database, Open in Neon, SQL Editor) and run `select value from ops.secrets where name = 'owner_api_token';`. To change it, set `OWNER_API_TOKEN` in Vercel and redeploy.
 
 Free plans keep little or no backup history. Move the database to a paid plan before real customers pay.
@@ -104,15 +116,15 @@ Free plans keep little or no backup history. Move the database to a paid plan be
 
 These are the owner's steps. Nothing here has been done.
 
-| Step | Why |
-|---|---|
-| Decide the Phase 0 items in blueprint §20 | Markets, payment route and launch budget block everything else |
-| Move the database to a paid plan | Free plans keep little or no backup history. See "Put it live for free" for the rest. |
-| Set the live payment provider's webhook secret and one token per department | The first deploy makes the owner token and stand-in webhook secrets. A live provider signs with its own secret, and each bot needs its own token. |
-| Set the real payment fee in the policy sheet | Margins are calculated from it. It starts at zero. |
-| Replace each mock connector with a live one, reading first | No live account is connected today |
-| Review the email templates and the Arabic marked "new wording" in `packages/core/src/company.ts` | They reach customers |
-| Add the MCP server to OpenMausBot (Plugins, MCP servers, Add server) with each bot's own token | So that bots act through the gateway |
+| Step                                                                                             | Why                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Decide the Phase 0 items in blueprint §20                                                        | Markets, payment route and launch budget block everything else                                                                                    |
+| Move the database to a paid plan                                                                 | Free plans keep little or no backup history. See "Put it live for free" for the rest.                                                             |
+| Set the live payment provider's webhook secret and one token per department                      | The first deploy makes the owner token and stand-in webhook secrets. A live provider signs with its own secret, and each bot needs its own token. |
+| Set the real payment fee in the policy sheet                                                     | Margins are calculated from it. It starts at zero.                                                                                                |
+| Replace each mock connector with a live one, reading first                                       | No live account is connected today                                                                                                                |
+| Review the email templates and the Arabic marked "new wording" in `packages/core/src/company.ts` | They reach customers                                                                                                                              |
+| Add the MCP server to OpenMausBot (Plugins, MCP servers, Add server) with each bot's own token   | So that bots act through the gateway                                                                                                              |
 
 ## Known limits
 
