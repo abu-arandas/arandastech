@@ -157,7 +157,10 @@ class _Store extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${order['number']} · ${formatMoney(order['total_minor'] as int, order['currency'] as String)}', textDirection: TextDirection.ltr),
+            Text(
+              '${order['number']} · ${formatMoney(order['total_minor'] as int, order['currency'] as String)}',
+              textDirection: TextDirection.ltr,
+            ),
             const SizedBox(height: 8),
             TextField(
               key: const Key('refund-reason'),
@@ -212,8 +215,18 @@ class _Store extends StatelessWidget {
                     Wrap(
                       spacing: 8,
                       children: [
-                        if (order['status'] == 'on_hold') FilledButton.tonal(onPressed: () => c.releaseOrder(order), child: Text('Release'.tr)),
-                        if (const ['paid', 'fulfilling', 'shipped', 'delivered', 'completed', 'return_requested'].contains(order['status']))
+                        if (order['status'] == 'on_hold')
+                          FilledButton.tonal(onPressed: () => c.releaseOrder(order), child: Text('Release'.tr)),
+                        if (const [
+                          'paid',
+                          'on_hold',
+                          'fulfilling',
+                          'shipped',
+                          'delivered',
+                          'completed',
+                          'return_requested',
+                          'canceled',
+                        ].contains(order['status']))
                           TextButton(onPressed: () => _refund(context, c, order), child: Text('Prepare a refund'.tr)),
                       ],
                     ),
