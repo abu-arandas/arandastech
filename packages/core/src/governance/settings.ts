@@ -168,12 +168,25 @@ export async function listPolicy(
 
 /** Changes one number on the policy sheet. The caller has already checked that the actor is the owner. */
 export async function setPolicy<K extends PolicyKey>(db: Db, key: K, value: PolicyValue<K>, by: Actor): Promise<void> {
-  if (!(key in POLICY_DEFAULTS)) throw invalid(`unknown policy setting ${key}`);
+  if (!Object.hasOwn(POLICY_DEFAULTS, key)) throw invalid(`unknown policy setting ${key}`);
   const expected = POLICY_DEFAULTS[key].value;
   const sameKind = value === null || expected === null || typeof value === typeof expected;
   if (!sameKind) throw invalid(`policy setting ${key} expects a ${typeof expected}`);
   if (typeof value === 'number' && (!Number.isFinite(value) || value < 0))
     throw invalid(`policy setting ${key} cannot be negative`);
+  // Amounts, shares and counts are whole numbers: minor units, basis points, micro-dollars, days.
+  if (typeof value === 'number' && !Number.isSafeInteger(value))
+    throw invalid(`policy setting ${key} is a whole number`);
+  // A per-currency setting is a map from a three-letter currency to a whole amount, or null for "no limit".
+  if (typeof value === 'object' && value !== null) {
+    const entries = Array.isArray(value) ? null : Object.entries(value as Record<string, unknown>);
+    const fine = entries?.every(
+      ([currency, amount]) =>
+        /^[A-Z]{3}$/.test(currency) &&
+        (amount === null || (typeof amount === 'number' && Number.isSafeInteger(amount) && amount >= 0)),
+    );
+    if (!fine) throw invalid(`policy setting ${key} maps each currency (like USD) to a whole amount or null`);
+  }
   await db.tx(async (tx) => {
     await tx.query(
       `insert into policy_settings (key, value, description, updated_by) values ($1, $2::jsonb, $3, $4)

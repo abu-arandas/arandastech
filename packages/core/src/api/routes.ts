@@ -127,13 +127,13 @@ export function registerRoutes(router: Router, platform: Platform): void {
     return { order_number: order.number, payment_ref: `pay_${order.number}`, results };
   });
 
-  router.add('POST', '/api/demo/settle', 'demo', async ({ json }) => {
+  router.add('POST', '/api/demo/settle', 'demo_owner', async ({ json }) => {
     const body = check(z.strictObject({ payment_ref: z.string(), fee_minor: z.number().int().nonnegative() }), json);
     const event = signedEvent(secrets.payments, 'payment.settled', body);
     return store.handlePaymentWebhook(event.body, event.signature);
   });
 
-  router.add('POST', '/api/demo/supplier', 'demo', async ({ json }) => {
+  router.add('POST', '/api/demo/supplier', 'demo_owner', async ({ json }) => {
     const body = check(
       z.strictObject({
         supplier_ref: z.string(),
@@ -146,7 +146,7 @@ export function registerRoutes(router: Router, platform: Platform): void {
     return store.handleSupplierWebhook(event.body, event.signature);
   });
 
-  router.add('POST', '/api/demo/inbound-email', 'demo', async ({ json }) => {
+  router.add('POST', '/api/demo/inbound-email', 'demo_owner', async ({ json }) => {
     const body = check(
       z.strictObject({
         from: z.email(),
@@ -160,7 +160,8 @@ export function registerRoutes(router: Router, platform: Platform): void {
     return { message_id: message.id, flagged: message.flagged, flag_reasons: message.flag_reasons };
   });
 
-  router.add('GET', '/api/demo/deliveries', 'demo', async () => ({ deliveries: await listMockDeliveries(db) }));
+  // What the mock connectors "sent" holds customers' names, addresses and license keys, so only the owner reads it.
+  router.add('GET', '/api/demo/deliveries', 'demo_owner', async () => ({ deliveries: await listMockDeliveries(db) }));
 
   // ---------------------------------------------------------------- The owner app
 
@@ -404,7 +405,7 @@ export function registerRoutes(router: Router, platform: Platform): void {
 
   router.add('PUT', '/api/owner/policy/:key', 'owner', async ({ caller, params, json }) => {
     const staff = staffOf(caller);
-    if (!(params.key! in POLICY_DEFAULTS)) throw invalid(`unknown policy setting ${params.key}`);
+    if (!Object.hasOwn(POLICY_DEFAULTS, params.key!)) throw invalid(`unknown policy setting ${params.key}`);
     await setPolicy(db, params.key as PolicyKey, json.value as never, staff.actor);
     return { key: params.key, value: json.value };
   });

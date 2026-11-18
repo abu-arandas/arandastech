@@ -155,6 +155,72 @@ describe('rate limits', () => {
   });
 });
 
+describe('the doors stay closed', () => {
+  let t: TestPlatform;
+  let api: ReturnType<typeof apiFor>;
+  beforeAll(async () => {
+    t = await createTestPlatform();
+    api = apiFor(t);
+  });
+  afterAll(async () => t.test.drop());
+
+  it('keeps the demo test tools, which show what was sent to customers, for the owner', async () => {
+    for (const [method, path, body] of [
+      ['GET', '/api/demo/deliveries', undefined],
+      ['POST', '/api/demo/inbound-email', { from: 'a@shop.example', body: 'Hello' }],
+      ['POST', '/api/demo/settle', { payment_ref: 'pay_x', fee_minor: 1 }],
+      ['POST', '/api/demo/supplier', { supplier_ref: 'x', status: 'shipped' }],
+    ] as const)
+      expect((await api(method, path, { body, token: null })).status, path).toBe(401);
+    expect((await api('GET', '/api/demo/deliveries')).status).toBe(200);
+    // The storefront's test payment stays open to visitors, as the shop needs it.
+    expect((await api('POST', '/api/demo/pay', { body: { session: 'none' }, token: null })).status).toBe(404);
+  });
+
+  it('limits order lookups, so order numbers and emails cannot be tried one after another', async () => {
+    for (let n = 0; n < 20; n++)
+      expect(
+        (await api('GET', `/api/public/orders/Z-${n}?email=x@y.example`, { token: null, from: '198.51.100.20' }))
+          .status,
+      ).toBe(404);
+    const refused = await api('GET', '/api/public/orders/Z-99?email=x@y.example', {
+      token: null,
+      from: '198.51.100.20',
+    });
+    expect(refused.status).toBe(429);
+    expect(Number(refused.headers?.['retry-after'])).toBeGreaterThan(0);
+  });
+
+  it('tells a locked-out caller how long to wait', async () => {
+    for (let n = 0; n < 20; n++) await api('GET', '/api/owner/overview', { token: `bad-${n}`, from: '192.0.2.77' });
+    const refused = await api('GET', '/api/owner/overview', { from: '192.0.2.77' });
+    expect(refused.status).toBe(429);
+    expect(Number(refused.headers?.['retry-after'])).toBeGreaterThan(0);
+  });
+
+  it('answers a broken address with 400, not a server error', async () => {
+    expect((await api('GET', '/api/owner/orders/%E0%A4%A')).status).toBe(400);
+  });
+
+  it('accepts only known policy settings with whole, sensible values', async () => {
+    for (const key of ['toString', 'constructor', '__proto__', 'nope'])
+      expect((await api('PUT', `/api/owner/policy/${key}`, { body: { value: null } })).status, key).toBe(422);
+    expect((await api('PUT', '/api/owner/policy/margin.min_product_bps', { body: { value: 12.5 } })).status).toBe(422);
+    expect(
+      (await api('PUT', '/api/owner/policy/orders.max_value_minor', { body: { value: { USD: 'lots' } } })).status,
+    ).toBe(422);
+    expect((await api('PUT', '/api/owner/policy/orders.max_value_minor', { body: { value: [1] } })).status).toBe(422);
+    expect(
+      (await api('PUT', '/api/owner/policy/orders.max_value_minor', { body: { value: { USD: 1e100 } } })).status,
+    ).toBe(422);
+    expect((await api('PUT', '/api/owner/policy/margin.min_product_bps', { body: { value: 1e100 } })).status).toBe(422);
+    expect(
+      (await api('PUT', '/api/owner/policy/orders.max_value_minor', { body: { value: { USD: 50000, JOD: null } } }))
+        .status,
+    ).toBe(200);
+  });
+});
+
 describe('the owner sees the metrics and closes alerts', () => {
   let t: TestPlatform;
   let api: ReturnType<typeof apiFor>;

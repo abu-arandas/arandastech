@@ -38,7 +38,8 @@ interface Route {
   method: string;
   pattern: RegExp;
   keys: string[];
-  access: 'public' | 'staff' | 'owner' | 'demo';
+  /** demo: anyone, in demo mode only. demo_owner: the owner, in demo mode only (test tools that show private data). */
+  access: 'public' | 'staff' | 'owner' | 'demo' | 'demo_owner';
   handler: Handler;
 }
 
@@ -59,7 +60,12 @@ export class Router {
       pathMatched = true;
       if (route.method !== method) continue;
       const params: Record<string, string> = {};
-      route.keys.forEach((key, index) => (params[key] = decodeURIComponent(hit[index + 1] ?? '')));
+      try {
+        route.keys.forEach((key, index) => (params[key] = decodeURIComponent(hit[index + 1] ?? '')));
+      } catch {
+        // A broken percent sign in the address is the caller's mistake, not ours.
+        throw new AppError('invalid', 'The address is not encoded correctly.', 400);
+      }
       return { route, params };
     }
     return pathMatched ? 'wrong_method' : null;

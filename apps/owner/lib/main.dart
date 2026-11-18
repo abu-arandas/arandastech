@@ -12,6 +12,7 @@ void main() {
       controller: OwnerController(
         connector: (baseUrl, token) => HttpApi(baseUrl: baseUrl, token: token),
         preferred: PlatformDispatcher.instance.locale,
+        refreshEvery: const Duration(minutes: 1),
       ),
     ),
   );

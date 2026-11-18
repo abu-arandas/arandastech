@@ -116,7 +116,7 @@ class _Settings extends StatelessWidget {
 
   Future<void> _edit(BuildContext context, OwnerController c, Json setting) async {
     final value = setting['value'];
-    final field = TextEditingController(text: value == null ? '' : '$value');
+    final field = TextEditingController(text: value == null ? '' : (value is Map ? jsonEncode(value) : '$value'));
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -130,7 +130,7 @@ class _Settings extends StatelessWidget {
             TextField(
               key: const Key('policy-value'),
               controller: field,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: value is Map ? TextInputType.text : TextInputType.number,
               textDirection: TextDirection.ltr,
             ),
           ],
@@ -167,10 +167,13 @@ class _Settings extends StatelessWidget {
                   onPressed: () => _edit(context, c, setting),
                   child: Text(setting['value'] == null ? 'Not set'.tr : '${setting['value']}', textDirection: TextDirection.ltr),
                 ),
-                // Per-currency values are shown as they are; they are changed through the API for now.
+                // A per-currency value opens as text, one amount per currency in minor units.
                 _ => ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 140),
-                  child: Text(jsonEncode(setting['value']), textDirection: TextDirection.ltr, overflow: TextOverflow.ellipsis),
+                  constraints: const BoxConstraints(maxWidth: 160),
+                  child: TextButton(
+                    onPressed: () => _edit(context, c, setting),
+                    child: Text(jsonEncode(setting['value']), textDirection: TextDirection.ltr, overflow: TextOverflow.ellipsis),
+                  ),
                 ),
               },
             ),

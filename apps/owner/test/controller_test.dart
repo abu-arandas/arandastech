@@ -67,6 +67,36 @@ void main() {
     expect(c.signedIn, isFalse);
   });
 
+  test('refreshes on its own while signed in, and stops at sign-out', () async {
+    final c = OwnerController(connector: (_, _) => DemoApi(), refreshEvery: const Duration(milliseconds: 20));
+    await c.connect(demo: true);
+    c.error.value = 'Kept on screen';
+    final before = c.loadedAt.value;
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    expect(c.loadedAt.value!.isAfter(before!), isTrue);
+    expect(c.error.value, 'Kept on screen');
+    c.signOut();
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(c.loadedAt.value, isNull);
+  });
+
+  test('a background refresh never replaces what an action just changed', () async {
+    final c = demo();
+    await c.connect(demo: true);
+    final quiet = c.refreshQuietly();
+    await c.revokeRule(c.rules.first);
+    await quiet;
+    expect(c.rules.first['status'], 'revoked');
+  });
+
+  test('refuses a limit that is not a whole number, including infinity', () async {
+    final c = demo();
+    await c.connect(demo: true);
+    final cap = c.policy.firstWhere((p) => p['key'] == 'ai.daily_cap_micros');
+    expect(await c.setPolicy(cap, 'Infinity'), isFalse);
+    expect(c.error.value, 'Write a whole number, 0 or more.');
+  });
+
   test('a sign-out during a reload or an action brings no data back', () async {
     final c = demo();
     await c.connect(demo: true);
