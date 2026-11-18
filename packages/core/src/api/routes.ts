@@ -3,6 +3,17 @@ import { getCommand, listCommands, planCommand, startCommand } from '../agents/c
 import { listJobs } from '../agents/jobs';
 import { signedEvent } from '../commerce/store';
 import { listMockDeliveries } from '../connectors/mock';
+import {
+  check as checkConnection,
+  disconnect,
+  listConnections,
+  livePayments,
+  paytabsCallback,
+  saveConnection,
+  startGoogleSignIn,
+  syncGmail,
+  whatsappWebhook,
+} from '../connectors/registry';
 import { createLead, listInbox, listLeads, recordInbound } from '../crm/crm';
 import { ledgerCurrencies, moneySummary } from '../finance/ledger';
 import { metrics } from '../finance/metrics';
@@ -80,6 +91,44 @@ export function registerRoutes(router: Router, platform: Platform): void {
     return { order_number: order.number, total_minor: order.total_minor, currency: order.currency, session, duplicate };
   });
 
+  router.add('GET', '/api/public/payments', 'public', async () => ({
+    provider: livePayments(platform) ? 'paytabs' : platform.config.demo ? 'test' : 'none',
+  }));
+
+  // Where the buyer pays: PayTabs' own card page when PayTabs is connected, the test page in demo mode otherwise.
+  router.add('POST', '/api/public/pay', 'public', async ({ json }) => {
+    const body = check(z.strictObject({ session: z.string().min(1).max(80), locale: z.enum(['en', 'ar']) }), json);
+    const order = (
+      await db.query<{
+        number: string;
+        total_minor: number;
+        currency: string;
+        buyer_name: string;
+        buyer_email: string;
+        status: string;
+      }>(
+        'select number, total_minor, currency, buyer_name, buyer_email, status from orders where checkout_session = $1',
+        [body.session],
+      )
+    )[0];
+    if (!order) throw new AppError('not_found', 'No checkout matches that session.', 404);
+    if (order.status !== 'pending_payment') return { provider: 'none', order_number: order.number, paid: true };
+    const paytabs = livePayments(platform);
+    if (!paytabs) return { provider: platform.config.demo ? 'test' : 'none', order_number: order.number, paid: false };
+    const site = platform.config.siteUrl ?? 'http://localhost:3000';
+    const page = await paytabs.paymentPage({
+      session: body.session,
+      amountMinor: order.total_minor,
+      currency: order.currency,
+      description: `Zirr order ${order.number}`,
+      buyer: { name: order.buyer_name, email: order.buyer_email },
+      callback: `${site}/api/webhooks/paytabs`,
+      returnUrl: `${site}/${body.locale}/order?number=${encodeURIComponent(order.number)}&paying=1`,
+      locale: body.locale,
+    });
+    return { provider: 'paytabs', order_number: order.number, paid: false, url: page.url };
+  });
+
   router.add('GET', '/api/public/orders/:number', 'public', async ({ params, request }) => {
     const status = await store.publicStatus(params.number!, request.query.email ?? '');
     if (!status) throw new AppError('not_found', 'No order matches that number and email address.', 404);
@@ -88,6 +137,12 @@ export function registerRoutes(router: Router, platform: Platform): void {
 
   router.add('POST', '/api/webhooks/payments', 'public', async ({ request }) =>
     store.handlePaymentWebhook(request.body, request.headers['x-signature']),
+  );
+  router.add('POST', '/api/webhooks/paytabs', 'public', async ({ request }) =>
+    paytabsCallback(platform, request.body, request.headers.signature),
+  );
+  router.add('POST', '/api/webhooks/whatsapp', 'public', async ({ request }) =>
+    whatsappWebhook(platform, request.body, request.headers['x-hub-signature-256']),
   );
   router.add('POST', '/api/webhooks/supplier', 'public', async ({ request }) =>
     store.handleSupplierWebhook(request.body, request.headers['x-signature']),
@@ -98,6 +153,8 @@ export function registerRoutes(router: Router, platform: Platform): void {
   const secrets = platform.config.webhookSecrets;
 
   router.add('POST', '/api/demo/pay', 'demo', async ({ json }) => {
+    // Once real cards are taken, nothing may mark an order paid without the provider saying so.
+    if (livePayments(platform)) throw new AppError('payments_live', 'Payments are live. Pay on the card page.', 409);
     const body = check(
       z.strictObject({ session: z.string(), deliveries: z.number().int().min(1).max(3).default(1) }),
       json,
@@ -342,6 +399,58 @@ export function registerRoutes(router: Router, platform: Platform): void {
         'select id, name, mode, status, status_note, last_ok_at, last_error from connectors order by name',
       ),
     };
+  });
+
+  // ---------------------------------------------------------------- Connections to outside accounts
+
+  const site = (): string => platform.config.siteUrl ?? 'http://localhost:3000';
+  const connectionId = z.enum(['gmail', 'github', 'vercel', 'buffer', 'whatsapp', 'payments']);
+
+  router.add('GET', '/api/owner/connections', 'staff', async ({ caller }) => {
+    staffOf(caller);
+    return { connections: await listConnections(platform, { site: site() }) };
+  });
+
+  // Keys are written once and never read back: the answer says only whether the account now answers.
+  router.add('PUT', '/api/owner/connections/:id', 'owner', async ({ caller, params, json }) => {
+    const staff = staffOf(caller);
+    const id = check(connectionId, params.id);
+    const result = await saveConnection(platform, id, json.values);
+    await audit(db, {
+      actor: staff.actor,
+      type: 'connection.saved',
+      subject: { type: 'connector', id },
+      data: {
+        fields: Object.keys((json.values as Record<string, unknown>) ?? {}),
+        mode: result.mode,
+        ok: result.health?.ok ?? null,
+      },
+    });
+    return result;
+  });
+
+  router.add('POST', '/api/owner/connections/:id/check', 'owner', async ({ caller, params }) => {
+    staffOf(caller);
+    return checkConnection(platform, check(connectionId, params.id));
+  });
+
+  router.add('POST', '/api/owner/connections/:id/disconnect', 'owner', async ({ caller, params }) => {
+    const staff = staffOf(caller);
+    const id = check(connectionId, params.id);
+    await disconnect(platform, id);
+    await audit(db, { actor: staff.actor, type: 'connection.removed', subject: { type: 'connector', id }, data: {} });
+    return { mode: 'mock' };
+  });
+
+  router.add('POST', '/api/owner/connections/gmail/sign-in', 'owner', async ({ caller }) => {
+    staffOf(caller);
+    return startGoogleSignIn(platform, `${site()}/api/connect/gmail/callback`);
+  });
+
+  // The owner app asks for new mail each time it refreshes. The inbox is read at most once a minute.
+  router.add('POST', '/api/owner/inbox/sync', 'staff', async ({ caller, json }) => {
+    staffOf(caller);
+    return syncGmail(platform, { force: json.force === true });
   });
 
   router.add('GET', '/api/owner/rules', 'staff', async ({ caller }) => {

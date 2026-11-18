@@ -31,6 +31,8 @@ void main() {
     'Retired',
     'Write the reason for the refund.',
     'Write a number.',
+    'Type at least one value.',
+    'The value has a space in it. Copy it again without spaces.',
     'Write a whole number, 0 or more.',
     'Write each currency with its amount, like {"USD": 50000, "JOD": null}.',
     'Qualified leads',

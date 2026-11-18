@@ -1,3 +1,4 @@
+import { syncGmail } from '@zirr/core';
 import { server } from '@/lib/platform';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,12 @@ export async function GET(request: Request): Promise<Response> {
   if (secret && request.headers.get('authorization') !== `Bearer ${secret}`)
     return Response.json({ error: { code: 'unauthorized', message: 'Sign in to use this.' } }, { status: 401 });
   const { platform } = await server();
+  // New mail is read here too, so Support answers it even on a day the owner app stays closed.
+  const mail = await syncGmail(platform, { force: true }).catch((error: unknown) => ({
+    read: 0,
+    skipped: String(error),
+  }));
   const queued = await platform.agents.scheduleDaily();
   const ran = await platform.agents.runDue({ budgetMs: 45_000 });
-  return Response.json({ queued, ran }, { headers: { 'cache-control': 'no-store' } });
+  return Response.json({ mail, queued, ran }, { headers: { 'cache-control': 'no-store' } });
 }

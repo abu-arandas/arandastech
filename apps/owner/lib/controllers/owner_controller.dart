@@ -41,6 +41,10 @@ class OwnerController extends GetxController {
   final RxList<Json> products = <Json>[].obs;
   final Rxn<Json> metrics = Rxn<Json>();
   final RxList<Json> connectors = <Json>[].obs;
+  final RxList<Json> connections = <Json>[].obs;
+
+  /// What each account said the last time it was saved or checked, by connection id.
+  final RxMap<String, Json> connectionHealth = <String, Json>{}.obs;
   final RxList<Json> alerts = <Json>[].obs;
   final RxList<Json> policy = <Json>[].obs;
   final RxList<Json> rules = <Json>[].obs;
@@ -105,7 +109,7 @@ class OwnerController extends GetxController {
     events.clear();
     team.value = null;
     commands.clear();
-    for (final list in [leads, messages, orders, products, connectors, alerts, policy, rules, memory]) {
+    for (final list in [leads, messages, orders, products, connectors, connections, alerts, policy, rules, memory]) {
       list.clear();
     }
     metrics.value = null;
@@ -143,6 +147,10 @@ class OwnerController extends GetxController {
 
   Future<void> _read(PlatformApi platform, {required bool Function() keep}) async {
     final overviewNow = await platform.overview();
+    // New mail next, so it is in the inbox below. A mailbox that is not connected, or slow, never stops the rest.
+    try {
+      await platform.syncInbox();
+    } catch (_) {}
     final approvalsNow = await platform.approvals();
     final log = await platform.audit();
     final teamNow = await platform.team();
@@ -153,6 +161,7 @@ class OwnerController extends GetxController {
     final productsNow = await platform.catalog();
     final metricsNow = await platform.metrics();
     final connectorsNow = await platform.connectors();
+    final connectionsNow = await platform.connections();
     final alertsNow = await platform.alerts();
     final policyNow = await platform.policy();
     final rulesNow = await platform.rules();
@@ -170,6 +179,7 @@ class OwnerController extends GetxController {
     products.assignAll(productsNow);
     metrics.value = metricsNow;
     connectors.assignAll(connectorsNow);
+    connections.assignAll(connectionsNow);
     alerts.assignAll(alertsNow);
     policy.assignAll(policyNow);
     rules.assignAll(rulesNow);
@@ -241,6 +251,39 @@ class OwnerController extends GetxController {
       value = trimmed;
     }
     return _act((p) => p.setPolicy(setting['key'] as String, value));
+  }
+
+  /// Saves the values typed for one account. Empty boxes are left out, so a saved secret is never cleared by accident.
+  Future<bool> saveConnection(Json connection, Map<String, String> typed) {
+    final values = {for (final e in typed.entries) e.key: e.value.trim()}..removeWhere((_, v) => v.isEmpty);
+    if (values.isEmpty) {
+      error.value = 'Type at least one value.';
+      return Future.value(false);
+    }
+    if (values.values.any((v) => RegExp(r'\s').hasMatch(v))) {
+      error.value = 'The value has a space in it. Copy it again without spaces.';
+      return Future.value(false);
+    }
+    final id = connection['id'] as String;
+    return _act((p) async => connectionHealth[id] = await p.saveConnection(id, values));
+  }
+
+  Future<bool> checkConnection(Json connection) {
+    final id = connection['id'] as String;
+    return _act((p) async => connectionHealth[id] = await p.checkConnection(id));
+  }
+
+  Future<bool> disconnect(Json connection) {
+    final id = connection['id'] as String;
+    connectionHealth.remove(id);
+    return _act((p) => p.disconnect(id));
+  }
+
+  /// Google's sign-in page for the mailbox, or null when the platform refused.
+  Future<String?> gmailSignIn() async {
+    String? url;
+    await _guard(() async => url = await api.value!.gmailSignIn());
+    return url;
   }
 
   Future<bool> togglePolicy(Json setting) => _act((p) => p.setPolicy(setting['key'] as String, setting['value'] != true));

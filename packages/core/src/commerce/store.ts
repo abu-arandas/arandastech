@@ -384,7 +384,14 @@ export class Store {
     rawBody: string,
     signature: string | null | undefined,
   ): Promise<{ duplicate: boolean; result: string }> {
-    const event = this.verify(this.options.webhookSecrets.payments, rawBody, signature);
+    return this.processPaymentEvent(this.verify(this.options.webhookSecrets.payments, rawBody, signature));
+  }
+
+  /**
+   * A payment notice whose signature a provider adapter has already checked, such as PayTabs' callback. Each notice is
+   * processed once.
+   */
+  async processPaymentEvent(event: z.infer<typeof providerEvent>): Promise<{ duplicate: boolean; result: string }> {
     const outcome = await this.db.tx(async (tx) => {
       const fresh = await tx.query(
         `insert into webhook_events (connector, external_id, event_type, signature_ok, payload) values ('payments', $1, $2, true, $3::jsonb)
@@ -414,10 +421,12 @@ export class Store {
         payment_ref: z.string(),
         amount_minor: z.number().int().nonnegative(),
         currency: z.string(),
+        provider: z.string().max(40).optional(),
       })
       .safeParse(data);
     if (!shape.success) return { result: 'malformed', fulfil: null };
     const { session, payment_ref, amount_minor, currency } = shape.data;
+    const provider = shape.data.provider ?? 'mock';
     const order = maybeOne(
       await tx.query<OrderRow>('select * from orders where checkout_session = $1 for update', [session]),
     );
@@ -432,9 +441,9 @@ export class Store {
 
     const now = this.clock();
     await tx.query(
-      `insert into payments (order_id, provider, provider_ref, status, amount_minor, currency, captured_at) values ($1, 'mock', $2, 'pending', $3, $4, $5)
+      `insert into payments (order_id, provider, provider_ref, status, amount_minor, currency, captured_at) values ($1, $6, $2, 'pending', $3, $4, $5)
        on conflict (provider, provider_ref) do nothing`,
-      [order.id, payment_ref, amount_minor, currency, now],
+      [order.id, payment_ref, amount_minor, currency, now, provider],
     );
     const items = await tx.query<OrderItemRow>('select * from order_items where order_id = $1', [order.id]);
     const paid = await this.move(tx, order, 'paid', SYSTEM, { payment_ref, amount_minor, currency });

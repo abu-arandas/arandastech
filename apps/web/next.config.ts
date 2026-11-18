@@ -16,7 +16,7 @@ const csp = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  "form-action 'self' https://*.paytabs.com https://secure.paytabs.sa",
 ].join('; ');
 
 const config: NextConfig = {

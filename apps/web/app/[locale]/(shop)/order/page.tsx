@@ -32,6 +32,7 @@ export default async function Order({
     <>
       <h1 className="enter">{t('orderStatus', locale)}</h1>
       {/* An order just paid gets one shower of confetti, once per order. The words stay plain. */}
+      {query.paying && <p className="notice enter">{t('paymentConfirming', locale)}</p>}
       {query.paid && (
         <>
           <Done>{t('paidThanks', locale)}</Done>

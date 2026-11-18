@@ -22,6 +22,7 @@ export function createApi(platform: Platform, auth: AuthConfig): (request: ApiRe
     'POST /api/public/leads': 'lead',
     'POST /api/public/checkout': 'checkout',
     'POST /api/demo/pay': 'checkout',
+    'POST /api/public/pay': 'checkout',
   };
 
   /** Signs the caller in, counting failures against the address, so a token cannot be guessed by trying. */

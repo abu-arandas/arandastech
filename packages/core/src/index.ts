@@ -8,3 +8,4 @@ export { ClaudeModel, DEFAULT_MODEL, type ModelClient } from './agents/model';
 export type { Locale, Localized } from './lib/types';
 export { createPlatform, install, type Platform, type PlatformConfig } from './platform';
 export { DEPARTMENTS } from './seed';
+export { finishGoogleSignIn, livePayments, refreshConnectors, syncGmail, whatsappVerify } from './connectors/registry';

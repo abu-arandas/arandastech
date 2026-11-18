@@ -159,8 +159,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
-    expect(find.text('Waiting for you to connect it'), findsNothing);
-    expect(find.textContaining('Built, not connected'), findsWidgets);
+    expect(find.text('Connections'), findsOneWidget);
+    expect(find.textContaining('Not connected, works as a stand-in'), findsWidgets);
     await tester.tap(find.text('Resolve'));
     await tester.pumpAndSettle();
     expect(find.text('No open alerts.'), findsOneWidget);
@@ -212,5 +212,45 @@ void main() {
     await tester.tap(find.text('Revoke'));
     await tester.pumpAndSettle();
     expect(c.rules.first['status'], 'revoked');
+  });
+
+  testWidgets('the owner connects an account with a key the app never shows again', (tester) async {
+    tester.view.physicalSize = const Size(1280, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final c = OwnerController(connector: (_, _) => DemoApi());
+    await tester.pumpWidget(OwnerApp(controller: c));
+    await c.connect(demo: true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('GitHub'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('fine-grained token'), findsOneWidget);
+    final box = find.byKey(const Key('connection-github-token'));
+    expect(tester.widget<TextField>(box).obscureText, isTrue);
+
+    await tester.enterText(box, 'github pat');
+    await tester.tap(find.byKey(const Key('connection-github-save')));
+    await tester.pumpAndSettle();
+    expect(c.error.value, 'The value has a space in it. Copy it again without spaces.');
+
+    await tester.enterText(box, 'github_pat_123');
+    await tester.tap(find.byKey(const Key('connection-github-save')));
+    await tester.pumpAndSettle();
+    expect(c.connections.firstWhere((x) => x['id'] == 'github')['mode'], 'live');
+    expect(tester.widget<TextField>(find.byKey(const Key('connection-github-token'))).controller!.text, isEmpty);
+    expect(find.textContaining('Sample data: nothing was sent.'), findsOneWidget);
+
+    // Gmail offers Google sign-in only after its client is saved, and the redirect address can be copied.
+    await tester.tap(find.text('Gmail'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('connection-gmail-sign-in')), findsNothing);
+    expect(find.text('https://example.test/api/connect/gmail/callback'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('connection-github-disconnect')));
+    await tester.pumpAndSettle();
+    expect(c.connections.firstWhere((x) => x['id'] == 'github')['mode'], 'mock');
   });
 }

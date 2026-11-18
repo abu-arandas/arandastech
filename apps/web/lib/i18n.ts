@@ -39,6 +39,16 @@ export const TEXT = {
   testPayment: { en: 'Test payment', ar: 'دفع تجريبي' },
   testPaymentNote: { en: 'This is a test checkout. No money is taken.', ar: 'هذه عملية دفع تجريبية. لن يُخصم أي مبلغ.' },
   payNow: { en: 'Pay now (test)', ar: 'ادفع الآن (تجريبي)' },
+  cardPayment: { en: 'Pay by card', ar: 'الدفع بالبطاقة' },
+  cardPaymentNote: {
+    en: 'You pay on PayTabs’ secure page. Your card details never reach us.',
+    ar: 'تدفع على صفحة PayTabs الآمنة. بيانات بطاقتك لا تصل إلينا أبدًا.',
+  },
+  goToPayment: { en: 'Go to the card page', ar: 'انتقل إلى صفحة البطاقة' },
+  paymentConfirming: {
+    en: 'Thank you. Your payment is being confirmed. Look your order up with your email address in a minute.',
+    ar: 'شكرًا لك. يجري تأكيد دفعتك. ابحث عن طلبك ببريدك الإلكتروني بعد دقيقة.',
+  },
   orderNumber: { en: 'Order number', ar: 'رقم الطلب' },
   lookUp: { en: 'Look up', ar: 'ابحث' },
   notFound: { en: 'No order matches that number and email address.', ar: 'لا يوجد طلب بهذا الرقم وهذا البريد.' },

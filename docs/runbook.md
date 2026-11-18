@@ -8,11 +8,11 @@ How to run, check and connect what is in this repository. The plan it implements
 | -------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Agent team for OpenMausBot | `agents/openmausbot`           | The departments run inside the platform (`packages/core/src/agents`), from the same souls and skills. The OpenMausBot team is checked by `npm run agents:check` and not yet imported into a running OpenMausBot.                                   |
 | Database schema            | `supabase/migrations`          | Built, five migrations. Live on a free Neon PostgreSQL, applied by `npm run db:deploy` on each production build.                                                                                                                                   |
-| Platform services and API  | `packages/core`                | Built. 111 tests pass, including the nine-step acceptance run of blueprint §15 and the departments' jobs.                                                                                                                                          |
+| Platform services and API  | `packages/core`                | Built. 125 tests pass, including the nine-step acceptance run of blueprint §15 and the departments' jobs.                                                                                                                                          |
 | MCP server for the bots    | `packages/core/src/api/mcp.ts` | Built and tested through the API. Not yet tried from a real MCP client.                                                                                                                                                                            |
 | Public site and storefront | `apps/web`                     | Live at https://zirr-platform-ehab-arandas.vercel.app (Vercel project `zirr-platform`) in demo mode: Arabic and English, lead form, test checkout, order status. Payments are test payments only.                                                  |
 | Owner app (Flutter)        | `apps/owner`                   | Live on GitHub Pages at https://abu-arandas.github.io/arandastech/. Arabic and English. Sign-in with the server address and the owner token, plus an "Open the demo" button that shows sample data and changes nothing. Not released to any store. |
-| Live connectors            | none                           | Every connector is a mock. No live account is connected.                                                                                                                                                                                           |
+| Live connectors            | none                           | Built for Gmail, GitHub, Vercel, Buffer, WhatsApp and PayTabs. Each stays a mock until the owner saves its keys in the owner app (Systems, Connections).                                                                                           |
 
 ## Run the checks
 
@@ -160,6 +160,32 @@ To switch it off again without removing the key, set `ai.enabled` to false in th
 MCP server at `/api/mcp`. The first deploy makes one token per department in `ops.secrets` (`agent_token:sales` and so on);
 read them in the SQL editor with `select name, value from ops.secrets where starts_with(name, 'agent_token:');`.
 
+## Connecting the real accounts
+
+The owner app's **Systems, Connections** lists each outside account with its steps and the addresses to copy into the
+provider. A key is typed once: it goes into `ops.secrets` as `connector:<id>:<field>` and the API never returns it,
+not even to the owner. When every value a connector needs is saved, it goes live at once and is checked against the
+provider; **Disconnect** puts the mock back. Each live call is made once per idempotency key (`connector_calls`).
+
+| Account  | What the owner pastes                                          | Found or made by the platform                                     |
+| -------- | -------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Gmail    | Google OAuth client ID and secret, then Sign in with Google    | The refresh token and the mailbox address                         |
+| GitHub   | A fine-grained token (Issues, Pull requests, Contents)         | Nothing else                                                      |
+| Vercel   | An access token                                                | The team                                                          |
+| Buffer   | A personal API key                                             | The Facebook and LinkedIn channels                                |
+| WhatsApp | Phone number ID, a permanent system-user token, the app secret | The webhook verify token; the webhook is `/api/webhooks/whatsapp` |
+| PayTabs  | Profile ID and server key (region `jor` by default)            | The callback is `/api/webhooks/paytabs`                           |
+
+- New mail is read when the owner app refreshes (at most once a minute) and by the daily cron run, then Support answers it.
+  Publish the Google app (Google Auth Platform, Publish app) so the sign-in does not expire after 7 days; with only the
+  owner signing in, Google shows an "unverified app" notice that can be passed.
+- With PayTabs connected, the storefront sends buyers to PayTabs' own card page and only a callback signed with the server
+  key marks an order paid; the test payment is refused. Test keys take test cards; live keys come after PayTabs approves
+  the merchant account.
+- In demo mode a standing rule never acts through a live account, because anyone can place an order there: each send
+  waits in Approvals.
+- WhatsApp free-form replies reach a customer only within 24 hours of their last message (Meta's rule).
+
 ## Before anything goes live
 
 These are the owner's steps. Nothing here has been done.
@@ -170,7 +196,7 @@ These are the owner's steps. Nothing here has been done.
 | Move the database to a paid plan                                                                 | Free plans keep little or no backup history. See "Put it live for free" for the rest.                                                     |
 | Set the live payment provider's webhook secret                                                   | The first deploy makes the owner token, one token per department and stand-in webhook secrets. A live provider signs with its own secret. |
 | Set the real payment fee in the policy sheet                                                     | Margins are calculated from it. It starts at zero.                                                                                        |
-| Replace each mock connector with a live one, reading first                                       | No live account is connected today                                                                                                        |
+| Connect each account in the owner app (Systems, Connections)                                     | Each connector is a mock until its keys are saved there                                                                                   |
 | Review the email templates and the Arabic marked "new wording" in `packages/core/src/company.ts` | They reach customers                                                                                                                      |
 | Add the MCP server to OpenMausBot (Plugins, MCP servers, Add server) with each bot's own token   | So that bots act through the gateway                                                                                                      |
 
