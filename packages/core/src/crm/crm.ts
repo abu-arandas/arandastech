@@ -1,3 +1,4 @@
+import { enqueue } from '../agents/jobs';
 import { z } from 'zod';
 import { audit } from '../governance/audit';
 import { type Db, json, maybeOne, one } from '../lib/db';
@@ -128,6 +129,9 @@ export async function recordInbound(
         ],
       );
     }
+    // A customer's email or chat message goes to Support. A form message is part of a lead, which Sales answers.
+    if (message.channel === 'email' || message.channel === 'whatsapp')
+      await enqueue(tx, 'support.triage', { message_id: saved.id }, { key: `support.triage:${saved.id}` });
     await audit(tx, {
       actor: SYSTEM,
       type: 'message.received',
@@ -179,6 +183,7 @@ export async function createLead(db: Db, raw: LeadInput, now: Date): Promise<{ l
       locale: input.locale,
       leadId: lead.id,
     });
+    await enqueue(tx, 'sales.lead_reply', { lead_id: lead.id }, { key: `sales.lead_reply:${lead.id}` });
     await audit(tx, {
       actor: SYSTEM,
       type: 'lead.created',

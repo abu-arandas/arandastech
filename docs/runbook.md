@@ -6,9 +6,9 @@ How to run, check and connect what is in this repository. The plan it implements
 
 | Part                       | Where                          | Status                                                                                                                                                                                                                                             |
 | -------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Agent team for OpenMausBot | `agents/openmausbot`           | Built and checked by `npm run agents:check`. Not yet imported into a running OpenMausBot.                                                                                                                                                          |
+| Agent team for OpenMausBot | `agents/openmausbot`           | The departments run inside the platform (`packages/core/src/agents`), from the same souls and skills. The OpenMausBot team is checked by `npm run agents:check` and not yet imported into a running OpenMausBot.                                   |
 | Database schema            | `supabase/migrations`          | Built, four migrations. Live on a free Neon PostgreSQL, applied by `npm run db:deploy` on each production build.                                                                                                                                   |
-| Platform services and API  | `packages/core`                | Built. 77 tests pass, including the nine-step acceptance run of blueprint §15.                                                                                                                                                                     |
+| Platform services and API  | `packages/core`                | Built. 99 tests pass, including the nine-step acceptance run of blueprint §15 and the departments' jobs.                                                                                                                                           |
 | MCP server for the bots    | `packages/core/src/api/mcp.ts` | Built and tested through the API. Not yet tried from a real MCP client.                                                                                                                                                                            |
 | Public site and storefront | `apps/web`                     | Live at https://zirr-platform-ehab-arandas.vercel.app (Vercel project `zirr-platform`) in demo mode: Arabic and English, lead form, test checkout, order status. Payments are test payments only.                                                  |
 | Owner app (Flutter)        | `apps/owner`                   | Live on GitHub Pages at https://abu-arandas.github.io/arandastech/. Arabic and English. Sign-in with the server address and the owner token, plus an "Open the demo" button that shows sample data and changes nothing. Not released to any store. |
@@ -112,19 +112,61 @@ Free plans keep little or no backup history. Move the database to a paid plan be
 5. The gateway runs the action through a connector, with an idempotency key, unless a pause holds it.
 6. Every step is written to the append-only audit log.
 
+## The departments at work
+
+The eight departments of blueprint §7 run inside the platform. Each one does real work from the platform's own data and
+proposes every outside step to the gateway, so the levels and approvals above still hold.
+
+| Department  | What it does, and when                                                                                                                                          |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales       | Scores each new lead and writes the first reply from the lead form, as an email for your approval (a flagged message only gets a draft). Runs on each new lead. |
+| Support     | Sorts each email and WhatsApp message, answers from the approved FAQ for your approval, and raises an alert for legal, refund or urgent ones. Runs on each one. |
+| Operations  | The morning briefing in English and Arabic, every day at 05:00 UTC (08:00 in Amman), and the plans of the command center.                                       |
+| Finance     | The money status from the ledger. Only you can move money.                                                                                                      |
+| Commerce    | Checks every price against the margin floor in the policy sheet.                                                                                                |
+| Security    | Every day: flagged messages and failing connectors. It pauses a connector that keeps failing; only you can end a pause.                                         |
+| Marketing   | Drafts social posts in Buffer, from the command center. Publishing waits for you.                                                                               |
+| Engineering | Files a GitHub issue, from the command center. In a public repository it waits for you.                                                                         |
+
+The **command center** is in the owner app's Team tab, and at `POST /api/owner/commands`. Write what you want done; Operations
+shows the plan, with each task's department, connector and approval, and nothing runs until you press Go ahead.
+
+Work runs right after the request that caused it (a new lead, a message, your go-ahead), in the same Vercel function, and once a
+day from the Vercel cron in `apps/web/vercel.json`. Every run is in `agent_runs`, with its cost.
+
+**Manual mode, at no cost.** With no AI key, the departments follow fixed rules and the approved templates in
+`packages/core/src/company.ts`: replies, answers, briefings and checks all work, and nothing is spent. Plans come from fixed
+rules too, and free-form tasks are skipped and say so.
+
+**With an AI key.** The departments write with Claude (the latest Opus model unless `AGENT_MODEL` says otherwise), read their
+soul and skills from `agents/openmausbot`, and stop at the caps in the policy sheet: `ai.daily_cap_micros` (1 US dollar a day),
+`ai.monthly_cap_micros` (10 a month) and `ai.run_cap_micros` (0.25 a run). At a cap they go back to manual mode and raise an
+alert. The Claude API is billed by Anthropic and has no free plan, so this is the one part that costs money. To turn it on:
+
+1. Make a key at https://console.anthropic.com (Settings, API keys) and set a monthly spend limit there too.
+2. Put it in Vercel: project `zirr-platform`, Settings, Environment Variables, `ANTHROPIC_API_KEY`, Production. Or in the
+   database's SQL editor: `insert into ops.secrets (name, value) values ('anthropic_api_key', '<the key>');`.
+3. Redeploy. The Team tab then says the departments use the AI model.
+
+To switch it off again without removing the key, set `ai.enabled` to false in the policy sheet.
+
+**The bots in OpenMausBot or Claude.** Instead of a key, the same team can run on your own Claude subscription through the
+MCP server at `/api/mcp`. The first deploy makes one token per department in `ops.secrets` (`agent_token:sales` and so on);
+read them in the SQL editor with `select name, value from ops.secrets where name like 'agent_token:%';`.
+
 ## Before anything goes live
 
 These are the owner's steps. Nothing here has been done.
 
-| Step                                                                                             | Why                                                                                                                                               |
-| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Decide the Phase 0 items in blueprint §20                                                        | Markets, payment route and launch budget block everything else                                                                                    |
-| Move the database to a paid plan                                                                 | Free plans keep little or no backup history. See "Put it live for free" for the rest.                                                             |
-| Set the live payment provider's webhook secret and one token per department                      | The first deploy makes the owner token and stand-in webhook secrets. A live provider signs with its own secret, and each bot needs its own token. |
-| Set the real payment fee in the policy sheet                                                     | Margins are calculated from it. It starts at zero.                                                                                                |
-| Replace each mock connector with a live one, reading first                                       | No live account is connected today                                                                                                                |
-| Review the email templates and the Arabic marked "new wording" in `packages/core/src/company.ts` | They reach customers                                                                                                                              |
-| Add the MCP server to OpenMausBot (Plugins, MCP servers, Add server) with each bot's own token   | So that bots act through the gateway                                                                                                              |
+| Step                                                                                             | Why                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Decide the Phase 0 items in blueprint §20                                                        | Markets, payment route and launch budget block everything else                                                                            |
+| Move the database to a paid plan                                                                 | Free plans keep little or no backup history. See "Put it live for free" for the rest.                                                     |
+| Set the live payment provider's webhook secret                                                   | The first deploy makes the owner token, one token per department and stand-in webhook secrets. A live provider signs with its own secret. |
+| Set the real payment fee in the policy sheet                                                     | Margins are calculated from it. It starts at zero.                                                                                        |
+| Replace each mock connector with a live one, reading first                                       | No live account is connected today                                                                                                        |
+| Review the email templates and the Arabic marked "new wording" in `packages/core/src/company.ts` | They reach customers                                                                                                                      |
+| Add the MCP server to OpenMausBot (Plugins, MCP servers, Add server) with each bot's own token   | So that bots act through the gateway                                                                                                      |
 
 ## Known limits
 

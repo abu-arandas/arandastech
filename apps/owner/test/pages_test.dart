@@ -23,7 +23,7 @@ void main() {
 
         await tester.tap(find.byType(OutlinedButton));
         await tester.pumpAndSettle();
-        for (final icon in const [Icons.fact_check_outlined, Icons.account_balance_wallet_outlined, Icons.history, Icons.today]) {
+        for (final icon in const [Icons.fact_check_outlined, Icons.groups_outlined, Icons.account_balance_wallet_outlined, Icons.history, Icons.today]) {
           await tester.tap(find.byIcon(icon));
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
@@ -76,5 +76,38 @@ void main() {
     await tester.tap(find.text('Resume'));
     await tester.pumpAndSettle();
     expect(c.paused, isFalse);
+  });
+
+  testWidgets('the owner plans an instruction on the Team screen and starts it', (tester) async {
+    tester.view.physicalSize = const Size(1280, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final c = OwnerController(connector: (_, _) => DemoApi());
+    await tester.pumpWidget(OwnerApp(controller: c));
+    await c.connect(demo: true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.groups_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Manual mode: no AI key is set. The departments follow fixed rules and cost nothing.'), findsOneWidget);
+    expect(find.text('Morning briefing'), findsOneWidget);
+    expect(find.text('Sales'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('plan')));
+    await tester.pumpAndSettle();
+    expect(find.text('Write what you want done, in a sentence.'), findsOneWidget, reason: 'an empty instruction plans nothing');
+
+    await tester.enterText(find.byKey(const Key('instruction')), 'Draft three posts and score the leads');
+    await tester.tap(find.byKey(const Key('plan')));
+    await tester.pumpAndSettle();
+    expect(find.text('Waiting for your go-ahead'), findsOneWidget);
+    expect(find.text('Draft 3 social posts'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('go-ahead')));
+    await tester.pumpAndSettle();
+    expect(c.commands.first['status'], 'done');
+    expect(find.byKey(const Key('go-ahead')), findsNothing);
+    await tester.tap(find.text('Run due work now'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 }

@@ -113,6 +113,33 @@ export const POLICY_DEFAULTS = {
     value: 60 as number,
     description: 'After an agent reads outside content, its proposals are treated as untrusted for this long.',
   },
+  'ai.enabled': {
+    value: true as boolean,
+    description:
+      'Whether the departments may call the AI model when an API key is set. Off, or without a key, they work in manual mode at no cost.',
+  },
+  'ai.daily_cap_micros': {
+    value: 1_000_000 as number,
+    description:
+      'Most the AI model may cost in one day, in millionths of a US dollar (1000000 is 1 dollar). At the cap the departments switch to manual mode.',
+  },
+  'ai.monthly_cap_micros': {
+    value: 10_000_000 as number,
+    description: 'Most the AI model may cost in one calendar month, in millionths of a US dollar.',
+  },
+  'ai.run_cap_micros': {
+    value: 250_000 as number,
+    description:
+      'Most one department run may cost, in millionths of a US dollar. A run that reaches it stops and says so.',
+  },
+  'engineering.repository': {
+    value: 'abu-arandas/arandastech' as string,
+    description: 'The GitHub repository the Engineering department files issues in.',
+  },
+  'engineering.repository_public': {
+    value: true as boolean,
+    description: 'Whether that repository is public. An issue in a public repository waits for the owner (Level 2).',
+  },
 } as const;
 
 export type PolicyKey = keyof typeof POLICY_DEFAULTS;

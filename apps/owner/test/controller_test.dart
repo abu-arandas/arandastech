@@ -75,6 +75,29 @@ void main() {
       if (path.endsWith('/overview')) return http.Response(jsonEncode({'paused': false, 'money': <dynamic>[]}), 200);
       if (path.endsWith('/approvals')) return http.Response(jsonEncode({'approvals': <dynamic>[]}), 200);
       if (path.endsWith('/audit')) return http.Response(jsonEncode({'chain_intact': true, 'events': <dynamic>[]}), 200);
+      if (path.endsWith('/agents'))
+        return http.Response(
+          jsonEncode({
+            'mode': {'mode': 'ai', 'reason': 'ready'},
+            'departments': <dynamic>[],
+          }),
+          200,
+        );
+      if (path.endsWith('/commands') && request.method == 'GET') return http.Response(jsonEncode({'commands': <dynamic>[]}), 200);
+      if (path.endsWith('/commands'))
+        return http.Response(
+          jsonEncode({
+            'command': {'id': 'c1', 'instruction': 'Draft posts', 'status': 'planning'},
+          }),
+          200,
+        );
+      if (path.endsWith('/start') || path.endsWith('/commands/c1'))
+        return http.Response(
+          jsonEncode({
+            'command': {'id': 'c1', 'instruction': 'Draft posts', 'status': 'running'},
+          }),
+          200,
+        );
       if (path.endsWith('/decide'))
         return http.Response(
           jsonEncode({
@@ -94,6 +117,16 @@ void main() {
     expect(seen.any((line) => line.startsWith('POST /api/owner/approvals/r1/decide') && line.contains('"amount_minor":100')), isTrue);
     await c.setPaused(value: true);
     expect(seen.any((line) => line.startsWith('POST /api/owner/pause')), isTrue);
+
+    expect(c.aiOn, isTrue);
+    final planned = await c.plan('Draft posts');
+    expect(seen.any((line) => line.startsWith('POST /api/owner/commands ') && line.contains('"instruction":"Draft posts"')), isTrue);
+    expect(await c.start(planned!), isTrue);
+    expect(seen.any((line) => line.startsWith('POST /api/owner/commands/c1/start')), isTrue);
+    expect(await c.refreshCommand(planned), isTrue);
+    expect(seen.any((line) => line.startsWith('GET /api/owner/commands/c1')), isTrue);
+    expect(await c.runDue(), isTrue);
+    expect(seen.any((line) => line.startsWith('POST /api/owner/agents/run')), isTrue);
   });
 
   test('a wrong address does not sign in', () async {

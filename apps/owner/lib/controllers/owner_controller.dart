@@ -23,6 +23,13 @@ class OwnerController extends GetxController {
   final RxnString error = RxnString();
   final RxBool busy = false.obs;
 
+  /// The departments' state, from the Team screen.
+  final Rxn<Json> team = Rxn<Json>();
+  final RxList<Json> commands = <Json>[].obs;
+
+  /// Whether the departments use the AI model now. Without a key they follow fixed rules at no cost.
+  bool get aiOn => (team.value?['mode'] as Json?)?['mode'] == 'ai';
+
   bool get signedIn => api.value != null;
   bool get paused => overview.value?['paused'] == true;
 
@@ -47,6 +54,8 @@ class OwnerController extends GetxController {
     overview.value = null;
     approvals.clear();
     events.clear();
+    team.value = null;
+    commands.clear();
   }
 
   /// Runs [work] and records its error instead of throwing, so that a failed call never leaves a screen half drawn.
@@ -72,7 +81,50 @@ class OwnerController extends GetxController {
     final log = await platform.audit();
     chainIntact.value = log['chain_intact'] == true;
     events.assignAll((log['events'] as List).cast<Json>());
+    team.value = await platform.team();
+    commands.assignAll(await platform.commands());
   });
+
+  /// Asks Operations for a plan. Returns it, or null when the platform refused.
+  Future<Json?> plan(String instruction) async {
+    Json? planned;
+    if (instruction.trim().length < 3) {
+      error.value = 'Write what you want done, in a sentence.';
+      return null;
+    }
+    await _guard(() async => planned = await api.value!.planCommand(instruction.trim()));
+    if (planned != null) commands.insert(0, planned!);
+    return planned;
+  }
+
+  /// The owner's go-ahead: the plan's tasks start. Anything that leaves the company still waits in Approvals.
+  Future<bool> start(Json command) async {
+    final ok = await _guard(() async => _replace(await api.value!.startCommand(command['id'] as String)));
+    final shown = error.value;
+    await reload();
+    if (!ok) error.value = shown;
+    return ok;
+  }
+
+  Future<bool> refreshCommand(Json command) => _guard(() async => _replace(await api.value!.command(command['id'] as String)));
+
+  /// Runs the work that is due now, then shows what changed.
+  Future<bool> runDue() async {
+    final ok = await _guard(() => api.value!.runDue());
+    final shown = error.value;
+    await reload();
+    if (!ok) error.value = shown;
+    return ok;
+  }
+
+  void _replace(Json command) {
+    final i = commands.indexWhere((c) => c['id'] == command['id']);
+    if (i < 0) {
+      commands.insert(0, command);
+    } else {
+      commands[i] = command;
+    }
+  }
 
   /// Sends the owner's decision. A Level 3 approval must carry the amount and the recipient the owner typed.
   Future<bool> decide(Json request, String decision, {int? amountMinor, String? recipient}) async {
