@@ -1,6 +1,8 @@
-import { server } from '@/lib/platform';
+import { server, workAfterResponse } from '@/lib/platform';
 
 export const dynamic = 'force-dynamic';
+// The departments' background work runs after the response, inside the same function, so it needs the time.
+export const maxDuration = 60;
 
 // The owner app runs on its own address. Only that address may call the API from a browser.
 function cors(request: Request): Record<string, string> {
@@ -34,6 +36,10 @@ async function handle(request: Request): Promise<Response> {
     headers,
     body: await request.text(),
   });
+  // New leads, messages and commands are worked on after the reply. The owner app's own calls keep the queue moving.
+  // A refused request (no token, bad input) starts nothing.
+  if (response.status < 400 && (request.method !== 'GET' || url.pathname.startsWith('/api/owner/')))
+    workAfterResponse();
   return new Response(response.body === null || response.body === undefined ? null : JSON.stringify(response.body), {
     status: response.status,
     headers: {

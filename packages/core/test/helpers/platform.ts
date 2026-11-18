@@ -1,3 +1,4 @@
+import type { ModelClient } from '../../src/agents/model';
 import { signedEvent } from '../../src/commerce/store';
 import { createMockConnectors, type MockConnector } from '../../src/connectors/mock';
 import { DEMO_OWNER_ID } from '../../src/company';
@@ -24,13 +25,13 @@ export interface TestPlatform {
 }
 
 /** A migrated, seeded demo platform on its own database, with mock connectors and a clock the test controls. */
-export async function createTestPlatform(): Promise<TestPlatform> {
+export async function createTestPlatform(options: { model?: ModelClient | null } = {}): Promise<TestPlatform> {
   const test = await createTestDb();
   const clock = testClock();
   const mocks = createMockConnectors();
   const platform = createPlatform(
     test.db,
-    { demo: true, webhookSecrets: SECRETS },
+    { demo: true, webhookSecrets: SECRETS, model: options.model ?? null },
     { clock: clock.now, connectors: mocks },
   );
   await install(platform);

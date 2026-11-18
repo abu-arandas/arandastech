@@ -244,6 +244,29 @@ const TEMPLATES = {
       body: 'مرحباً {{name}}،\n\nشكراً لطلبك رقم {{order_number}}. هذا ترخيصك، وهو باسمك:\n\n{{licenses}}\n\nالدعم عبر البريد لهذا الترخيص مستمر حتى: {{support_until}}.\n\nستصلك دعوة إلى الكود المصدري على هذا البريد.\n\nزِرّ',
     },
   },
+  // Sales' first answer to a lead in manual mode (no AI model), and Support's answer to a customer's message.
+  'lead-reply': {
+    title: 'First reply to a lead',
+    en: {
+      subject: 'Thank you for contacting Zirr',
+      body: 'Hello {{name}},\n\nThank you for your message{{about}}. We read every request ourselves, and we will send you a written reply with the next steps within two working days.\n\nIf you have a deadline, a budget range or designs, reply to this email with them and we will take them into account.\n\nZirr',
+    },
+    ar: {
+      subject: 'شكراً لتواصلك مع زِرّ',
+      body: 'مرحباً {{name}}،\n\nشكراً لرسالتك{{about}}. نقرأ كل طلب بأنفسنا، وسنرسل لك رداً مكتوباً بالخطوات التالية خلال يومَي عمل.\n\nإن كان لديك موعد نهائي أو ميزانية تقريبية أو تصاميم، أرسلها رداً على هذه الرسالة وسنأخذها بعين الاعتبار.\n\nزِرّ',
+    },
+  },
+  'support-received': {
+    title: 'Answer to a customer message',
+    en: {
+      subject: 'We received your message',
+      body: 'Hello,\n\nThank you for writing to Zirr. {{answer}}A member of our team reads every message and will reply within one working day if anything is still open.\n\nThis reply was prepared by our assistant and checked by a person before it was sent.\n\nZirr',
+    },
+    ar: {
+      subject: 'وصلتنا رسالتك',
+      body: 'مرحباً،\n\nشكراً لتواصلك مع زِرّ. {{answer}}يقرأ أحد أفراد فريقنا كل رسالة، وسيرد عليك خلال يوم عمل واحد إن بقي أي شيء مفتوحاً.\n\nأعدّ هذا الرد مساعدُنا الآلي وراجعه شخص من فريقنا قبل إرساله.\n\nزِرّ',
+    },
+  },
   'order-shipped': {
     title: 'Order shipped email',
     en: {

@@ -6,10 +6,11 @@ import 'package:material_ui/material_ui.dart';
 import '../config/money.dart';
 import '../controllers/owner_controller.dart';
 import '../services/api.dart';
+import 'team_page.dart';
 import 'widgets/brand_mark.dart';
 import 'widgets/motion.dart';
 
-/// The owner's four screens. The pause control is on every one of them (blueprint 8.2).
+/// The owner's five screens. The pause control is on every one of them (blueprint 8.2).
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -23,8 +24,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final c = Get.find<OwnerController>();
-    final tabs = ['Today', 'Approvals', 'Money', 'Activity'];
-    const icons = [Icons.today, Icons.fact_check_outlined, Icons.account_balance_wallet_outlined, Icons.history];
+    final tabs = ['Today', 'Approvals', 'Team', 'Money', 'Activity'];
+    const icons = [Icons.today, Icons.fact_check_outlined, Icons.groups_outlined, Icons.account_balance_wallet_outlined, Icons.history];
     return Obx(() {
       final scheme = Theme.of(context).colorScheme;
       return Scaffold(
@@ -69,7 +70,10 @@ class _HomePageState extends State<HomePage> {
                 duration: Motion.medium,
                 switchInCurve: Motion.enter,
                 switchOutCurve: Motion.exit,
-                child: KeyedSubtree(key: ValueKey(_tab), child: [const _Today(), const _Approvals(), const _Money(), const _Activity()][_tab]),
+                child: KeyedSubtree(
+                  key: ValueKey(_tab),
+                  child: [const _Today(), const _Approvals(), const TeamPage(), const _Money(), const _Activity()][_tab],
+                ),
               ),
             ),
           ],

@@ -6,6 +6,7 @@ The owner's dashboard and approval inbox for the Zirr platform, in Flutter. Arab
 |---|---|
 | Today | Waiting approvals, open leads, orders and whether the agents are paused |
 | Approvals | Each waiting action with its level, payload preview and a warning when outside content prompted it |
+| Team | Whether the departments use the AI model or manual mode, the morning briefing, what each department did today, and the command center: write what you want done, read the plan, press Go ahead |
 | Money | Revenue, costs and margin from the ledger |
 | Activity | The audit log, newest first |
 

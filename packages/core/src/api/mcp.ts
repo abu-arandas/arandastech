@@ -41,6 +41,8 @@ const MAY_PROPOSE: Record<string, string[]> = {
 interface ToolContext {
   platform: Platform;
   agent: Actor & { id: string };
+  /** Set when the platform's own agent runtime calls the tool, so that proposals point back to the run and its task. */
+  run?: { agentRunId?: string; taskId?: string };
 }
 
 interface Tool {
@@ -314,7 +316,7 @@ const TOOLS: Tool[] = [
       payload: z.record(z.string(), z.unknown()),
       evidence: z.array(z.unknown()).max(20).optional(),
     }),
-    run: async (args, { platform, agent }) => {
+    run: async (args, { platform, agent, run }) => {
       const type = String(args.type);
       if (!(MAY_PROPOSE[agent.id] ?? []).includes(type))
         throw forbidden(
@@ -325,6 +327,8 @@ const TOOLS: Tool[] = [
         payload: args.payload,
         requester: agent,
         evidence: args.evidence as unknown[] | undefined,
+        agentRunId: run?.agentRunId,
+        taskId: run?.taskId,
       });
       return describe(action, request?.id ?? null, duplicate);
     },
@@ -339,7 +343,7 @@ const TOOLS: Tool[] = [
       amount_minor: z.number().int().positive().optional(),
       reason: z.string().min(3).max(500),
     }),
-    run: async (args, { platform, agent }) => {
+    run: async (args, { platform, agent, run }) => {
       const order = (
         await platform.db.query<{ id: string }>('select id from orders where number = $1', [args.order_number])
       )[0];
@@ -349,6 +353,12 @@ const TOOLS: Tool[] = [
         { amountMinor: args.amount_minor as number | undefined, reason: String(args.reason) },
         agent,
       );
+      if (run?.agentRunId || run?.taskId)
+        await platform.db.query('update actions set agent_run_id = $2, task_id = $3 where id = $1', [
+          action.id,
+          run.agentRunId ?? null,
+          run.taskId ?? null,
+        ]);
       const request = (
         await platform.db.query<{ id: string }>('select id from approval_requests where action_id = $1', [action.id])
       )[0];
@@ -499,35 +509,68 @@ export async function handleMcp(platform: Platform, agent: Actor & { id: string 
         })),
       });
     case 'tools/call': {
-      const tool = visibleTo(agent.id).find((candidate) => candidate.name === params.name);
-      if (!tool) return rpcError(message.id, -32602, `Unknown tool: ${String(params.name)}`);
-      const text = (value: unknown, isError: boolean): ApiResponse =>
-        rpc(message.id, { content: [{ type: 'text', text: JSON.stringify(value, null, 2) }], isError });
-      try {
-        const parsed = tool.schema.safeParse(params.arguments ?? {});
-        if (!parsed.success)
-          throw invalid(
-            'The arguments are not valid.',
-            parsed.error.issues.map((issue) => ({ field: issue.path.join('.'), message: issue.message })),
-          );
-        const result = await tool.run(parsed.data, { platform, agent });
-        await audit(platform.db, {
-          actor: agent,
-          type: 'agent.tool_called',
-          subject: { type: 'tool', id: tool.name },
-          data: { arguments: Object.keys(parsed.data) },
-        });
-        return text(result, false);
-      } catch (error) {
-        if (error instanceof AppError)
-          return text({ error: { code: error.code, message: error.message, detail: error.detail ?? null } }, true);
-        return text({ error: { code: 'internal', message: 'The tool failed. Tell the owner.' } }, true);
-      }
+      if (!visibleTo(agent.id).some((candidate) => candidate.name === params.name))
+        return rpcError(message.id, -32602, `Unknown tool: ${String(params.name)}`);
+      const { isError, data } = await callTool(platform, agent, String(params.name), params.arguments ?? {});
+      return rpc(message.id, { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }], isError });
     }
     default:
       return rpcError(message.id, -32601, `Method not found: ${message.method}`);
   }
 }
+
+/** The tools one department sees, as the platform's own agent runtime hands them to a model. */
+export function toolsFor(
+  department: string,
+): Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> {
+  return visibleTo(department).map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: z.toJSONSchema(tool.schema) as Record<string, unknown>,
+  }));
+}
+
+/**
+ * Runs one tool for one department, exactly as a tools/call over MCP does: the same checks, the same audit entry. A
+ * failure comes back as data with isError set, so a model can read it and correct itself.
+ */
+export async function callTool(
+  platform: Platform,
+  agent: Actor & { id: string },
+  name: string,
+  args: unknown,
+  run?: ToolContext['run'],
+): Promise<{ isError: boolean; data: unknown }> {
+  const tool = visibleTo(agent.id).find((candidate) => candidate.name === name);
+  if (!tool) return { isError: true, data: { error: { code: 'unknown_tool', message: `Unknown tool: ${name}` } } };
+  try {
+    const parsed = tool.schema.safeParse(args ?? {});
+    if (!parsed.success)
+      throw invalid(
+        'The arguments are not valid.',
+        parsed.error.issues.map((issue) => ({ field: issue.path.join('.'), message: issue.message })),
+      );
+    const result = await tool.run(parsed.data, { platform, agent, run });
+    await audit(platform.db, {
+      actor: agent,
+      type: 'agent.tool_called',
+      subject: { type: 'tool', id: tool.name },
+      data: { arguments: Object.keys(parsed.data), agent_run_id: run?.agentRunId ?? null },
+    });
+    return { isError: false, data: result };
+  } catch (error) {
+    if (error instanceof AppError)
+      return {
+        isError: true,
+        data: { error: { code: error.code, message: error.message, detail: error.detail ?? null } },
+      };
+    console.error('[mcp]', name, error);
+    return { isError: true, data: { error: { code: 'internal', message: 'The tool failed. Tell the owner.' } } };
+  }
+}
+
+/** The actions each department may propose, for the runtime's planner and its reports. */
+export const mayPropose = (department: string): string[] => MAY_PROPOSE[department] ?? [];
 
 export const MCP_TOOL_NAMES = TOOLS.map((tool) => tool.name);
 export const MCP_ACTION_TYPES = ACTION_SPECS.map((spec) => spec.type);

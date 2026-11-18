@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zirr_owner/config/brand.dart';
 import 'package:zirr_owner/l10n/ar.dart';
+import 'package:zirr_owner/views/team_page.dart';
 
 /// Every text passed to `.tr` in lib/ must have Arabic, and no Arabic entry may be left over.
 void main() {
@@ -13,10 +14,14 @@ void main() {
     }
   }
   // Texts chosen at run time, which the scan above cannot see.
-  const dynamicTexts = {
+  final dynamicTexts = {
     Brand.wordmark,
+    ...TeamPage.departments.values,
+    ...TeamPage.modes.values,
+    ...TeamPage.statuses.values,
     'Today',
     'Approvals',
+    'Team',
     'Money',
     'Activity',
     'Could not connect. Check the address and the token.',
@@ -43,6 +48,7 @@ void main() {
     'The audit chain is intact.',
     'The audit chain is broken. Stop and investigate.',
     'The amount or the recipient does not match.',
+    'Write what you want done, in a sentence.',
     'Requested by',
     'Cost',
     'Risk',

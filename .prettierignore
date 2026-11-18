@@ -7,3 +7,4 @@ package-lock.json
 # OpenMausBot reads these as they are; zirr.md is built from them by build.mjs.
 agents/openmausbot/**/*.md
 apps/web/next-env.d.ts
+packages/core/src/agents/instructions.generated.ts

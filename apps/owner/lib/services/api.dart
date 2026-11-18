@@ -13,6 +13,18 @@ abstract class PlatformApi {
   Future<Json> audit();
   Future<void> pause();
   Future<void> resume();
+
+  /// The departments: whether they use the AI model, what each did today and the latest briefing.
+  Future<Json> team();
+  Future<List<Json>> commands();
+
+  /// Turns an instruction into a plan. Nothing runs until [startCommand].
+  Future<Json> planCommand(String instruction);
+  Future<Json> startCommand(String id);
+  Future<Json> command(String id);
+
+  /// Runs the work that is due now, instead of waiting for the next visit or the daily schedule.
+  Future<void> runDue();
 }
 
 /// A message from the platform that is safe to show to the owner.
@@ -65,6 +77,24 @@ class HttpApi implements PlatformApi {
 
   @override
   Future<void> resume() => _send('POST', '/api/owner/resume', {'scope': 'global'});
+
+  @override
+  Future<Json> team() => _send('GET', '/api/owner/agents');
+
+  @override
+  Future<List<Json>> commands() async => ((await _send('GET', '/api/owner/commands'))['commands'] as List).cast<Json>();
+
+  @override
+  Future<Json> planCommand(String instruction) async => (await _send('POST', '/api/owner/commands', {'instruction': instruction}))['command'] as Json;
+
+  @override
+  Future<Json> startCommand(String id) async => (await _send('POST', '/api/owner/commands/$id/start', {}))['command'] as Json;
+
+  @override
+  Future<Json> command(String id) async => (await _send('GET', '/api/owner/commands/$id'))['command'] as Json;
+
+  @override
+  Future<void> runDue() => _send('POST', '/api/owner/agents/run', {});
 }
 
 /// Sample data that behaves like the platform, so every screen can be opened with no backend.
@@ -197,4 +227,111 @@ class DemoApi implements PlatformApi {
 
   @override
   Future<void> resume() async => _paused = false;
+
+  final List<Json> _commands = [];
+
+  static const _departments = ['operations', 'sales', 'support', 'marketing', 'engineering', 'commerce', 'finance', 'security'];
+
+  @override
+  Future<Json> team() async => {
+    'mode': {
+      'mode': 'manual',
+      'model': null,
+      'reason': 'no_key',
+      'spent_today_micros': 0,
+      'spent_month_micros': 0,
+      'daily_cap_micros': 1000000,
+      'monthly_cap_micros': 10000000,
+    },
+    'departments': [
+      for (final (i, id) in _departments.indexed)
+        {
+          'id': id,
+          'enabled': true,
+          'runs_today': const [2, 3, 1, 0, 0, 1, 1, 1][i],
+          'failed_today': 0,
+          'cost_today_micros': 0,
+          'last_run_at': i == 3 || i == 4 ? null : '2026-11-15T08:00:00Z',
+        },
+    ],
+    'jobs': {'queued': 0, 'failed': 0},
+    'briefing': {
+      'started_at': '2026-11-15T08:00:00Z',
+      'model': null,
+      'output': {
+        'result': {
+          'text': {
+            'en': 'Good morning. 2 requests wait for you, 1 of them Level 3. 1 new lead came in and 1 order is in progress. 2 messages are unread and 1 is flagged.',
+            'ar': 'صباح الخير. طلبان بانتظارك، أحدهما من المستوى 3. وصل عميل محتمل جديد وطلب واحد قيد التنفيذ. رسالتان غير مقروءتين وواحدة مشبوهة.',
+          },
+        },
+      },
+    },
+  };
+
+  @override
+  Future<List<Json>> commands() async => List.of(_commands);
+
+  @override
+  Future<Json> planCommand(String instruction) async {
+    final command = <String, dynamic>{
+      'id': 'cmd-${_commands.length + 1}',
+      'instruction': instruction,
+      'status': 'planning',
+      'plan': {
+        'objective': instruction,
+        'planned_by': 'rules',
+        'expected_cost_micros': 0,
+        'warnings': <String>[],
+        'questions': <String>[],
+        'tasks': [
+          {
+            'kind': 'marketing.draft_posts',
+            'department': 'marketing',
+            'title': 'Draft 3 social posts',
+            'connector': 'buffer',
+            'level': 1,
+            'approval': 'none',
+            'needs_model': false,
+          },
+          {
+            'kind': 'sales.qualify_leads',
+            'department': 'sales',
+            'title': 'Score the open leads',
+            'connector': 'none',
+            'level': 0,
+            'approval': 'none',
+            'needs_model': false,
+          },
+        ],
+      },
+      'tasks': <Json>[],
+      'report': null,
+    };
+    _commands.insert(0, command);
+    return command;
+  }
+
+  @override
+  Future<Json> startCommand(String id) async {
+    final command = _commands.firstWhere((c) => c['id'] == id);
+    if (command['status'] != 'planning') throw ApiError('This plan has already started.');
+    final planned = ((command['plan'] as Json)['tasks'] as List).cast<Json>();
+    command
+      ..['status'] = 'done'
+      ..['tasks'] = [
+        for (final t in planned) {...t, 'status': 'done'},
+      ]
+      ..['report'] = {
+        'counts': {'done': planned.length},
+        'ai_cost_micros': 0,
+      };
+    return command;
+  }
+
+  @override
+  Future<Json> command(String id) async => _commands.firstWhere((c) => c['id'] == id);
+
+  @override
+  Future<void> runDue() async {}
 }
