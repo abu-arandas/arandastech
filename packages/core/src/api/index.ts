@@ -32,8 +32,8 @@ export function createApi(platform: Platform, auth: AuthConfig): (request: ApiRe
     try {
       return await authenticate(platform.db, auth, request.headers);
     } catch (error) {
-      if (error instanceof AppError && error.status === 401)
-        await limit(platform.db, 'sign_in', who, now).catch(() => {});
+      // A failure that cannot be counted fails the request, so a guess is never free.
+      if (error instanceof AppError && error.status === 401) await limit(platform.db, 'sign_in', who, now);
       throw error;
     }
   };

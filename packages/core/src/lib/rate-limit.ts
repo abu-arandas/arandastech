@@ -34,11 +34,8 @@ export async function limit(db: Db, name: LimitName, caller: string, now: Date):
      on conflict (bucket, window_start) do update set hits = rate_limits.hits + 1 returning hits`,
     [bucket, windowStart],
   );
-  // Windows older than a day are of no use; clearing this caller's keeps the table small without a scheduled job.
-  await db.query('delete from rate_limits where bucket = $1 and window_start < $2', [
-    bucket,
-    new Date(now.getTime() - 86_400_000),
-  ]);
+  // Windows older than a day are of no use. Clearing them for every caller keeps the table small without a scheduled job.
+  await db.query('delete from rate_limits where window_start < $1', [new Date(now.getTime() - 86_400_000)]);
   if ((row?.hits ?? 0) > rule.hits) {
     const retry = Math.ceil((windowStart.getTime() + size - now.getTime()) / 1000);
     throw new AppError('rate_limited', rule.message, 429, { retry_after_seconds: retry });

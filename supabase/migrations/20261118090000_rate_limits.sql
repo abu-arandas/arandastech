@@ -7,6 +7,7 @@ create table public.rate_limits (
   hits integer not null default 0 check (hits >= 0),
   primary key (bucket, window_start)
 );
+create index rate_limits_window_start on public.rate_limits (window_start);
 comment on table public.rate_limits is 'Hits per caller and time window, for the public forms, the checkout and failed sign-ins. Old windows are deleted as new ones are counted.';
 
 select app.secure_all_tables();

@@ -67,6 +67,19 @@ void main() {
     expect(c.signedIn, isFalse);
   });
 
+  test('a sign-out during a reload or an action brings no data back', () async {
+    final c = demo();
+    await c.connect(demo: true);
+    final loading = c.reload();
+    c.signOut();
+    await loading;
+    expect(c.leads, isEmpty);
+    expect(c.orders, isEmpty);
+    expect(c.overview.value, isNull);
+    expect(await c.reload(), isFalse);
+    expect(await c.revokeRule({'id': 'r1'}), isFalse);
+  });
+
   test('the real client sends the owner token and reads the platform', () async {
     final seen = <String>[];
     final client = MockClient((request) async {

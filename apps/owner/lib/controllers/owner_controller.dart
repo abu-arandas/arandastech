@@ -59,7 +59,7 @@ class OwnerController extends GetxController {
   Future<bool> connect({String baseUrl = '', String token = '', bool demo = false}) async {
     final candidate = demo ? DemoApi() : _connect(baseUrl.trim().replaceFirst(RegExp(r'/+$'), ''), token.trim());
     // The home screen appears only after the platform has answered: a wrong token never shows it, even briefly.
-    final ok = await _load(candidate);
+    final ok = await _load(candidate, signingIn: true);
     if (ok) api.value = candidate;
     return ok;
   }
@@ -93,32 +93,54 @@ class OwnerController extends GetxController {
     }
   }
 
-  Future<bool> reload() => _load(api.value!);
+  Future<bool> reload() async {
+    final platform = api.value;
+    return platform != null && await _load(platform);
+  }
 
-  Future<bool> _load(PlatformApi platform) => _guard(() async {
-    overview.value = await platform.overview();
-    approvals.assignAll(await platform.approvals());
+  /// Reads everything first and shows it only if the owner is still signed in to the same platform, so a sign-out
+  /// during the load never brings private data back on screen.
+  Future<bool> _load(PlatformApi platform, {bool signingIn = false}) => _guard(() async {
+    final overviewNow = await platform.overview();
+    final approvalsNow = await platform.approvals();
     final log = await platform.audit();
+    final teamNow = await platform.team();
+    final commandsNow = await platform.commands();
+    final leadsNow = await platform.leads();
+    final messagesNow = await platform.inbox();
+    final ordersNow = await platform.orders();
+    final productsNow = await platform.catalog();
+    final metricsNow = await platform.metrics();
+    final connectorsNow = await platform.connectors();
+    final alertsNow = await platform.alerts();
+    final policyNow = await platform.policy();
+    final rulesNow = await platform.rules();
+    final memoryNow = await platform.memory();
+    if (!signingIn && !identical(api.value, platform)) return;
+    overview.value = overviewNow;
+    approvals.assignAll(approvalsNow);
     chainIntact.value = log['chain_intact'] == true;
     events.assignAll((log['events'] as List).cast<Json>());
-    team.value = await platform.team();
-    commands.assignAll(await platform.commands());
-    leads.assignAll(await platform.leads());
-    messages.assignAll(await platform.inbox());
-    orders.assignAll(await platform.orders());
-    products.assignAll(await platform.catalog());
-    metrics.value = await platform.metrics();
-    connectors.assignAll(await platform.connectors());
-    alerts.assignAll(await platform.alerts());
-    policy.assignAll(await platform.policy());
-    rules.assignAll(await platform.rules());
-    memory.assignAll(await platform.memory());
+    team.value = teamNow;
+    commands.assignAll(commandsNow);
+    leads.assignAll(leadsNow);
+    messages.assignAll(messagesNow);
+    orders.assignAll(ordersNow);
+    products.assignAll(productsNow);
+    metrics.value = metricsNow;
+    connectors.assignAll(connectorsNow);
+    alerts.assignAll(alertsNow);
+    policy.assignAll(policyNow);
+    rules.assignAll(rulesNow);
+    memory.assignAll(memoryNow);
     loadedAt.value = DateTime.now();
   });
 
   /// Runs one owner action, then shows the platform as it is afterwards. An error stays on screen.
   Future<bool> _act(Future<void> Function(PlatformApi platform) work) async {
-    final ok = await _guard(() => work(api.value!));
+    final platform = api.value;
+    if (platform == null) return false;
+    final ok = await _guard(() => work(platform));
     final shown = error.value;
     await reload();
     if (!ok) error.value = shown;
