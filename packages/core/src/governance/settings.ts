@@ -175,14 +175,15 @@ export async function setPolicy<K extends PolicyKey>(db: Db, key: K, value: Poli
   if (typeof value === 'number' && (!Number.isFinite(value) || value < 0))
     throw invalid(`policy setting ${key} cannot be negative`);
   // Amounts, shares and counts are whole numbers: minor units, basis points, micro-dollars, days.
-  if (typeof value === 'number' && !Number.isInteger(value)) throw invalid(`policy setting ${key} is a whole number`);
+  if (typeof value === 'number' && !Number.isSafeInteger(value))
+    throw invalid(`policy setting ${key} is a whole number`);
   // A per-currency setting is a map from a three-letter currency to a whole amount, or null for "no limit".
   if (typeof value === 'object' && value !== null) {
     const entries = Array.isArray(value) ? null : Object.entries(value as Record<string, unknown>);
     const fine = entries?.every(
       ([currency, amount]) =>
         /^[A-Z]{3}$/.test(currency) &&
-        (amount === null || (typeof amount === 'number' && Number.isInteger(amount) && amount >= 0)),
+        (amount === null || (typeof amount === 'number' && Number.isSafeInteger(amount) && amount >= 0)),
     );
     if (!fine) throw invalid(`policy setting ${key} maps each currency (like USD) to a whole amount or null`);
   }

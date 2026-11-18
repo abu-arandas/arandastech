@@ -79,9 +79,14 @@ class OwnerController extends GetxController {
   Future<void> refreshQuietly() async {
     final platform = api.value;
     if (platform == null || busy.value) return;
-    final shown = error.value;
-    final ok = await _load(platform);
-    if (ok) error.value = shown;
+    final started = _version;
+    try {
+      // Nothing on screen changes while it reads: no busy state, no error cleared. What it read is shown only if the
+      // owner did nothing in the meantime, so an action's newer state is never replaced by an older read.
+      await _read(platform, keep: () => _version == started && !busy.value && identical(api.value, platform));
+    } on Object {
+      // The next refresh, or the owner's own tap, tries again.
+    }
   }
 
   @override
@@ -91,6 +96,7 @@ class OwnerController extends GetxController {
   }
 
   void signOut() {
+    _version++;
     _refresh?.cancel();
     _refresh = null;
     api.value = null;
@@ -108,6 +114,8 @@ class OwnerController extends GetxController {
 
   /// Runs [work] and records its error instead of throwing, so that a failed call never leaves a screen half drawn.
   Future<bool> _guard(Future<void> Function() work) async {
+    // Anything the owner starts overtakes a background read that is still on its way.
+    _version++;
     busy.value = true;
     error.value = null;
     try {
@@ -128,7 +136,12 @@ class OwnerController extends GetxController {
 
   /// Reads everything first and shows it only if the owner is still signed in to the same platform, so a sign-out
   /// during the load never brings private data back on screen.
-  Future<bool> _load(PlatformApi platform, {bool signingIn = false}) => _guard(() async {
+  Future<bool> _load(PlatformApi platform, {bool signingIn = false}) => _guard(() => _read(platform, keep: () => signingIn || identical(api.value, platform)));
+
+  /// Counts the owner's actions and sign-ins, so a background read can tell that it has been overtaken.
+  int _version = 0;
+
+  Future<void> _read(PlatformApi platform, {required bool Function() keep}) async {
     final overviewNow = await platform.overview();
     final approvalsNow = await platform.approvals();
     final log = await platform.audit();
@@ -144,7 +157,7 @@ class OwnerController extends GetxController {
     final policyNow = await platform.policy();
     final rulesNow = await platform.rules();
     final memoryNow = await platform.memory();
-    if (!signingIn && !identical(api.value, platform)) return;
+    if (!keep()) return;
     overview.value = overviewNow;
     approvals.assignAll(approvalsNow);
     chainIntact.value = log['chain_intact'] == true;
@@ -162,7 +175,7 @@ class OwnerController extends GetxController {
     rules.assignAll(rulesNow);
     memory.assignAll(memoryNow);
     loadedAt.value = DateTime.now();
-  });
+  }
 
   /// Runs one owner action, then shows the platform as it is afterwards. An error stays on screen.
   Future<bool> _act(Future<void> Function(PlatformApi platform) work) async {
@@ -202,7 +215,7 @@ class OwnerController extends GetxController {
         return Future.value(false);
       }
       // Amounts, shares and counts are whole numbers on the platform.
-      if (parsed != null && (parsed < 0 || parsed != parsed.roundToDouble())) {
+      if (parsed != null && (!parsed.isFinite || parsed < 0 || parsed != parsed.roundToDouble())) {
         error.value = 'Write a whole number, 0 or more.';
         return Future.value(false);
       }

@@ -211,6 +211,10 @@ describe('the doors stay closed', () => {
     ).toBe(422);
     expect((await api('PUT', '/api/owner/policy/orders.max_value_minor', { body: { value: [1] } })).status).toBe(422);
     expect(
+      (await api('PUT', '/api/owner/policy/orders.max_value_minor', { body: { value: { USD: 1e100 } } })).status,
+    ).toBe(422);
+    expect((await api('PUT', '/api/owner/policy/margin.min_product_bps', { body: { value: 1e100 } })).status).toBe(422);
+    expect(
       (await api('PUT', '/api/owner/policy/orders.max_value_minor', { body: { value: { USD: 50000, JOD: null } } }))
         .status,
     ).toBe(200);
