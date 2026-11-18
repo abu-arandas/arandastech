@@ -92,3 +92,37 @@ export async function checkInstallMode(db: Db, demo: boolean): Promise<void> {
       `This database was installed in ${row?.value} mode, but DEMO_MODE asks for ${wanted} mode. Use a fresh database for ${wanted} mode.`,
     );
 }
+
+/**
+ * Empties a demo database so it can be installed again in live mode. It refuses to touch a database that is not in
+ * demo mode, so a live company's data can never be wiped this way, and it leaves Supabase's own schemas alone.
+ * Returns false when there was nothing to reset (a fresh database, or one already in live mode).
+ * Everything happens in one transaction under the deploy lock, so a failure changes nothing.
+ */
+export async function resetDemoDatabase(db: Db): Promise<boolean> {
+  return db.tx(async (t) => {
+    await t.query(`select pg_advisory_xact_lock(hashtext('zirr.deploy_migrations'))`);
+    const [state] = await t.query<{ install: boolean; products: boolean }>(
+      `select to_regclass('ops.install') is not null as install, to_regclass('public.products') is not null as products`,
+    );
+    let mode: string | undefined;
+    if (state?.install) {
+      const [row] = await t.query<{ value: string }>(`select value from ops.install where key = 'mode'`);
+      mode = row?.value;
+    }
+    if (!mode && state?.products) {
+      const [found] = await t.query<{ demo: boolean }>(
+        `select exists (select 1 from public.products where is_test) as demo`,
+      );
+      if (found?.demo) mode = 'demo';
+    }
+    if (mode !== 'demo') return false;
+    await t.query(`drop schema if exists app cascade`);
+    await t.query(`drop schema if exists ops cascade`);
+    await t.query(`drop schema public cascade`);
+    await t.query(`create schema public`);
+    await t.query(`grant usage on schema public to public`);
+    await t.query(`grant usage on schema public to anon, authenticated, service_role`);
+    return true;
+  });
+}

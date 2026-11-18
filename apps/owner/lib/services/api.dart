@@ -30,7 +30,12 @@ abstract class PlatformApi {
   Future<List<Json>> leads();
   Future<List<Json>> inbox();
   Future<List<Json>> orders();
+
+  /// Every product, drafts included, with its status.
   Future<List<Json>> catalog();
+
+  /// Asks to publish a product. It waits in Approvals, where the owner confirms it.
+  Future<void> publishProduct(String id);
 
   /// Lets an order that was held for review go on. Only the owner may.
   Future<void> releaseOrder(String id);
@@ -146,7 +151,10 @@ class HttpApi implements PlatformApi {
   Future<List<Json>> orders() => _list('/api/owner/orders', 'orders');
 
   @override
-  Future<List<Json>> catalog() => _list('/api/public/catalog', 'products');
+  Future<List<Json>> catalog() => _list('/api/owner/products', 'products');
+
+  @override
+  Future<void> publishProduct(String id) => _send('POST', '/api/owner/products/$id/publish', {});
 
   @override
   Future<void> releaseOrder(String id) => _send('POST', '/api/owner/orders/$id/release', {});
@@ -563,8 +571,18 @@ class DemoApi implements PlatformApi {
   Future<List<Json>> orders() async => List.of(_orders);
 
   @override
-  Future<List<Json>> catalog() async => [
+  Future<List<Json>> catalog() async => List.of(_products);
+
+  @override
+  Future<void> publishProduct(String id) async {
+    final product = _products.firstWhere((p) => p['id'] == id);
+    product['status'] = 'published';
+  }
+
+  final List<Json> _products = [
     {
+      'id': 'p-retail',
+      'status': 'published',
       'slug': 'zirr-retail',
       'kind': 'digital',
       'name': {'en': 'Zirr Retail', 'ar': 'زِرّ للتجزئة'},
@@ -580,6 +598,21 @@ class DemoApi implements PlatformApi {
           'name': {'en': 'Agency license', 'ar': 'ترخيص الوكالة'},
           'currency': 'USD',
           'price_minor': 29900,
+        },
+      ],
+    },
+    {
+      'id': 'p-pos',
+      'status': 'draft',
+      'slug': 'zirr-pos',
+      'kind': 'digital',
+      'name': {'en': 'Zirr POS', 'ar': 'زِرّ لنقاط البيع'},
+      'variants': [
+        {
+          'sku': 'POS-DEV',
+          'name': {'en': 'Developer license', 'ar': 'ترخيص المطوّر'},
+          'currency': 'USD',
+          'price_minor': 3900,
         },
       ],
     },

@@ -240,7 +240,13 @@ class _Store extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(((product['name'] as Json?)?[language] ?? product['slug']) as String, style: theme.textTheme.titleMedium),
+                    Row(
+                      children: [
+                        Expanded(child: Text(((product['name'] as Json?)?[language] ?? product['slug']) as String, style: theme.textTheme.titleMedium)),
+                        if (product['status'] == 'published') Chip(label: Text('On sale'.tr)),
+                        if (product['status'] != 'published') Chip(label: Text('Not on sale'.tr)),
+                      ],
+                    ),
                     for (final v in ((product['variants'] as List?) ?? const []).cast<Json>())
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -251,6 +257,17 @@ class _Store extends StatelessWidget {
                           ],
                         ),
                       ),
+                    if (const ['draft', 'paused'].contains(product['status'])) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          FilledButton.tonal(onPressed: () => c.publishProduct(product), child: Text('Put on sale'.tr)),
+                          Text('You confirm it in Approvals.'.tr, style: theme.textTheme.bodySmall),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

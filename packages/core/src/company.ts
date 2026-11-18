@@ -399,3 +399,16 @@ export async function seedCompany(db: Db, options: { demo: boolean; now: Date })
     );
   }
 }
+
+/**
+ * Puts the owner on the team, so the owner token signs in on a live install too (demo mode adds a demo owner instead).
+ * Only adds a missing row: an owner the team already has is left as it is.
+ */
+export async function ensureOwner(db: Db, userId: string, email = 'owner@zirr.invalid'): Promise<boolean> {
+  const rows = await db.query(
+    `insert into staff_members (user_id, email, display_name, role) values ($1, $2, 'Owner', 'owner')
+     on conflict do nothing returning user_id`,
+    [userId, email],
+  );
+  return rows.length > 0;
+}

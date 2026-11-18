@@ -122,7 +122,7 @@ void main() {
         ('/leads', 'leads'),
         ('/inbox', 'messages'),
         ('/orders', 'orders'),
-        ('/catalog', 'products'),
+        ('/products', 'products'),
         ('/connectors', 'connectors'),
         ('/connections', 'connections'),
         ('/alerts', 'alerts'),
@@ -211,7 +211,10 @@ void main() {
     await c.saveConnection({'id': 'github'}, {'token': ' github_pat_x ', 'other': ''});
     await c.checkConnection({'id': 'github'});
     await c.disconnect({'id': 'github'});
+    await c.publishProduct({'id': 'p1'});
     for (final expected in [
+      'GET /api/owner/products',
+      'POST /api/owner/products/p1/publish',
       'POST /api/owner/inbox/sync',
       'PUT /api/owner/connections/github',
       'POST /api/owner/connections/github/check',

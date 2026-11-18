@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { call } from '@/lib/platform';
 import { isLocale, type Locale, money, pick, t } from '@/lib/i18n';
@@ -44,6 +45,8 @@ export default async function Checkout({
   const variant = product?.variants.find((v) => v.sku === sku);
   if (!product || !variant) notFound();
   const error = (await searchParams).error;
+  const payments = await call<{ provider: string }>('GET', '/api/public/payments');
+  const open = payments.ok && payments.data.provider !== 'none';
   return (
     <>
       {/* Checkout stays calm: the page comes in, and the button gives when pressed. Nothing else moves here. */}
@@ -59,27 +62,34 @@ export default async function Checkout({
           {error}
         </p>
       )}
-      <form action={order} className="enter" style={stagger(0, 160)}>
-        <input type="hidden" name="locale" value={locale} />
-        <input type="hidden" name="sku" value={sku} />
-        {/* The same key on a repeated submit finds the same order instead of creating a second one. */}
-        <input type="hidden" name="key" value={randomUUID()} />
-        <label>
-          {t('name', locale)}
-          <input name="name" required maxLength={120} />
-        </label>
-        <label>
-          {t('email', locale)}
-          <input name="email" type="email" required maxLength={200} dir="ltr" />
-        </label>
-        {product.kind === 'physical' && (
+      {!open && (
+        <p className="enter" role="status" style={stagger(0, 160)}>
+          {t('paymentsClosed', locale)} <Link href={`/${locale}/contact`}>{t('contact', locale)}</Link>
+        </p>
+      )}
+      {open && (
+        <form action={order} className="enter" style={stagger(0, 160)}>
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="sku" value={sku} />
+          {/* The same key on a repeated submit finds the same order instead of creating a second one. */}
+          <input type="hidden" name="key" value={randomUUID()} />
           <label>
-            {t('address', locale)}
-            <textarea name="address" required rows={3} maxLength={500} />
+            {t('name', locale)}
+            <input name="name" required maxLength={120} />
           </label>
-        )}
-        <button type="submit">{t('continueToPayment', locale)}</button>
-      </form>
+          <label>
+            {t('email', locale)}
+            <input name="email" type="email" required maxLength={200} dir="ltr" />
+          </label>
+          {product.kind === 'physical' && (
+            <label>
+              {t('address', locale)}
+              <textarea name="address" required rows={3} maxLength={500} />
+            </label>
+          )}
+          <button type="submit">{t('continueToPayment', locale)}</button>
+        </form>
+      )}
     </>
   );
 }

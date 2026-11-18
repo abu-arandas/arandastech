@@ -36,6 +36,10 @@ export const TEXT = {
   total: { en: 'Total', ar: 'المجموع' },
   address: { en: 'Delivery address', ar: 'عنوان التوصيل' },
   continueToPayment: { en: 'Continue to payment', ar: 'تابع إلى الدفع' },
+  paymentsClosed: {
+    en: 'Card payments open soon. To buy now, send us a message and we will reply by email.',
+    ar: 'الدفع بالبطاقة يُفتح قريبًا. للشراء الآن، أرسل لنا رسالة وسنردّ عليك بالبريد.',
+  },
   testPayment: { en: 'Test payment', ar: 'دفع تجريبي' },
   testPaymentNote: { en: 'This is a test checkout. No money is taken.', ar: 'هذه عملية دفع تجريبية. لن يُخصم أي مبلغ.' },
   payNow: { en: 'Pay now (test)', ar: 'ادفع الآن (تجريبي)' },

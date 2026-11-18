@@ -87,6 +87,9 @@ export function registerRoutes(router: Router, platform: Platform): void {
   });
 
   router.add('POST', '/api/public/checkout', 'public', async ({ json }) => {
+    // In live mode an order needs a way to pay. Until PayTabs is connected, nobody is left with an order they cannot pay.
+    if (!platform.config.demo && !livePayments(platform))
+      throw new AppError('payments_closed', 'Card payments are not open yet.', 503);
     const { order, session, duplicate } = await store.createCheckout(json as never);
     return { order_number: order.number, total_minor: order.total_minor, currency: order.currency, session, duplicate };
   });
@@ -339,6 +342,21 @@ export function registerRoutes(router: Router, platform: Platform): void {
   router.add('GET', '/api/owner/inbox', 'staff', async ({ caller }) => {
     staffOf(caller);
     return { messages: await listInbox(db) };
+  });
+
+  router.add('GET', '/api/owner/products', 'staff', async ({ caller }) => {
+    staffOf(caller);
+    return { products: await store.products() };
+  });
+
+  // Publishing is level 2: this only asks, and the owner confirms it in Approvals, where the margin checks show.
+  router.add('POST', '/api/owner/products/:id/publish', 'owner', async ({ caller, params }) => {
+    const staff = staffOf(caller);
+    return gateway.propose({
+      type: 'store.publish_product',
+      payload: { product_id: params.id! },
+      requester: staff.actor,
+    });
   });
 
   router.add('GET', '/api/owner/orders', 'staff', async ({ caller }) => {
