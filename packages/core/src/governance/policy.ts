@@ -11,6 +11,8 @@ export interface ProposalContext {
   /** True when the requester recently read content from outside the company. */
   untrustedInput: boolean;
   now: Date;
+  /** False when standing rules may not cover this action, such as a live connector in demo mode, where anyone can buy. */
+  rulesAllowed?: boolean;
 }
 
 export interface Decision {
@@ -64,6 +66,9 @@ export async function evaluate(
   // A run that has read outside content can read and draft only. Anything more goes to the owner (blueprint 10.2).
   if (ctx.untrustedInput)
     return { outcome: 'pending', level, reasons: ['needs_owner', 'untrusted_input'], rule: null, spec, payload };
+
+  if (ctx.rulesAllowed === false)
+    return { outcome: 'pending', level, reasons: ['needs_owner', 'live_in_demo'], rule: null, spec, payload };
 
   const cost = spec.cost?.(payload) ?? null;
   const rule = await matchRule(

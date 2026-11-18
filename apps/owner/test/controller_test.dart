@@ -124,6 +124,7 @@ void main() {
         ('/orders', 'orders'),
         ('/catalog', 'products'),
         ('/connectors', 'connectors'),
+        ('/connections', 'connections'),
         ('/alerts', 'alerts'),
         ('/policy', 'settings'),
         ('/rules', 'rules'),
@@ -205,7 +206,16 @@ void main() {
     await c.setPolicy({'key': 'tax.reserve_bps', 'value': null}, '1500');
     await c.revokeRule({'id': 'r1'});
     await c.approveMemory({'key': 'faq:one'});
+    expect(await c.saveConnection({'id': 'github'}, {'token': '  '}), isFalse, reason: 'nothing typed');
+    expect(await c.saveConnection({'id': 'github'}, {'token': 'abc def'}), isFalse, reason: 'a space');
+    await c.saveConnection({'id': 'github'}, {'token': ' github_pat_x ', 'other': ''});
+    await c.checkConnection({'id': 'github'});
+    await c.disconnect({'id': 'github'});
     for (final expected in [
+      'POST /api/owner/inbox/sync',
+      'PUT /api/owner/connections/github',
+      'POST /api/owner/connections/github/check',
+      'POST /api/owner/connections/github/disconnect',
       'POST /api/owner/orders/o1/release',
       'POST /api/owner/orders/o1/refund',
       'POST /api/owner/alerts/a1/resolve',
@@ -219,6 +229,8 @@ void main() {
     expect(seen.any((line) => line.contains('"amount_minor":500') && line.contains('/refund')), isTrue);
     expect(seen.any((line) => line.contains('"status":"acknowledged"')), isTrue);
     expect(seen.any((line) => line.contains('"value":1500')), isTrue);
+    // Only what was typed is sent, trimmed, so an empty box never clears a saved key.
+    expect(seen.any((line) => line.startsWith('PUT /api/owner/connections/github') && line.endsWith('{"values":{"token":"github_pat_x"}}')), isTrue);
     c.signOut();
     expect(c.orders, isEmpty);
   });

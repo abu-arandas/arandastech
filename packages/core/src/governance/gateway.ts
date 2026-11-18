@@ -64,6 +64,7 @@ export class Gateway {
     private readonly db: Db,
     private readonly connectors: Record<string, Connector>,
     private readonly clock: Clock,
+    private readonly options: { rulesAllowed?: (connector: string) => boolean } = {},
   ) {}
 
   guard(type: string, guard: Guard): void {
@@ -98,7 +99,12 @@ export class Gateway {
       this.db,
       proposal.type,
       proposal.payload,
-      { requester: proposal.requester, untrustedInput: untrusted, now },
+      {
+        requester: proposal.requester,
+        untrustedInput: untrusted,
+        now,
+        rulesAllowed: this.options.rulesAllowed?.(actionSpec(proposal.type)?.connector ?? 'platform'),
+      },
       this.guardsFor(proposal.type),
     );
     const hash = payloadHash(decision.payload);

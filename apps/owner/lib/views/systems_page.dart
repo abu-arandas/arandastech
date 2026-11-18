@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../controllers/owner_controller.dart';
 import '../services/api.dart';
+import 'connections_section.dart';
 import 'home_page.dart';
 
 /// Systems and Settings (blueprint 8.2 and 13.4): honest connector status, alerts, the policy sheet, standing rules,
@@ -85,26 +86,7 @@ class _Health extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 20),
-          Text('Connectors'.tr, style: theme.textTheme.titleLarge),
-          const SizedBox(height: 8),
-          for (final connector in c.connectors)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(switch (connector['status']) {
-                'live' || 'connected' => Icons.check_circle_outline,
-                'failed' => Icons.error_outline,
-                'paused' => Icons.pause_circle_outline,
-                _ => Icons.radio_button_unchecked,
-              }, color: connector['status'] == 'failed' ? scheme.error : scheme.primary),
-              title: Text(connector['name'] as String),
-              subtitle: Text(
-                [
-                  (SystemsPage.capability[connector['status']] ?? connector['status'] as String).tr,
-                  if (connector['last_error'] != null) connector['last_error'] as String,
-                  '${'Last worked'.tr}: ${connector['last_ok_at'] ?? 'never'.tr}',
-                ].join(' · '),
-              ),
-            ),
+          const ConnectionsSection(),
         ],
       );
     });

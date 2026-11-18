@@ -12,6 +12,7 @@ import {
   readAgentTokens,
   readSecrets,
   readStoredKey,
+  refreshConnectors,
   SECRETS,
   type SecretName,
 } from '@zirr/core';
@@ -58,7 +59,10 @@ async function connect(db: Db): Promise<Server> {
     demo: process.env.DEMO_MODE === 'true',
     model: apiKey ? new ClaudeModel(apiKey, process.env.AGENT_MODEL?.trim() || DEFAULT_MODEL) : null,
     webhookSecrets: { payments: required('payments_webhook_secret'), supplier: required('supplier_webhook_secret') },
+    siteUrl: siteUrl(),
   });
+  // Each account the owner connected in the owner app goes live; the rest stay mocks.
+  await refreshConnectors(platform);
   const api = createApi(platform, {
     ownerToken: secret('owner_api_token'),
     ownerUserId: process.env.OWNER_USER_ID || undefined,
@@ -69,6 +73,14 @@ async function connect(db: Db): Promise<Server> {
     },
   });
   return { platform, api };
+}
+
+/** The site's public address: SITE_URL when set, otherwise the production address Vercel gives the project. */
+export function siteUrl(): string {
+  const set = process.env.SITE_URL?.trim().replace(/\/+$/, '');
+  if (set) return set;
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  return vercel ? `https://${vercel}` : 'http://localhost:3000';
 }
 
 /** One platform per server process, built from the environment on first use. A failed start is tried again on the next call. */

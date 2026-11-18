@@ -37,6 +37,7 @@ dependencies:
   http: ^1.6.0
   flutter_localizations:
     sdk: flutter
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

@@ -41,6 +41,20 @@ abstract class PlatformApi {
   // Systems and settings.
   Future<Json> metrics();
   Future<List<Json>> connectors();
+
+  /// The outside accounts: which values are saved (never the secret ones), the steps and the addresses to copy.
+  Future<List<Json>> connections();
+
+  /// Saves what the owner typed. The answer says whether the account is live and whether it answered.
+  Future<Json> saveConnection(String id, Map<String, String> values);
+  Future<Json> checkConnection(String id);
+  Future<void> disconnect(String id);
+
+  /// Google's sign-in page for the mailbox.
+  Future<String> gmailSignIn();
+
+  /// Asks the platform to read new mail. It reads at most once a minute.
+  Future<void> syncInbox();
   Future<List<Json>> alerts();
   Future<void> resolveAlert(String id, {bool acknowledgeOnly = false});
   Future<List<Json>> policy();
@@ -146,6 +160,24 @@ class HttpApi implements PlatformApi {
 
   @override
   Future<List<Json>> connectors() => _list('/api/owner/connectors', 'connectors');
+
+  @override
+  Future<List<Json>> connections() => _list('/api/owner/connections', 'connections');
+
+  @override
+  Future<Json> saveConnection(String id, Map<String, String> values) => _send('PUT', '/api/owner/connections/$id', {'values': values});
+
+  @override
+  Future<Json> checkConnection(String id) => _send('POST', '/api/owner/connections/$id/check', {});
+
+  @override
+  Future<void> disconnect(String id) => _send('POST', '/api/owner/connections/$id/disconnect', {});
+
+  @override
+  Future<String> gmailSignIn() async => (await _send('POST', '/api/owner/connections/gmail/sign-in', {}))['url'] as String;
+
+  @override
+  Future<void> syncInbox() => _send('POST', '/api/owner/inbox/sync', {});
 
   @override
   Future<List<Json>> alerts() => _list('/api/owner/alerts', 'alerts');
@@ -672,4 +704,112 @@ class DemoApi implements PlatformApi {
 
   @override
   Future<void> approveMemory(String key) async => _memory.firstWhere((m) => m['key'] == key)['status'] = 'approved';
+
+  final List<Json> _connections = [
+    {
+      'id': 'gmail',
+      'name': 'Gmail',
+      'mode': 'mock',
+      'last_ok_at': null,
+      'last_error': null,
+      'sign_in': 'google',
+      'steps': ['Make an OAuth client in Google Cloud.', 'Paste the client ID and secret, then sign in with Google.'],
+      'fields': [
+        {
+          'key': 'client_id',
+          'label': 'OAuth client ID',
+          'help': 'Ends in .apps.googleusercontent.com',
+          'secret': false,
+          'automatic': false,
+          'optional': false,
+          'set': false,
+          'value': null,
+        },
+        {
+          'key': 'client_secret',
+          'label': 'OAuth client secret',
+          'help': 'Starts with GOCSPX-',
+          'secret': true,
+          'automatic': false,
+          'optional': false,
+          'set': false,
+          'value': null,
+        },
+        {
+          'key': 'address',
+          'label': 'Mailbox',
+          'help': 'The Gmail address you signed in with.',
+          'secret': false,
+          'automatic': true,
+          'optional': false,
+          'set': false,
+          'value': null,
+        },
+      ],
+      'addresses': [
+        {'label': 'Authorized redirect URI', 'value': 'https://example.test/api/connect/gmail/callback'},
+      ],
+    },
+    {
+      'id': 'github',
+      'name': 'GitHub',
+      'mode': 'mock',
+      'last_ok_at': null,
+      'last_error': null,
+      'sign_in': null,
+      'steps': ['Make a fine-grained token on GitHub.', 'Paste it here and press Save.'],
+      'fields': [
+        {
+          'key': 'token',
+          'label': 'Fine-grained token',
+          'help': 'Starts with github_pat_',
+          'secret': true,
+          'automatic': false,
+          'optional': false,
+          'set': false,
+          'value': null,
+        },
+      ],
+      'addresses': <Json>[],
+    },
+  ];
+
+  @override
+  Future<List<Json>> connections() async => [for (final c in _connections) jsonDecode(jsonEncode(c)) as Json];
+
+  @override
+  Future<Json> saveConnection(String id, Map<String, String> values) async {
+    if (values.values.any((v) => v.contains(' '))) throw ApiError('The value has a space in it. Copy it again without spaces.');
+    final connection = _connections.firstWhere((c) => c['id'] == id);
+    for (final field in (connection['fields'] as List).cast<Json>()) {
+      if (values[field['key']]?.isNotEmpty ?? false) field['set'] = true;
+    }
+    final complete = (connection['fields'] as List).cast<Json>().every((f) => f['set'] == true || f['automatic'] == true);
+    connection['mode'] = complete && connection['sign_in'] == null ? 'live' : 'mock';
+    return {
+      'mode': connection['mode'],
+      'health': connection['mode'] == 'live' ? {'ok': true, 'note': 'Sample data: nothing was sent.'} : null,
+    };
+  }
+
+  @override
+  Future<Json> checkConnection(String id) async => {
+    'mode': _connections.firstWhere((c) => c['id'] == id)['mode'],
+    'health': {'ok': true, 'note': 'Sample data.'},
+  };
+
+  @override
+  Future<void> disconnect(String id) async {
+    final connection = _connections.firstWhere((c) => c['id'] == id);
+    connection['mode'] = 'mock';
+    for (final field in (connection['fields'] as List).cast<Json>()) {
+      field['set'] = false;
+    }
+  }
+
+  @override
+  Future<String> gmailSignIn() async => throw ApiError('The demo cannot sign in to Google.');
+
+  @override
+  Future<void> syncInbox() async {}
 }

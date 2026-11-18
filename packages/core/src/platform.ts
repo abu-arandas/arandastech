@@ -4,7 +4,9 @@ import { AgentRuntime } from './agents/runtime';
 import { registerWorkflows } from './agents/workflows';
 import { Store } from './commerce/store';
 import { seedCompany } from './company';
-import { createMockConnectors } from './connectors/mock';
+import type { Fetch } from './connectors/live/base';
+import { createMockConnectors, type MockConnector } from './connectors/mock';
+import type { ConnectorHost } from './connectors/registry';
 import type { Connector } from './connectors/types';
 import { Gateway } from './governance/gateway';
 import type { Db } from './lib/db';
@@ -18,13 +20,18 @@ export interface PlatformConfig {
   webhookSecrets: { payments: string; supplier: string };
   /** The AI model the departments use. Without one they work in manual mode: approved templates and fixed rules, at no cost. */
   model?: ModelClient | null;
+  /** The site's own address, for the addresses providers call back (Google sign-in, WhatsApp, PayTabs). */
+  siteUrl?: string;
 }
 
-export interface Platform {
+export interface Platform extends ConnectorHost {
   db: Db;
   clock: Clock;
   config: PlatformConfig;
+  /** What the gateway uses: each connector's live adapter once the owner connects it, its mock until then. */
   connectors: Record<string, Connector>;
+  mocks: Record<string, MockConnector>;
+  fetch: Fetch;
   gateway: Gateway;
   store: Store;
   /** The departments: their workflows, the job queue and the command center. */
@@ -35,16 +42,30 @@ export interface Platform {
 export function createPlatform(
   db: Db,
   config: PlatformConfig,
-  overrides: { clock?: Clock; connectors?: Record<string, Connector> } = {},
+  overrides: { clock?: Clock; connectors?: Record<string, MockConnector>; fetch?: Fetch } = {},
 ): Platform {
   const clock = overrides.clock ?? systemClock;
-  const connectors = overrides.connectors ?? createMockConnectors();
-  const gateway = new Gateway(db, connectors, clock);
+  const mocks = overrides.connectors ?? createMockConnectors();
+  const connectors: Record<string, Connector> = { ...mocks };
+  // In demo mode anyone can place an order, so a standing rule never sends through a live account there.
+  const gateway = new Gateway(db, connectors, clock, {
+    rulesAllowed: (connector) => !(config.demo && connectors[connector]?.mode === 'live'),
+  });
   const store = new Store(db, gateway, clock, {
     webhookSecrets: config.webhookSecrets,
     allowTestProducts: config.demo,
   });
-  const platform = { db, clock, config, connectors, gateway, store } as Platform;
+  const platform = {
+    db,
+    clock,
+    config,
+    connectors,
+    mocks,
+    fetch: overrides.fetch ?? ((url, init) => fetch(url, init)),
+    gateway,
+    store,
+    paymentEvent: (event) => store.processPaymentEvent(event),
+  } as Platform;
   platform.agents = new AgentRuntime(platform, config.model ?? null);
   registerWorkflows(platform.agents);
   registerCommandWorkflows(platform.agents);
