@@ -29,8 +29,6 @@ async function handle(request: Request): Promise<Response> {
   const headers: Record<string, string> = {};
   request.headers.forEach((value, key) => (headers[key.toLowerCase()] = value));
   const { api } = await server();
-  // New leads, messages and commands are worked on after the reply. The owner app's own calls keep the queue moving.
-  if (request.method !== 'GET' || url.pathname.startsWith('/api/owner/')) workAfterResponse();
   const response = await api({
     method: request.method,
     path: url.pathname,
@@ -38,6 +36,10 @@ async function handle(request: Request): Promise<Response> {
     headers,
     body: await request.text(),
   });
+  // New leads, messages and commands are worked on after the reply. The owner app's own calls keep the queue moving.
+  // A refused request (no token, bad input) starts nothing.
+  if (response.status < 400 && (request.method !== 'GET' || url.pathname.startsWith('/api/owner/')))
+    workAfterResponse();
   return new Response(response.body === null || response.body === undefined ? null : JSON.stringify(response.body), {
     status: response.status,
     headers: {

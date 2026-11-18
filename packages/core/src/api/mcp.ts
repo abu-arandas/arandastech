@@ -343,7 +343,7 @@ const TOOLS: Tool[] = [
       amount_minor: z.number().int().positive().optional(),
       reason: z.string().min(3).max(500),
     }),
-    run: async (args, { platform, agent }) => {
+    run: async (args, { platform, agent, run }) => {
       const order = (
         await platform.db.query<{ id: string }>('select id from orders where number = $1', [args.order_number])
       )[0];
@@ -353,6 +353,12 @@ const TOOLS: Tool[] = [
         { amountMinor: args.amount_minor as number | undefined, reason: String(args.reason) },
         agent,
       );
+      if (run?.agentRunId || run?.taskId)
+        await platform.db.query('update actions set agent_run_id = $2, task_id = $3 where id = $1', [
+          action.id,
+          run.agentRunId ?? null,
+          run.taskId ?? null,
+        ]);
       const request = (
         await platform.db.query<{ id: string }>('select id from approval_requests where action_id = $1', [action.id])
       )[0];

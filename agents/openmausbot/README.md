@@ -11,7 +11,7 @@ This folder turns the eight AI departments of the [blueprint](../../docs/bluepri
 | **Starts at** | "Ask for approval", with no computer access |
 
 The same souls and skills also run inside the platform itself: `npm run agents:build` writes them to
-`packages/core/src/agents/instructions.generated.ts`, and the departments use them whenever an AI key is set. See "The
+`packages/core/src/agents/instructions.generated.ts`, and the departments use them when an AI key is set, `ai.enabled` is on and the day's and month's AI caps are not reached. See "The
 departments at work" in the [runbook](../../docs/runbook.md). This folder is for running the team on your own computer instead.
 
 ## Read this first

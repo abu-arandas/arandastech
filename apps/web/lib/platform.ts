@@ -109,7 +109,7 @@ export async function call<T>(
     headers: {},
     body: body === undefined ? '' : JSON.stringify(body),
   });
-  if (method !== 'GET') workAfterResponse();
+  if (method !== 'GET' && response.status < 400) workAfterResponse();
   const data = response.body as T & { error?: { message: string } };
   return { ok: response.status < 400, status: response.status, data, error: data?.error?.message };
 }

@@ -91,8 +91,14 @@ function plainSchema(value: unknown): unknown {
   return out;
 }
 
-const outside = (label: string, value: unknown): string =>
-  `<outside_content source="${label}">\n${typeof value === 'string' ? value : JSON.stringify(value, null, 2)}\n</outside_content>`;
+/** Wraps outside text for the model. Any tag inside it is defused, so the text cannot close the wrapper early. */
+const outside = (label: string, value: unknown): string => {
+  const text = (typeof value === 'string' ? value : JSON.stringify(value, null, 2)).replace(
+    /<(\/?)outside_content/gi,
+    '<$1outside-content',
+  );
+  return `<outside_content source="${label}">\n${text}\n</outside_content>`;
+};
 
 export class AgentRuntime {
   private readonly workflows = new Map<string, Workflow>();

@@ -39,7 +39,8 @@ export const TASK_KINDS = {
   'engineering.create_issue': {
     department: 'engineering',
     connector: 'GitHub',
-    level: 1,
+    // Level 2 in a public repository, which is the default (engineering.repository_public).
+    level: 2,
     approval: 'Waits for approval when the repository is public.',
   },
   'finance.money_status': { department: 'finance', connector: 'Ledger', level: 0, approval: 'None' },

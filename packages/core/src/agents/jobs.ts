@@ -38,14 +38,21 @@ const STALE_MINUTES = 5;
 
 /** Takes the next due job, so that two workers never run the same one. */
 export async function claimJob(db: Db, now: Date): Promise<JobRow | null> {
+  const stale = new Date(now.getTime() - STALE_MINUTES * 60_000);
+  // A job whose worker died on its last attempt is not taken up again: it has used its attempts.
+  await db.query(
+    `update jobs set status = 'failed', locked_at = null, finished_at = $1, last_error = coalesce(last_error, 'The worker stopped before the job finished.')
+     where status = 'running' and locked_at < $2 and attempts >= max_attempts`,
+    [now, stale],
+  );
   const rows = await db.query<JobRow>(
     `update jobs set status = 'running', locked_at = $1, attempts = attempts + 1
      where id = (
        select id from jobs
-       where (status = 'queued' and run_at <= greatest($1::timestamptz, now())) or (status = 'running' and locked_at < $2)
+       where (status = 'queued' and run_at <= greatest($1::timestamptz, now())) or (status = 'running' and locked_at < $2 and attempts < max_attempts)
        order by run_at limit 1 for update skip locked)
      returning id, kind, payload, status, run_at, attempts, max_attempts, last_error, idempotency_key, created_at, finished_at`,
-    [now, new Date(now.getTime() - STALE_MINUTES * 60_000)],
+    [now, stale],
   );
   return rows[0] ?? null;
 }

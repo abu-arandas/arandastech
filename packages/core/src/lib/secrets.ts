@@ -60,7 +60,7 @@ export async function readAgentTokens(db: Db): Promise<Record<string, string>> {
   const [table] = await db.query<{ present: boolean }>(`select to_regclass('ops.secrets') is not null as present`);
   if (!table?.present) return {};
   const rows = await db.query<{ name: string; value: string }>(
-    `select name, value from ops.secrets where name like 'agent_token:%'`,
+    `select name, value from ops.secrets where starts_with(name, 'agent_token:')`,
   );
   return Object.fromEntries(rows.map((row) => [row.value, row.name.slice('agent_token:'.length)]));
 }

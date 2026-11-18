@@ -365,7 +365,9 @@ async function triage(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Prom
       }
     }
     if (message.flagged) run.notes.push('The message tries to give instructions, so only a draft was saved.');
-    await rt.db.query('update messages set handled = true where id = $1', [message.id]);
+    // Only a prepared reply takes the message off the inbox. Without one, a person still has to answer it.
+    if (action) await rt.db.query('update messages set handled = true where id = $1', [message.id]);
+    else run.notes.push('No reply was prepared, so the message stays in the inbox for a person.');
     return { message_id: message.id, category, urgent, escalated: escalate, reason, action };
   });
 }
@@ -493,8 +495,8 @@ export function briefingText(f: Figures, locale: Locale): string {
 
 /** True when every number of two or more digits in a model's text is one of the figures, so none was invented. */
 export function onlyKnownNumbers(text: string, figures: unknown): boolean {
-  const known = JSON.stringify(figures);
-  return (text.match(/\d[\d.,]*\d/g) ?? []).every((n) => known.includes(n.replace(/,/g, '')));
+  const known = new Set(JSON.stringify(figures).match(/\d+(?:\.\d+)?/g) ?? []);
+  return (text.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).every((n) => known.has(n.replace(/,/g, '')));
 }
 
 const textPairSchema = z.object({ en: z.string().min(1).max(3000), ar: z.string().min(1).max(3000) });

@@ -152,7 +152,7 @@ To switch it off again without removing the key, set `ai.enabled` to false in th
 
 **The bots in OpenMausBot or Claude.** Instead of a key, the same team can run on your own Claude subscription through the
 MCP server at `/api/mcp`. The first deploy makes one token per department in `ops.secrets` (`agent_token:sales` and so on);
-read them in the SQL editor with `select name, value from ops.secrets where name like 'agent_token:%';`.
+read them in the SQL editor with `select name, value from ops.secrets where starts_with(name, 'agent_token:');`.
 
 ## Before anything goes live
 
