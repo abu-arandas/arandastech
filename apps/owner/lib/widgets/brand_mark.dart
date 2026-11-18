@@ -71,39 +71,3 @@ class BrandTitle extends StatelessWidget {
     ],
   );
 }
-
-/// The house ornament: a thread-orange running stitch, like the seam on a pair of jeans. Used sparingly.
-class StitchLine extends StatelessWidget {
-  const StitchLine({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return SizedBox(
-      height: 6,
-      width: double.infinity,
-      child: CustomPaint(painter: _StitchPainter(dark ? Brand.threadDark : Brand.thread)),
-    );
-  }
-}
-
-class _StitchPainter extends CustomPainter {
-  const _StitchPainter(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color.withValues(alpha: 0.8)
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-    final y = size.height / 2;
-    for (var x = 0.0; x < size.width; x += 12) {
-      canvas.drawLine(Offset(x, y), Offset((x + 7).clamp(0, size.width), y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_StitchPainter old) => old.color != color;
-}

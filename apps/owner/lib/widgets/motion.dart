@@ -227,3 +227,24 @@ class _TickPainter extends CustomPainter {
   @override
   bool shouldRepaint(_TickPainter old) => old.progress != progress || old.colour != colour;
 }
+
+/// The stitch sewing itself in from the start edge, once. Shown whole at once with reduce motion on.
+class SewIn extends StatelessWidget {
+  const SewIn({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (reduceMotion(context)) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 700),
+      curve: Motion.enter,
+      child: child,
+      builder: (context, t, child) => ClipRect(
+        child: Align(alignment: AlignmentDirectional.centerStart, widthFactor: t.clamp(0.0, 1.0), child: child),
+      ),
+    );
+  }
+}

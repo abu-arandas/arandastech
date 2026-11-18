@@ -5,6 +5,7 @@ import '../../controllers/session_controller.dart';
 import '../../widgets/brand_mark.dart';
 import '../../widgets/language_button.dart';
 import '../../widgets/motion.dart';
+import '../../widgets/section_title.dart';
 
 /// Signs in to this build's platform with the owner token. The address comes with the build.
 class SignInPage extends StatefulWidget {
@@ -28,11 +29,7 @@ class _SignInPageState extends State<SignInPage> {
     final session = Get.find<SessionController>();
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const BrandTitle(),
-        bottom: const PreferredSize(preferredSize: Size.fromHeight(6), child: StitchLine()),
-        actions: const [LanguageButton()],
-      ),
+      appBar: AppBar(title: const BrandTitle(), actions: const [LanguageButton()]),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -46,9 +43,9 @@ class _SignInPageState extends State<SignInPage> {
                   child: Align(alignment: AlignmentDirectional.centerStart, child: BrandMark(size: 56)),
                 ),
                 const SizedBox(height: 16),
-                Appear(
+                const Appear(
                   delay: Motion.stagger,
-                  child: Text('Owner app'.tr, style: theme.textTheme.headlineSmall),
+                  child: PageHeading('Sign in', eyebrow: 'Owner app'),
                 ),
                 const SizedBox(height: 8),
                 Text(

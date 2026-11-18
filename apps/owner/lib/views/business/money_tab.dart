@@ -45,7 +45,7 @@ class MoneyTab extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       (_status[s.status] ?? s.status).tr,
-                      style: TextStyle(fontWeight: FontWeight.w700, color: s.status == 'not_safe_to_spend' ? scheme.error : scheme.primary),
+                      style: TextStyle(fontWeight: FontWeight.w600, color: s.status == 'not_safe_to_spend' ? scheme.error : scheme.primary),
                     ),
                     const Divider(height: 24),
                     // Pending money is shown apart from the waterfall: it is not the company's yet.
@@ -84,13 +84,13 @@ class _Line extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontWeight: strong ? FontWeight.w700 : FontWeight.w400, fontStyle: muted ? FontStyle.italic : FontStyle.normal),
+            style: TextStyle(fontWeight: strong ? FontWeight.w600 : FontWeight.w400, fontStyle: muted ? FontStyle.italic : FontStyle.normal),
           ),
         ),
         Text(
           formatMoney(minor, currency),
           textDirection: TextDirection.ltr,
-          style: TextStyle(fontWeight: strong ? FontWeight.w700 : FontWeight.w400, fontFeatures: const [FontFeature.tabularFigures()]),
+          style: TextStyle(fontWeight: strong ? FontWeight.w600 : FontWeight.w400, fontFeatures: const [FontFeature.tabularFigures()]),
         ),
       ],
     ),
