@@ -24,6 +24,10 @@ const config: NextConfig = {
   transpilePackages: ['@zirr/core'],
   serverExternalPackages: ['pg'],
   poweredByHeader: false,
+  // Browsers ask for /favicon.ico on their own; send them to the mark instead of a language page.
+  async redirects() {
+    return [{ source: '/favicon.ico', destination: '/icon.svg', permanent: true }];
+  },
   async headers() {
     return [
       {

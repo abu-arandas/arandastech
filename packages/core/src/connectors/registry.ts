@@ -90,7 +90,7 @@ export async function refreshConnectors(host: ConnectorHost): Promise<void> {
     if (live) host.connectors[spec.id] = build(spec, values, host.fetch);
     else if (mock) host.connectors[spec.id] = mock;
     await host.db.query(
-      `update connectors set mode = $2, status = case when $2 = 'live' then 'live' when status = 'live' then 'built' else status end where id = $1`,
+      `update connectors set mode = $2, status = case when $2 = 'live' then 'live' when status = 'live' then 'built' else status end where id = $1 and mode is distinct from $2`,
       [spec.id, live ? 'live' : 'mock'],
     );
   }
