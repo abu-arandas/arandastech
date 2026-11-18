@@ -4,6 +4,7 @@ import { type ApiRequest, type ApiResponse, type Caller, errorResponse, parseJso
 import { handleMcp } from './mcp';
 import { registerRoutes } from './routes';
 import { AppError } from '../lib/errors';
+import { callerKey, LIMITS, limit, overLimit } from '../lib/rate-limit';
 
 export type { ApiRequest, ApiResponse } from './http';
 export type { AuthConfig } from './auth';
@@ -16,6 +17,27 @@ export function createApi(platform: Platform, auth: AuthConfig): (request: ApiRe
   const router = new Router();
   registerRoutes(router, platform);
 
+  // The public doors that write, and what each counts against (blueprint 10.1).
+  const limited: Record<string, keyof typeof LIMITS> = {
+    'POST /api/public/leads': 'lead',
+    'POST /api/public/checkout': 'checkout',
+  };
+
+  /** Signs the caller in, counting failures against the address, so a token cannot be guessed by trying. */
+  const signIn = async (request: ApiRequest): Promise<Caller> => {
+    const who = callerKey(request.headers);
+    const now = platform.clock();
+    if (await overLimit(platform.db, 'sign_in', who, now))
+      throw new AppError('rate_limited', LIMITS.sign_in.message, 429);
+    try {
+      return await authenticate(platform.db, auth, request.headers);
+    } catch (error) {
+      if (error instanceof AppError && error.status === 401)
+        await limit(platform.db, 'sign_in', who, now).catch(() => {});
+      throw error;
+    }
+  };
+
   return async (request) => {
     try {
       if (request.path === '/api/mcp' || request.path === '/api/mcp/') {
@@ -26,7 +48,7 @@ export function createApi(platform: Platform, auth: AuthConfig): (request: ApiRe
             body: { error: { code: 'method_not_allowed', message: 'Use POST.' } },
             headers: { allow: 'POST' },
           };
-        const caller = await authenticate(platform.db, auth, request.headers);
+        const caller = await signIn(request);
         if (caller.kind !== 'agent' || !caller.actor.id)
           throw new AppError('forbidden', 'This address is for the department bots.', 403);
         return await handleMcp(platform, { kind: 'agent', id: caller.actor.id }, request.body);
@@ -43,17 +65,23 @@ export function createApi(platform: Platform, auth: AuthConfig): (request: ApiRe
 
       let caller: Caller = { kind: 'public' };
       if (found.route.access === 'staff' || found.route.access === 'owner') {
-        caller = await authenticate(platform.db, auth, request.headers);
+        caller = await signIn(request);
         if (caller.kind !== 'staff') throw new AppError('forbidden', 'This is for the team only.', 403);
         if (found.route.access === 'owner' && !caller.isOwner)
           throw new AppError('forbidden', 'Only the owner can do this.', 403);
       }
+      const door = limited[`${request.method} ${request.path.replace(/\/$/, '')}`];
+      if (door) await limit(platform.db, door, callerKey(request.headers), platform.clock());
       const json = request.path.startsWith('/api/webhooks/') || request.method === 'GET' ? {} : parseJson(request.body);
       const body = await found.route.handler({ request, params: found.params, caller, json });
       return { status: 200, body };
     } catch (error) {
       if (!(error instanceof AppError)) console.error('[api]', request.method, request.path, error);
-      return errorResponse(error);
+      const response = errorResponse(error);
+      const retry = (error as AppError | undefined)?.detail as { retry_after_seconds?: number } | undefined;
+      if (response.status === 429 && retry?.retry_after_seconds)
+        response.headers = { 'retry-after': String(retry.retry_after_seconds) };
+      return response;
     }
   };
 }

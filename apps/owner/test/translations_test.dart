@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zirr_owner/config/brand.dart';
 import 'package:zirr_owner/l10n/ar.dart';
+import 'package:zirr_owner/views/business_page.dart';
+import 'package:zirr_owner/views/systems_page.dart';
 import 'package:zirr_owner/views/team_page.dart';
 
 /// Every text passed to `.tr` in lib/ must have Arabic, and no Arabic entry may be left over.
@@ -19,6 +21,25 @@ void main() {
     ...TeamPage.departments.values,
     ...TeamPage.modes.values,
     ...TeamPage.statuses.values,
+    ...BusinessPage.stages.values,
+    ...BusinessPage.orderStatuses.values,
+    ...SystemsPage.capability.values,
+    ...SystemsPage.alertStatuses.values,
+    'Business',
+    'Systems',
+    'Approved',
+    'Retired',
+    'Write the reason for the refund.',
+    'Write a number.',
+    'Qualified leads',
+    'Leads won',
+    'Paid orders',
+    'Average order',
+    'Refund rate',
+    'Hours to approve',
+    'Done under standing rules',
+    'Failed actions',
+    'AI cost per task',
     'Today',
     'Approvals',
     'Team',

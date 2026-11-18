@@ -4,11 +4,11 @@ The owner's dashboard and approval inbox for the Zirr platform, in Flutter. Arab
 
 | Tab | What it shows |
 |---|---|
-| Today | Waiting approvals, open leads, orders and whether the agents are paused |
+| Today | Waiting approvals, leads, orders, inbox and alerts, and the metrics of the last 30 days with when they were counted |
 | Approvals | Each waiting action with its level, payload preview and a warning when outside content prompted it |
 | Team | Whether the departments use the AI model or manual mode, the morning briefing, what each department did today, and the command center: write what you want done, read the plan, press Go ahead |
-| Money | Revenue, costs and margin from the ledger |
-| Activity | The audit log, newest first |
+| Business | Customers (the lead pipeline with scores, and the messages, flagged ones marked), Store (orders: release a held one, prepare a refund that waits in Approvals; the catalog) and Money (the cash waterfall per currency) |
+| Systems | Health (alerts to mark as seen or resolve, each connector's honest status and when it last worked), Settings (the policy sheet, standing rules to revoke, business memory to approve) and Activity (the audit log) |
 
 Anyone signed in can pause the agents. Only the owner can resume them. A Level 3 approval asks the owner to retype the amount and the recipient.
 

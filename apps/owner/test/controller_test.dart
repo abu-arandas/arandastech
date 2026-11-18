@@ -75,6 +75,26 @@ void main() {
       if (path.endsWith('/overview')) return http.Response(jsonEncode({'paused': false, 'money': <dynamic>[]}), 200);
       if (path.endsWith('/approvals')) return http.Response(jsonEncode({'approvals': <dynamic>[]}), 200);
       if (path.endsWith('/audit')) return http.Response(jsonEncode({'chain_intact': true, 'events': <dynamic>[]}), 200);
+      for (final (end, key) in const [
+        ('/leads', 'leads'),
+        ('/inbox', 'messages'),
+        ('/orders', 'orders'),
+        ('/catalog', 'products'),
+        ('/connectors', 'connectors'),
+        ('/alerts', 'alerts'),
+        ('/policy', 'settings'),
+        ('/rules', 'rules'),
+        ('/memory', 'items'),
+      ]) {
+        if (path.endsWith(end) && request.method == 'GET') return http.Response(jsonEncode({key: <dynamic>[]}), 200);
+      }
+      if (path.endsWith('/metrics'))
+        return http.Response(
+          jsonEncode({
+            'metrics': {'as_of': 'now'},
+          }),
+          200,
+        );
       if (path.endsWith('/agents'))
         return http.Response(
           jsonEncode({
@@ -110,7 +130,11 @@ void main() {
     final c = OwnerController(
       connector: (url, token) => HttpApi(baseUrl: url, token: token, client: client),
     );
-    expect(await c.connect(baseUrl: 'https://platform.example/', token: ' secret '), isTrue);
+    expect(
+      await c.connect(baseUrl: 'https://platform.example/', token: ' secret '),
+      isTrue,
+      reason: c.error.value,
+    );
     expect(seen.first, 'GET /api/owner/overview Bearer secret ');
     expect(await c.decide({'id': 'r1'}, 'approve', amountMinor: 100, recipient: 'a@b.co'), isFalse);
     expect(c.error.value, 'This request has expired. Nothing was approved.');
@@ -127,6 +151,33 @@ void main() {
     expect(seen.any((line) => line.startsWith('GET /api/owner/commands/c1')), isTrue);
     expect(await c.runDue(), isTrue);
     expect(seen.any((line) => line.startsWith('POST /api/owner/agents/run')), isTrue);
+
+    expect(c.metrics.value?['as_of'], 'now');
+    expect(c.loadedAt.value, isNotNull);
+    await c.releaseOrder({'id': 'o1'});
+    expect(await c.proposeRefund({'id': 'o1'}, 'no'), isFalse, reason: 'a reason is needed');
+    await c.proposeRefund({'id': 'o1'}, 'Asked in time', amountMinor: 500);
+    await c.resolveAlert({'id': 'a1'}, acknowledgeOnly: true);
+    await c.setPolicy({'key': 'ai.enabled', 'value': true}, 'false');
+    await c.setPolicy({'key': 'tax.reserve_bps', 'value': null}, '1500');
+    await c.revokeRule({'id': 'r1'});
+    await c.approveMemory({'key': 'faq:one'});
+    for (final expected in [
+      'POST /api/owner/orders/o1/release',
+      'POST /api/owner/orders/o1/refund',
+      'POST /api/owner/alerts/a1/resolve',
+      'PUT /api/owner/policy/ai.enabled',
+      'PUT /api/owner/policy/tax.reserve_bps',
+      'POST /api/owner/rules/r1/revoke',
+      'POST /api/owner/memory/faq%3Aone/approve',
+    ]) {
+      expect(seen.any((line) => line.startsWith(expected)), isTrue, reason: expected);
+    }
+    expect(seen.any((line) => line.contains('"amount_minor":500') && line.contains('/refund')), isTrue);
+    expect(seen.any((line) => line.contains('"status":"acknowledged"')), isTrue);
+    expect(seen.any((line) => line.contains('"value":1500')), isTrue);
+    c.signOut();
+    expect(c.orders, isEmpty);
   });
 
   test('a wrong address does not sign in', () async {

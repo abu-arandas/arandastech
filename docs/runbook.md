@@ -7,7 +7,7 @@ How to run, check and connect what is in this repository. The plan it implements
 | Part                       | Where                          | Status                                                                                                                                                                                                                                             |
 | -------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Agent team for OpenMausBot | `agents/openmausbot`           | The departments run inside the platform (`packages/core/src/agents`), from the same souls and skills. The OpenMausBot team is checked by `npm run agents:check` and not yet imported into a running OpenMausBot.                                   |
-| Database schema            | `supabase/migrations`          | Built, four migrations. Live on a free Neon PostgreSQL, applied by `npm run db:deploy` on each production build.                                                                                                                                   |
+| Database schema            | `supabase/migrations`          | Built, five migrations. Live on a free Neon PostgreSQL, applied by `npm run db:deploy` on each production build.                                                                                                                                   |
 | Platform services and API  | `packages/core`                | Built. 99 tests pass, including the nine-step acceptance run of blueprint §15 and the departments' jobs.                                                                                                                                           |
 | MCP server for the bots    | `packages/core/src/api/mcp.ts` | Built and tested through the API. Not yet tried from a real MCP client.                                                                                                                                                                            |
 | Public site and storefront | `apps/web`                     | Live at https://zirr-platform-ehab-arandas.vercel.app (Vercel project `zirr-platform`) in demo mode: Arabic and English, lead form, test checkout, order status. Payments are test payments only.                                                  |
@@ -112,6 +112,12 @@ Free plans keep little or no backup history. Move the database to a paid plan be
 5. The gateway runs the action through a connector, with an idempotency key, unless a pause holds it.
 6. Every step is written to the append-only audit log.
 
+## Hardening and metrics
+
+- **Prompt-injection suite** (`packages/core/test/hardening.test.ts`): ten attacks in English and Arabic go through the inbox on every test run. None may send anything, every reply may only go back to its sender, and a flagged message gets a draft at most (blueprint 10.2 and 17).
+- **Metrics** (`GET /api/owner/metrics?days=30`): the numbers of blueprint 18, counted from the records at the moment of the request, with the time they were counted. The owner app shows them on Today.
+- **Alerts**: `POST /api/owner/alerts/:id/resolve` with `{"status": "acknowledged"}` or `{"status": "resolved"}`, written to the audit log.
+
 ## The departments at work
 
 The eight departments of blueprint §7 run inside the platform. Each one does real work from the platform's own data and
@@ -174,4 +180,4 @@ These are the owner's steps. Nothing here has been done.
 - The store sells digital and physical products in separate orders.
 - Authentication accepts an owner token or a Supabase JWT signed with a shared secret. Two-step sign-in is not built yet.
 - The owner app keeps the owner token in memory only and has no push notifications yet. See `apps/owner/README.md`.
-- There is no rate limiting by IP address. Put the API behind the host's own protection before launch.
+- Rate limits count per visitor address (hashed): 5 lead messages and 10 checkouts per 10 minutes, and 20 failed sign-ins per 15 minutes, after which even the right token waits. They live in `rate_limits` and `packages/core/src/lib/rate-limit.ts`. Put the API behind the host's own protection as well before launch.
