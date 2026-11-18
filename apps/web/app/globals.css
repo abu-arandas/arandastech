@@ -595,3 +595,22 @@ header.site .brand.shake svg {
     translate: none;
   }
 }
+
+/* Privacy and terms: plain reading text. */
+footer.site nav {
+  display: flex;
+  gap: 16px;
+}
+footer.site nav a {
+  color: inherit;
+}
+.legal {
+  max-width: 70ch;
+}
+.legal h2 {
+  font-size: 1.15rem;
+  margin-block: 1.6em 0.4em;
+}
+.legal .muted {
+  color: var(--muted);
+}
