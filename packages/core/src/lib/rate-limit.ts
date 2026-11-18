@@ -10,6 +10,11 @@ export const LIMITS = {
     windowSeconds: 600,
     message: 'Too many checkouts from here. Please try again in a few minutes.',
   },
+  lookup: {
+    hits: 20,
+    windowSeconds: 600,
+    message: 'Too many order lookups from here. Please try again in a few minutes.',
+  },
   sign_in: { hits: 20, windowSeconds: 900, message: 'Too many failed sign-ins from here. Wait a few minutes.' },
 } as const;
 export type LimitName = keyof typeof LIMITS;
@@ -42,8 +47,8 @@ export async function limit(db: Db, name: LimitName, caller: string, now: Date):
   }
 }
 
-/** Whether the caller is already over a limit, without counting a hit. */
-export async function overLimit(db: Db, name: LimitName, caller: string, now: Date): Promise<boolean> {
+/** How many seconds the caller must wait when already over a limit (0 when not), without counting a hit. */
+export async function overLimit(db: Db, name: LimitName, caller: string, now: Date): Promise<number> {
   const rule = LIMITS[name];
   const size = rule.windowSeconds * 1000;
   const windowStart = new Date(Math.floor(now.getTime() / size) * size);
@@ -51,5 +56,6 @@ export async function overLimit(db: Db, name: LimitName, caller: string, now: Da
     'select hits from rate_limits where bucket = $1 and window_start = $2',
     [`${name}:${caller}`, windowStart],
   );
-  return (row?.hits ?? 0) >= rule.hits;
+  if ((row?.hits ?? 0) < rule.hits) return 0;
+  return Math.max(1, Math.ceil((windowStart.getTime() + size - now.getTime()) / 1000));
 }

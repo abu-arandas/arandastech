@@ -176,6 +176,8 @@ const ar = <String, String>{
   'Won': 'كسبناه',
   'Works, each use needs approval': 'يعمل، وكل استخدام يحتاج موافقة',
   'Write a number.': 'اكتب رقماً.',
+  'Write a whole number, 0 or more.': 'اكتب عدداً صحيحاً، صفراً أو أكثر.',
+  'Write each currency with its amount, like {"USD": 50000, "JOD": null}.': 'اكتب كل عملة مع مبلغها، مثل {"USD": 50000, "JOD": null}.',
   'Write the reason for the refund.': 'اكتب سبب الاسترداد.',
   'never': 'أبداً',
 };

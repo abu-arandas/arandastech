@@ -33,7 +33,7 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter build web --release --base-href /arandastech/ --no-web-resources-cdn
+      - run: flutter build web --release --base-href /arandastech/ --no-web-resources-cdn --dart-define=PLATFORM_URL=https://zirr-platform-ehab-arandas.vercel.app
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/owner/build/web

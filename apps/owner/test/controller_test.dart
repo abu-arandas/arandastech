@@ -67,6 +67,19 @@ void main() {
     expect(c.signedIn, isFalse);
   });
 
+  test('refreshes on its own while signed in, and stops at sign-out', () async {
+    final c = OwnerController(connector: (_, _) => DemoApi(), refreshEvery: const Duration(milliseconds: 20));
+    await c.connect(demo: true);
+    c.error.value = 'Kept on screen';
+    final before = c.loadedAt.value;
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    expect(c.loadedAt.value!.isAfter(before!), isTrue);
+    expect(c.error.value, 'Kept on screen');
+    c.signOut();
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(c.loadedAt.value, isNull);
+  });
+
   test('a sign-out during a reload or an action brings no data back', () async {
     final c = demo();
     await c.connect(demo: true);

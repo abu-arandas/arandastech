@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:ui' show Locale;
 
 import 'package:get/get.dart';
@@ -9,11 +11,16 @@ typedef Connector = PlatformApi Function(String baseUrl, String token);
 
 /// Everything the owner sees: the overview, the requests waiting for a decision and the activity log.
 class OwnerController extends GetxController {
-  OwnerController({required Connector connector, Locale? preferred})
+  OwnerController({required Connector connector, Locale? preferred, this.refreshEvery})
     : _connect = connector,
       locale = (preferred?.languageCode == 'ar' ? const Locale('ar') : const Locale('en')).obs;
 
   final Connector _connect;
+
+  /// How often the screens refresh on their own while the owner is signed in, so a new request shows up without a tap.
+  /// Null turns it off.
+  final Duration? refreshEvery;
+  Timer? _refresh;
   final Rx<Locale> locale;
   final Rxn<PlatformApi> api = Rxn<PlatformApi>();
   final Rxn<Json> overview = Rxn<Json>();
@@ -60,11 +67,32 @@ class OwnerController extends GetxController {
     final candidate = demo ? DemoApi() : _connect(baseUrl.trim().replaceFirst(RegExp(r'/+$'), ''), token.trim());
     // The home screen appears only after the platform has answered: a wrong token never shows it, even briefly.
     final ok = await _load(candidate, signingIn: true);
-    if (ok) api.value = candidate;
+    if (ok) {
+      api.value = candidate;
+      _refresh?.cancel();
+      if (refreshEvery != null) _refresh = Timer.periodic(refreshEvery!, (_) => refreshQuietly());
+    }
     return ok;
   }
 
+  /// A background refresh: it never interrupts something the owner started, and an error on screen stays there.
+  Future<void> refreshQuietly() async {
+    final platform = api.value;
+    if (platform == null || busy.value) return;
+    final shown = error.value;
+    final ok = await _load(platform);
+    if (ok) error.value = shown;
+  }
+
+  @override
+  void onClose() {
+    _refresh?.cancel();
+    super.onClose();
+  }
+
   void signOut() {
+    _refresh?.cancel();
+    _refresh = null;
     api.value = null;
     overview.value = null;
     approvals.clear();
@@ -171,6 +199,28 @@ class OwnerController extends GetxController {
       final parsed = num.tryParse(trimmed);
       if (parsed == null && !(current == null && trimmed.isEmpty)) {
         error.value = 'Write a number.';
+        return Future.value(false);
+      }
+      // Amounts, shares and counts are whole numbers on the platform.
+      if (parsed != null && (parsed < 0 || parsed != parsed.roundToDouble())) {
+        error.value = 'Write a whole number, 0 or more.';
+        return Future.value(false);
+      }
+      value = parsed?.toInt();
+    } else if (current is Map) {
+      // A per-currency setting: each currency, like USD, with a whole amount in minor units, or null for no limit.
+      final Object? parsed;
+      try {
+        parsed = jsonDecode(trimmed);
+      } on FormatException {
+        error.value = 'Write each currency with its amount, like {"USD": 50000, "JOD": null}.';
+        return Future.value(false);
+      }
+      final fine =
+          parsed is Map &&
+          parsed.entries.every((e) => RegExp(r'^[A-Z]{3}$').hasMatch('${e.key}') && (e.value == null || (e.value is int && (e.value as int) >= 0)));
+      if (!fine) {
+        error.value = 'Write each currency with its amount, like {"USD": 50000, "JOD": null}.';
         return Future.value(false);
       }
       value = parsed;

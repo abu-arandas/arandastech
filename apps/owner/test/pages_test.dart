@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -177,6 +179,27 @@ void main() {
     await tester.tap(find.byKey(const Key('policy-save')));
     await tester.pumpAndSettle();
     expect(c.policy.firstWhere((p) => p['key'] == 'ai.daily_cap_micros')['value'], 500000);
+    await tester.tap(find.text('500000'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('policy-value')), '12.5');
+    await tester.tap(find.byKey(const Key('policy-save')));
+    await tester.pumpAndSettle();
+    expect(c.error.value, 'Write a whole number, 0 or more.');
+
+    // A per-currency limit is edited as text: each currency with its amount.
+    final limits = c.policy.firstWhere((p) => p['value'] is Map);
+    await tester.tap(find.text(jsonEncode(limits['value'])));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('policy-value')), '{"USD": "lots"}');
+    await tester.tap(find.byKey(const Key('policy-save')));
+    await tester.pumpAndSettle();
+    expect(c.error.value, startsWith('Write each currency'));
+    await tester.tap(find.text(jsonEncode(limits['value'])));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('policy-value')), '{"USD": 90000, "JOD": null}');
+    await tester.tap(find.byKey(const Key('policy-save')));
+    await tester.pumpAndSettle();
+    expect(c.policy.firstWhere((p) => p['key'] == limits['key'])['value'], {'USD': 90000, 'JOD': null});
 
     await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();

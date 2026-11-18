@@ -21,14 +21,15 @@ export function createApi(platform: Platform, auth: AuthConfig): (request: ApiRe
   const limited: Record<string, keyof typeof LIMITS> = {
     'POST /api/public/leads': 'lead',
     'POST /api/public/checkout': 'checkout',
+    'POST /api/demo/pay': 'checkout',
   };
 
   /** Signs the caller in, counting failures against the address, so a token cannot be guessed by trying. */
   const signIn = async (request: ApiRequest): Promise<Caller> => {
     const who = callerKey(request.headers);
     const now = platform.clock();
-    if (await overLimit(platform.db, 'sign_in', who, now))
-      throw new AppError('rate_limited', LIMITS.sign_in.message, 429);
+    const waiting = await overLimit(platform.db, 'sign_in', who, now);
+    if (waiting) throw new AppError('rate_limited', LIMITS.sign_in.message, 429, { retry_after_seconds: waiting });
     try {
       return await authenticate(platform.db, auth, request.headers);
     } catch (error) {
@@ -60,17 +61,20 @@ export function createApi(platform: Platform, auth: AuthConfig): (request: ApiRe
           status: 405,
           body: { error: { code: 'method_not_allowed', message: 'This address does not accept that method.' } },
         };
-      if (!found || (found.route.access === 'demo' && !platform.config.demo))
+      const demoOnly = found?.route.access.startsWith('demo') ?? false;
+      if (!found || (demoOnly && !platform.config.demo))
         return { status: 404, body: { error: { code: 'not_found', message: 'There is nothing at this address.' } } };
 
       let caller: Caller = { kind: 'public' };
-      if (found.route.access === 'staff' || found.route.access === 'owner') {
+      const access = found.route.access;
+      if (access === 'staff' || access === 'owner' || access === 'demo_owner') {
         caller = await signIn(request);
         if (caller.kind !== 'staff') throw new AppError('forbidden', 'This is for the team only.', 403);
-        if (found.route.access === 'owner' && !caller.isOwner)
-          throw new AppError('forbidden', 'Only the owner can do this.', 403);
+        if (access !== 'staff' && !caller.isOwner) throw new AppError('forbidden', 'Only the owner can do this.', 403);
       }
-      const door = limited[`${request.method} ${request.path.replace(/\/$/, '')}`];
+      const door =
+        limited[`${request.method} ${request.path.replace(/\/$/, '')}`] ??
+        (request.method === 'GET' && request.path.startsWith('/api/public/orders/') ? 'lookup' : undefined);
       if (door) await limit(platform.db, door, callerKey(request.headers), platform.clock());
       const json = request.path.startsWith('/api/webhooks/') || request.method === 'GET' ? {} : parseJson(request.body);
       const body = await found.route.handler({ request, params: found.params, caller, json });

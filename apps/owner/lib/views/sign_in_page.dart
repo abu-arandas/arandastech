@@ -14,7 +14,8 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPageState extends State<SignInPage> {
-  final _url = TextEditingController();
+  /// The build can name the platform it belongs to (--dart-define=PLATFORM_URL=...), so the owner only types the token.
+  final _url = TextEditingController(text: const String.fromEnvironment('PLATFORM_URL'));
   final _token = TextEditingController();
 
   @override
