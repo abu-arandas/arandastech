@@ -1,11 +1,13 @@
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../config/breakpoints.dart';
 import '../../controllers/approvals_controller.dart';
 import '../../controllers/session_controller.dart';
 import '../../widgets/brand_mark.dart';
 import '../../widgets/language_button.dart';
 import '../../widgets/motion.dart';
+import '../../widgets/section_title.dart';
 import '../approvals/approvals_page.dart';
 import '../business/business_page.dart';
 import '../systems/systems_page.dart';
@@ -36,7 +38,6 @@ class _DashboardPageState extends State<DashboardPage> {
       return Scaffold(
         appBar: AppBar(
           title: const BrandTitle(),
-          bottom: const PreferredSize(preferredSize: Size.fromHeight(6), child: StitchLine()),
           actions: [
             IconButton(tooltip: 'Refresh'.tr, onPressed: session.reload, icon: const Icon(Icons.refresh)),
             const LanguageButton(),
@@ -46,7 +47,7 @@ class _DashboardPageState extends State<DashboardPage> {
         body: Column(
           children: [
             Material(
-              color: paused ? scheme.errorContainer : scheme.surfaceContainerHighest,
+              color: paused ? scheme.errorContainer : scheme.surfaceContainerHigh,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
@@ -75,7 +76,21 @@ class _DashboardPageState extends State<DashboardPage> {
                 duration: Motion.medium,
                 switchInCurve: Motion.enter,
                 switchOutCurve: Motion.exit,
-                child: KeyedSubtree(key: ValueKey(_tab), child: const [TodayPage(), ApprovalsPage(), TeamPage(), BusinessPage(), SystemsPage()][_tab]),
+                child: KeyedSubtree(
+                  key: ValueKey(_tab),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      GridContainer(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: PageHeading(_tabs[_tab], eyebrow: 'Owner app'),
+                        ),
+                      ),
+                      Expanded(child: const [TodayPage(), ApprovalsPage(), TeamPage(), BusinessPage(), SystemsPage()][_tab]),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],

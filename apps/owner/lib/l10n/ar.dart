@@ -2,6 +2,7 @@
 const ar = <String, String>{
   'zirr': 'زِرّ',
   'Owner app': 'تطبيق المالك',
+  'Sign in': 'تسجيل الدخول',
   'Owner token': 'رمز المالك',
   'Connect': 'اتصال',
   'Could not connect. Check the connection and the token.': 'تعذّر الاتصال. تحقّق من الاتصال والرمز.',

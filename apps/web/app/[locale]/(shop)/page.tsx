@@ -33,14 +33,16 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   ]);
   return (
     <>
+      <p className="eyebrow enter">{t('homeEyebrow', locale)}</p>
       <Rise text={t('tagline', locale)} />
       <p className="lead enter" style={stagger(0, 360)}>
         {t('intro', locale)}
       </p>
 
-      <h2 id="services" data-reveal="">
-        {t('services', locale)}
-      </h2>
+      <div className="section-head" data-reveal="">
+        <p className="eyebrow">{t('servicesEyebrow', locale)}</p>
+        <h2 id="services">{t('services', locale)}</h2>
+      </div>
       <div className="grid">
         {packages.data.packages.map((p, i) => (
           <section className="card" key={p.id} data-reveal="" style={stagger(i + 1)}>
@@ -58,11 +60,12 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         ))}
       </div>
 
-      <h2 id="products" data-reveal="">
-        {t('products', locale)}
-      </h2>
+      <div className="section-head" data-reveal="">
+        <p className="eyebrow">{t('productsEyebrow', locale)}</p>
+        <h2 id="products">{t('products', locale)}</h2>
+      </div>
       {catalog.data.products.map((product) => (
-        <section key={product.slug}>
+        <section className="product" key={product.slug}>
           <h3 data-reveal="">
             {pick(product.name, locale)} {product.is_test && <span className="tag">{t('testProduct', locale)}</span>}
           </h3>
