@@ -131,7 +131,12 @@ class _TeamPageState extends State<TeamPage> {
           const SizedBox(height: 8),
           Align(
             alignment: AlignmentDirectional.centerEnd,
-            child: FilledButton.tonalIcon(key: const Key('plan'), onPressed: () => _plan(c), icon: const Icon(Icons.checklist), label: Text('Make a plan'.tr)),
+            child: FilledButton.tonalIcon(
+              key: const Key('plan'),
+              onPressed: () => _plan(c),
+              icon: const Icon(Icons.checklist),
+              label: Text('Make a plan'.tr),
+            ),
           ),
           for (final (i, command) in c.commands.take(5).indexed)
             Appear(
@@ -158,7 +163,9 @@ class _TeamPageState extends State<TeamPage> {
                   if (d['last_run_at'] == null) 'Not run yet'.tr,
                 ].join(' · '),
               ),
-              trailing: ((d['cost_today_micros'] as num?) ?? 0) > 0 ? Text(dollars(d['cost_today_micros'] as num), textDirection: TextDirection.ltr) : null,
+              trailing: ((d['cost_today_micros'] as num?) ?? 0) > 0
+                  ? Text(dollars(d['cost_today_micros'] as num), textDirection: TextDirection.ltr)
+                  : null,
             ),
         ],
       );
@@ -233,7 +240,11 @@ class _CommandCard extends StatelessWidget {
               if (((plan['expected_cost_micros'] as num?) ?? 0) > 0)
                 Text('${'Most this can cost in AI'.tr}: ${dollars(plan['expected_cost_micros'] as num)}', textDirection: TextDirection.ltr),
               const SizedBox(height: 8),
-              FilledButton(key: const Key('go-ahead'), onPressed: planned.isEmpty ? null : () => c.start(command), child: Text('Go ahead'.tr)),
+              FilledButton(
+                key: const Key('go-ahead'),
+                onPressed: planned.isEmpty ? null : () => c.start(command),
+                child: Text('Go ahead'.tr),
+              ),
             ] else if (status == 'running')
               TextButton.icon(onPressed: () => c.refreshCommand(command), icon: const Icon(Icons.refresh), label: Text('Refresh'.tr)),
           ],

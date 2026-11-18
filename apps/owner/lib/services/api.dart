@@ -79,7 +79,8 @@ class HttpApi implements PlatformApi {
     }
     final response = await http.Response.fromStream(await _client.send(request));
     final decoded = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(utf8.decode(response.bodyBytes)) as Json;
-    if (response.statusCode >= 400) throw ApiError(((decoded['error'] as Json?)?['message'] as String?) ?? 'Request failed (${response.statusCode}).');
+    if (response.statusCode >= 400)
+      throw ApiError(((decoded['error'] as Json?)?['message'] as String?) ?? 'Request failed (${response.statusCode}).');
     return decoded;
   }
 
@@ -109,7 +110,8 @@ class HttpApi implements PlatformApi {
   Future<List<Json>> commands() async => ((await _send('GET', '/api/owner/commands'))['commands'] as List).cast<Json>();
 
   @override
-  Future<Json> planCommand(String instruction) async => (await _send('POST', '/api/owner/commands', {'instruction': instruction}))['command'] as Json;
+  Future<Json> planCommand(String instruction) async =>
+      (await _send('POST', '/api/owner/commands', {'instruction': instruction}))['command'] as Json;
 
   @override
   Future<Json> startCommand(String id) async => (await _send('POST', '/api/owner/commands/$id/start', {}))['command'] as Json;
@@ -277,7 +279,8 @@ class DemoApi implements PlatformApi {
     final request = _approvals.firstWhere((a) => a['id'] == requestId);
     final action = request['action'] as Json;
     if (decision == 'approve' && request['level'] == 3) {
-      final matches = confirmation != null && confirmation['amount_minor'] == action['cost_minor'] && confirmation['recipient'] == action['recipient'];
+      final matches =
+          confirmation != null && confirmation['amount_minor'] == action['cost_minor'] && confirmation['recipient'] == action['recipient'];
       if (!matches) throw ApiError('The confirmed amount or recipient does not match the request.');
     }
     if (decision != 'postpone') _approvals.remove(request);
@@ -518,7 +521,14 @@ class DemoApi implements PlatformApi {
   ];
   final List<Json> _memory = [
     {'key': 'brand:company', 'kind': 'brand', 'title': 'Who Zirr is', 'source': 'Company website', 'status': 'approved', 'version': 1},
-    {'key': 'faq:delivery-time', 'kind': 'faq', 'title': 'How long delivery takes', 'source': 'Support thread, 14 Nov', 'status': 'draft', 'version': 1},
+    {
+      'key': 'faq:delivery-time',
+      'kind': 'faq',
+      'title': 'How long delivery takes',
+      'source': 'Support thread, 14 Nov',
+      'status': 'draft',
+      'version': 1,
+    },
   ];
 
   @override
@@ -599,7 +609,7 @@ class DemoApi implements PlatformApi {
       'disputed_orders': 0,
     },
     'finance': [
-      {'currency': 'USD', 'settled_revenue': 5900, 'confirmed_net_profit': 5109, 'status': 'safe_to_consider_upgrade'},
+      {'currency': 'USD', 'settled_revenue': 5900, 'confirmed_net_profit_now': 5109, 'status_now': 'safe_to_consider_upgrade'},
     ],
     'platform': {
       'approvals_decided': 3,

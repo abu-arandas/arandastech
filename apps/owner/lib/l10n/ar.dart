@@ -73,7 +73,8 @@ const ar = <String, String>{
       'الوضع اليدوي: لم يُضبط مفتاح الذكاء الاصطناعي. تعمل الأقسام بقواعد ثابتة وبلا تكلفة.',
   'Manual mode: the AI is switched off in the policy sheet.': 'الوضع اليدوي: الذكاء الاصطناعي متوقف في ورقة السياسات.',
   "Manual mode until tomorrow: today's AI budget is used up.": 'الوضع اليدوي حتى الغد: نفدت ميزانية الذكاء الاصطناعي لهذا اليوم.',
-  "Manual mode until next month: this month's AI budget is used up.": 'الوضع اليدوي حتى الشهر القادم: نفدت ميزانية الذكاء الاصطناعي لهذا الشهر.',
+  "Manual mode until next month: this month's AI budget is used up.":
+      'الوضع اليدوي حتى الشهر القادم: نفدت ميزانية الذكاء الاصطناعي لهذا الشهر.',
   'Waiting for your go-ahead': 'بانتظار موافقتك على البدء',
   'Queued': 'في الانتظار',
   'Running': 'قيد التشغيل',
@@ -86,7 +87,8 @@ const ar = <String, String>{
   'Run due work now': 'شغّل الأعمال المستحقة الآن',
   'Morning briefing': 'ملخّص الصباح',
   'Tell the team': 'أخبر الفريق',
-  'For example: draft three posts about Zirr POS and reply to the new leads': 'مثال: اكتب ثلاث منشورات عن زِرّ كاشير وردّ على العملاء الجدد',
+  'For example: draft three posts about Zirr POS and reply to the new leads':
+      'مثال: اكتب ثلاث منشورات عن زِرّ كاشير وردّ على العملاء الجدد',
   'Make a plan': 'ضع خطة',
   'Departments': 'الأقسام',
   'Runs today': 'مرات التشغيل اليوم',

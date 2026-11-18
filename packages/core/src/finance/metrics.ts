@@ -1,5 +1,5 @@
 import type { Db } from '../lib/db';
-import { moneySummary } from './ledger';
+import { moneySummary, totals } from './ledger';
 
 /**
  * The numbers of blueprint 18, over the last 30 days. Each one comes straight from the records, and each says when it
@@ -16,7 +16,8 @@ export interface Metrics {
     refund_rate_bps: number | null;
     disputed_orders: number;
   };
-  finance: Array<{ currency: string; settled_revenue: number; confirmed_net_profit: number; status: string }>;
+  /** Revenue settled in the window, next to today's confirmed net profit and spend status, which are balances. */
+  finance: Array<{ currency: string; settled_revenue: number; confirmed_net_profit_now: number; status_now: string }>;
   platform: {
     approvals_decided: number;
     median_hours_to_approve: number | null;
@@ -32,7 +33,6 @@ export interface Metrics {
 
 const QUALIFIED = ['qualified', 'proposal_sent', 'won', 'in_delivery', 'delivered', 'paid', 'retained'];
 const WON = ['won', 'in_delivery', 'delivered', 'paid', 'retained'];
-const PAID = ['paid', 'fulfilling', 'shipped', 'delivered', 'completed', 'return_requested', 'refunded'];
 const share = (part: number, whole: number): number | null => (whole > 0 ? Math.round((part / whole) * 10_000) : null);
 
 export async function metrics(db: Db, now: Date, days = 30): Promise<Metrics> {
@@ -48,8 +48,8 @@ export async function metrics(db: Db, now: Date, days = 30): Promise<Metrics> {
     `select currency, count(*)::int as paid, coalesce(sum(total_minor), 0)::text as total,
             count(*) filter (where status = 'refunded')::int as refunded,
             count(*) filter (where disputed)::int as disputed
-     from orders where paid_at > $1 and status = any($2) group by currency order by currency`,
-    [since, PAID],
+     from orders where paid_at > $1 group by currency order by currency`,
+    [since],
   );
   const paid = orders.reduce((sum, row) => sum + row.paid, 0);
   const refunded = orders.reduce((sum, row) => sum + row.refunded, 0);
@@ -58,11 +58,12 @@ export async function metrics(db: Db, now: Date, days = 30): Promise<Metrics> {
   const finance = await Promise.all(
     currencies.map(async (currency) => {
       const summary = await moneySummary(db, currency, now);
+      const window = await totals(db, currency, 'and at > $2', [since]);
       return {
         currency,
-        settled_revenue: summary.engines.commerce.settled_revenue + summary.engines.services.settled_revenue,
-        confirmed_net_profit: summary.waterfall.confirmed_net_profit,
-        status: summary.status,
+        settled_revenue: window.commerce!.settled_revenue + window.services!.settled_revenue,
+        confirmed_net_profit_now: summary.waterfall.confirmed_net_profit,
+        status_now: summary.status,
       };
     }),
   );

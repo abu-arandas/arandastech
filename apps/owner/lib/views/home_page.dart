@@ -328,7 +328,10 @@ class _Approvals extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Chip(label: Text('${'Level'.tr} $level'), backgroundColor: level == 3 ? scheme.errorContainer : scheme.secondaryContainer),
+                              Chip(
+                                label: Text('${'Level'.tr} $level'),
+                                backgroundColor: level == 3 ? scheme.errorContainer : scheme.secondaryContainer,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(child: Text(action['action_type'] as String, style: Theme.of(context).textTheme.labelMedium)),
                             ],
@@ -425,7 +428,9 @@ class MoneyView extends StatelessWidget {
                       (_status[s['status']] ?? s['status'] as String).tr,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        color: s['status'] == 'not_safe_to_spend' ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
+                        color: s['status'] == 'not_safe_to_spend'
+                            ? Theme.of(context).colorScheme.error
+                            : Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const Divider(height: 24),
@@ -455,7 +460,10 @@ class MoneyView extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontWeight: strong ? FontWeight.w700 : FontWeight.w400, fontStyle: muted ? FontStyle.italic : FontStyle.normal),
+            style: TextStyle(
+              fontWeight: strong ? FontWeight.w700 : FontWeight.w400,
+              fontStyle: muted ? FontStyle.italic : FontStyle.normal,
+            ),
           ),
         ),
         Text(
