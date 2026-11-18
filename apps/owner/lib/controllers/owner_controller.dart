@@ -136,8 +136,7 @@ class OwnerController extends GetxController {
     return _act((p) => p.proposeRefund(order['id'] as String, reason: reason.trim(), amountMinor: amountMinor));
   }
 
-  Future<bool> resolveAlert(Json alert, {bool acknowledgeOnly = false}) =>
-      _act((p) => p.resolveAlert(alert['id'] as String, acknowledgeOnly: acknowledgeOnly));
+  Future<bool> resolveAlert(Json alert, {bool acknowledgeOnly = false}) => _act((p) => p.resolveAlert(alert['id'] as String, acknowledgeOnly: acknowledgeOnly));
 
   /// Changes one value on the policy sheet. The text is read as the kind of value the setting already holds.
   Future<bool> setPolicy(Json setting, String text) {
@@ -196,9 +195,7 @@ class OwnerController extends GetxController {
 
   /// Sends the owner's decision. A Level 3 approval must carry the amount and the recipient the owner typed.
   Future<bool> decide(Json request, String decision, {int? amountMinor, String? recipient}) async {
-    final confirmation = amountMinor == null || recipient == null
-        ? null
-        : <String, dynamic>{'amount_minor': amountMinor, 'recipient': recipient};
+    final confirmation = amountMinor == null || recipient == null ? null : <String, dynamic>{'amount_minor': amountMinor, 'recipient': recipient};
     final sent = await _guard(() => api.value!.decide(request['id'] as String, decision, confirmation: confirmation));
     final shown = error.value;
     await reload();

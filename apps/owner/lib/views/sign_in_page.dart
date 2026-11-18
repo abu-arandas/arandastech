@@ -31,9 +31,7 @@ class _SignInPageState extends State<SignInPage> {
       appBar: AppBar(
         title: const BrandTitle(),
         bottom: const PreferredSize(preferredSize: Size.fromHeight(6), child: StitchLine()),
-        actions: [
-          TextButton(onPressed: c.toggleLanguage, child: Obx(() => Text(c.locale.value.languageCode == 'ar' ? 'English' : 'العربية'))),
-        ],
+        actions: [TextButton(onPressed: c.toggleLanguage, child: Obx(() => Text(c.locale.value.languageCode == 'ar' ? 'English' : 'العربية')))],
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -85,11 +83,7 @@ class _SignInPageState extends State<SignInPage> {
                 const SizedBox(height: 12),
                 OutlinedButton(onPressed: () => c.connect(demo: true), child: Text('Open the demo'.tr)),
                 const SizedBox(height: 8),
-                Text(
-                  'The demo uses sample data and changes nothing.'.tr,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center,
-                ),
+                Text('The demo uses sample data and changes nothing.'.tr, style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
               ],
             ),
           ),

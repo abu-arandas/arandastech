@@ -71,9 +71,7 @@ class _Health extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(alert['summary'] as String, style: theme.textTheme.titleMedium),
-                    Text(
-                      '${alert['kind']} · ${(SystemsPage.alertStatuses[alert['status']] ?? alert['status'] as String).tr} · ${alert['created_at']}',
-                    ),
+                    Text('${alert['kind']} · ${(SystemsPage.alertStatuses[alert['status']] ?? alert['status'] as String).tr} · ${alert['created_at']}'),
                     Wrap(
                       spacing: 8,
                       children: [
