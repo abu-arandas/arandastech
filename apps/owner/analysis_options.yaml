@@ -1,15 +1,20 @@
-# The Zirr house rules. Every product starts from this file; a rule turned off in a product says why.
+# The Zirr house rules, the same file in every Zirr repository. A rule turned off in a product says why, here.
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
   language:
     strict-casts: true
+    strict-inference: true
     strict-raw-types: true
   exclude:
     - build/**
+    - web/**
+    - .shots/**
     - android/**
     - ios/**
-    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:
@@ -59,6 +64,25 @@ linter:
     no_literal_bool_comparisons: true
     unnecessary_null_aware_operator_on_extension_on_nullable: true
     use_super_parameters: true
+    # Bugs the type system cannot see.
+    avoid_slow_async_io: true
+    avoid_type_to_string: true
+    avoid_void_async: true
+    comment_references: true
+    invalid_runtime_check_with_js_interop_types: true
+    literal_only_boolean_expressions: true
+    no_runtimeType_toString: true
+    only_throw_errors: true
+    test_types_in_equals: true
+    throw_in_finally: true
+    unnecessary_statements: true
+    unreachable_from_main: true
+    # Consistency.
+    avoid_returning_this: true
+    prefer_relative_imports: true
+    prefer_void_to_null: true
+    use_enums: true
+    use_to_and_as_if_applicable: true
 
 formatter:
   page_width: 160

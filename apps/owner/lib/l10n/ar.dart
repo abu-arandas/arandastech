@@ -1,13 +1,14 @@
-/// Arabic for every text the app shows, keyed by the English. test/translations_test.dart fails when one is missing.
+/// Arabic for every text the app shows, keyed by the English. `node tool/check_arabic.mjs` fails when one is missing.
 const ar = <String, String>{
   'zirr': 'زِرّ',
   'Owner app': 'تطبيق المالك',
-  'Platform address': 'عنوان المنصّة',
   'Owner token': 'رمز المالك',
   'Connect': 'اتصال',
-  'Open the demo': 'افتح العرض التجريبي',
-  'The demo uses sample data and changes nothing.': 'العرض التجريبي يستخدم بيانات نموذجية ولا يغيّر شيئاً.',
-  'Could not connect. Check the address and the token.': 'تعذّر الاتصال. تحقّق من العنوان والرمز.',
+  'Could not connect. Check the connection and the token.': 'تعذّر الاتصال. تحقّق من الاتصال والرمز.',
+  'This page lost a button.': 'هذه الصفحة أضاعت زرّاً.',
+  'The page you asked for is not here.': 'الصفحة التي طلبتها ليست هنا.',
+  'Back to the start': 'العودة إلى البداية',
+  'No products yet.': 'لا توجد منتجات بعد.',
   'Today': 'اليوم',
   'Approvals': 'الموافقات',
   'Money': 'المال',
@@ -58,7 +59,6 @@ const ar = <String, String>{
   'The audit chain is broken. Stop and investigate.': 'سلسلة السجل مكسورة. توقّف وتحقّق.',
   'Sign out': 'تسجيل الخروج',
   'Refresh': 'تحديث',
-  'Demo': 'تجريبي',
   'Team': 'الفريق',
   'Operations': 'العمليات',
   'Sales': 'المبيعات',
