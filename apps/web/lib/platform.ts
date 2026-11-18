@@ -1,3 +1,4 @@
+import { headers as requestHeaders } from 'next/headers';
 import { after } from 'next/server';
 import {
   ClaudeModel,
@@ -102,11 +103,20 @@ export async function call<T>(
 ): Promise<{ ok: boolean; status: number; data: T; error?: string }> {
   const [pathname, search = ''] = path.split('?');
   const { api } = await server();
+  // The visitor's address goes along, so the rate limits count each visitor, not the whole site.
+  const forwarded: Record<string, string> = {};
+  try {
+    const incoming = await requestHeaders();
+    const address = incoming.get('x-forwarded-for') ?? incoming.get('x-real-ip');
+    if (address) forwarded['x-forwarded-for'] = address;
+  } catch {
+    // Outside a request (a build or a script) there is no visitor.
+  }
   const response = await api({
     method,
     path: pathname!,
     query: Object.fromEntries(new URLSearchParams(search)),
-    headers: {},
+    headers: forwarded,
     body: body === undefined ? '' : JSON.stringify(body),
   });
   if (method !== 'GET' && response.status < 400) workAfterResponse();

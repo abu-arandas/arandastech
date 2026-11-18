@@ -6,11 +6,13 @@ import 'package:material_ui/material_ui.dart';
 import '../config/money.dart';
 import '../controllers/owner_controller.dart';
 import '../services/api.dart';
+import 'business_page.dart';
+import 'systems_page.dart';
 import 'team_page.dart';
 import 'widgets/brand_mark.dart';
 import 'widgets/motion.dart';
 
-/// The owner's five screens. The pause control is on every one of them (blueprint 8.2).
+/// The owner's five screens, which hold the six areas of blueprint 8.2. The pause control is on every one of them (blueprint 8.2).
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -24,8 +26,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final c = Get.find<OwnerController>();
-    final tabs = ['Today', 'Approvals', 'Team', 'Money', 'Activity'];
-    const icons = [Icons.today, Icons.fact_check_outlined, Icons.groups_outlined, Icons.account_balance_wallet_outlined, Icons.history];
+    final tabs = ['Today', 'Approvals', 'Team', 'Business', 'Systems'];
+    const icons = [Icons.today, Icons.fact_check_outlined, Icons.groups_outlined, Icons.storefront_outlined, Icons.tune];
     return Obx(() {
       final scheme = Theme.of(context).colorScheme;
       return Scaffold(
@@ -72,7 +74,7 @@ class _HomePageState extends State<HomePage> {
                 switchOutCurve: Motion.exit,
                 child: KeyedSubtree(
                   key: ValueKey(_tab),
-                  child: [const _Today(), const _Approvals(), const TeamPage(), const _Money(), const _Activity()][_tab],
+                  child: [const _Today(), const _Approvals(), const TeamPage(), const BusinessPage(), const SystemsPage()][_tab],
                 ),
               ),
             ),
@@ -151,7 +153,70 @@ class _Today extends StatelessWidget {
                 ),
             ],
           ),
+          const SizedBox(height: 20),
+          const _Metrics(),
         ],
+      );
+    });
+  }
+}
+
+/// The numbers of blueprint 18 for the last 30 days, with when they were counted.
+class _Metrics extends StatelessWidget {
+  const _Metrics();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Get.find<OwnerController>();
+    return Obx(() {
+      final m = c.metrics.value;
+      if (m == null) return const SizedBox.shrink();
+      final theme = Theme.of(context);
+      Json group(String key) => (m[key] as Json?) ?? const <String, dynamic>{};
+      String percent(Object? bps) => bps == null ? '–' : '${((bps as num) / 100).toStringAsFixed(0)}%';
+      final services = group('services');
+      final commerce = group('commerce');
+      final platform = group('platform');
+      final average = ((commerce['average_order_minor'] as Json?) ?? const <String, dynamic>{}).entries
+          .map((e) => formatMoney((e.value as num).toInt(), e.key))
+          .join(', ');
+      final rows = [
+        ('Qualified leads', '${services['qualified_leads'] ?? 0} / ${services['leads'] ?? 0}'),
+        ('Leads won', percent(services['win_rate_bps'])),
+        ('Paid orders', '${commerce['paid_orders'] ?? 0}'),
+        ('Average order', average.isEmpty ? '–' : average),
+        ('Refund rate', percent(commerce['refund_rate_bps'])),
+        ('Hours to approve', platform['median_hours_to_approve'] == null ? '–' : '${platform['median_hours_to_approve']}'),
+        ('Done under standing rules', percent(platform['rules_share_bps'])),
+        ('Failed actions', '${platform['actions_failed'] ?? 0}'),
+        ('AI cost per task', platform['ai_cost_per_task_micros'] == null ? '–' : dollars(platform['ai_cost_per_task_micros'] as num)),
+      ];
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Last 30 days'.tr, style: theme.textTheme.titleMedium),
+              Text('${'Counted at'.tr} ${m['as_of']}', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+              const SizedBox(height: 8),
+              for (final (label, value) in rows)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(label.tr)),
+                      Text(
+                        value,
+                        textDirection: TextDirection.ltr,
+                        style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
       );
     });
   }
@@ -318,8 +383,8 @@ class _Approvals extends StatelessWidget {
   }
 }
 
-class _Money extends StatelessWidget {
-  const _Money();
+class MoneyView extends StatelessWidget {
+  const MoneyView({super.key});
 
   static const _status = {
     'not_safe_to_spend': 'Not safe to spend',
@@ -403,8 +468,8 @@ class _Money extends StatelessWidget {
   );
 }
 
-class _Activity extends StatelessWidget {
-  const _Activity();
+class ActivityView extends StatelessWidget {
+  const ActivityView({super.key});
 
   @override
   Widget build(BuildContext context) {

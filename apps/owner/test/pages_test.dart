@@ -23,10 +23,17 @@ void main() {
 
         await tester.tap(find.byType(OutlinedButton));
         await tester.pumpAndSettle();
-        for (final icon in const [Icons.fact_check_outlined, Icons.groups_outlined, Icons.account_balance_wallet_outlined, Icons.history, Icons.today]) {
+        for (final icon in const [Icons.fact_check_outlined, Icons.groups_outlined, Icons.storefront_outlined, Icons.tune, Icons.today]) {
           await tester.tap(find.byIcon(icon));
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
+          // The inner tabs of Business and Systems.
+          final inner = find.byType(Tab);
+          for (var i = 0; i < inner.evaluate().length; i++) {
+            await tester.tap(inner.at(i));
+            await tester.pumpAndSettle();
+            expect(tester.takeException(), isNull);
+          }
         }
       });
     }
@@ -71,7 +78,7 @@ void main() {
     await tester.tap(find.text('Pause everything'));
     await tester.pumpAndSettle();
     expect(find.text('Everything is paused. Held actions are kept, not dropped.'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.history));
+    await tester.tap(find.byIcon(Icons.tune));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Resume'));
     await tester.pumpAndSettle();
@@ -109,5 +116,78 @@ void main() {
     await tester.tap(find.text('Run due work now'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the owner releases a held order and prepares a refund that waits in Approvals', (tester) async {
+    tester.view.physicalSize = const Size(1280, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final c = OwnerController(connector: (_, _) => DemoApi());
+    await tester.pumpWidget(OwnerApp(controller: c));
+    await c.connect(demo: true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.storefront_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Lead pipeline'), findsOneWidget);
+    expect(find.text('Tries to give the bots instructions. Only a draft is allowed.'), findsOneWidget);
+
+    await tester.tap(find.text('Store'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Release'));
+    await tester.pumpAndSettle();
+    expect(c.orders.firstWhere((o) => o['number'] == 'Z-1002')['status'], 'fulfilling');
+
+    final approvalsBefore = c.approvals.length;
+    await tester.tap(find.text('Prepare a refund').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('refund-reason')), 'Asked inside the license terms.');
+    await tester.tap(find.byKey(const Key('refund-prepare')));
+    await tester.pumpAndSettle();
+    expect(c.approvals, hasLength(approvalsBefore + 1));
+    expect(c.approvals.last['level'], 3);
+  });
+
+  testWidgets('the owner changes the policy sheet, resolves an alert, approves memory and revokes a rule', (tester) async {
+    tester.view.physicalSize = const Size(1280, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final c = OwnerController(connector: (_, _) => DemoApi());
+    await tester.pumpWidget(OwnerApp(controller: c));
+    await c.connect(demo: true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    expect(find.text('Waiting for you to connect it'), findsNothing);
+    expect(find.textContaining('Built, not connected'), findsWidgets);
+    await tester.tap(find.text('Resolve'));
+    await tester.pumpAndSettle();
+    expect(find.text('No open alerts.'), findsOneWidget);
+
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1000000'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('policy-value')), 'lots');
+    await tester.tap(find.byKey(const Key('policy-save')));
+    await tester.pumpAndSettle();
+    expect(c.error.value, 'Write a number.');
+    await tester.tap(find.text('1000000'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('policy-value')), '500000');
+    await tester.tap(find.byKey(const Key('policy-save')));
+    await tester.pumpAndSettle();
+    expect(c.policy.firstWhere((p) => p['key'] == 'ai.daily_cap_micros')['value'], 500000);
+
+    await tester.tap(find.byType(Switch).first);
+    await tester.pumpAndSettle();
+    expect(c.policy.firstWhere((p) => p['key'] == 'ai.enabled')['value'], isFalse);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Approve'));
+    await tester.pumpAndSettle();
+    expect(c.memory.every((m) => m['status'] == 'approved'), isTrue);
+
+    await tester.tap(find.text('Revoke'));
+    await tester.pumpAndSettle();
+    expect(c.rules.first['status'], 'revoked');
   });
 }

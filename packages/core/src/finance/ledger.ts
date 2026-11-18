@@ -81,7 +81,12 @@ export interface MoneySummary {
   as_of: string;
 }
 
-async function totals(db: Db, currency: string, where = '', params: unknown[] = []): Promise<Record<string, Totals>> {
+export async function totals(
+  db: Db,
+  currency: string,
+  where = '',
+  params: unknown[] = [],
+): Promise<Record<string, Totals>> {
   const rows = await db.query<{ engine: string; account: Account; total: number }>(
     `select engine, account, sum(amount_minor)::bigint as total from ledger_entries where currency = $1 ${where} group by engine, account`,
     [currency, ...params],

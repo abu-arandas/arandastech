@@ -5,9 +5,10 @@ import { signedEvent } from '../commerce/store';
 import { listMockDeliveries } from '../connectors/mock';
 import { createLead, listInbox, listLeads, recordInbound } from '../crm/crm';
 import { ledgerCurrencies, moneySummary } from '../finance/ledger';
+import { metrics } from '../finance/metrics';
 import { ACTION_SPECS } from '../governance/actions';
 import { listOpenApprovals } from '../governance/approvals';
-import { verifyAuditChain } from '../governance/audit';
+import { audit, verifyAuditChain } from '../governance/audit';
 import { listPauses, pause, resume, type PauseScope } from '../governance/pause';
 import { createRule, listRules, revokeRule } from '../governance/rules';
 import { listPolicy, type PolicyKey, POLICY_DEFAULTS, setPolicy } from '../governance/settings';
@@ -415,6 +416,34 @@ export function registerRoutes(router: Router, platform: Platform): void {
         `select * from security_alerts order by (status = 'open') desc, created_at desc limit 100`,
       ),
     };
+  });
+
+  router.add('POST', '/api/owner/alerts/:id/resolve', 'staff', async ({ caller, params, json }) => {
+    const staff = staffOf(caller);
+    const id = check(z.uuid(), params.id);
+    const body = check(z.strictObject({ status: z.enum(['acknowledged', 'resolved']).default('resolved') }), json);
+    return db.tx(async (tx) => {
+      const rows = await tx.query(
+        `update security_alerts set status = $2, resolved_at = case when $2 = 'resolved' then now() else null end
+         where id = $1 and status <> 'resolved' returning id, status`,
+        [id, body.status],
+      );
+      if (!rows[0]) throw new AppError('not_found', 'There is no open alert with this id.', 404);
+      await audit(tx, {
+        actor: staff.actor,
+        type: `alert.${body.status}`,
+        subject: { type: 'security_alert', id },
+        data: {},
+      });
+      return { alert: rows[0] };
+    });
+  });
+
+  // The numbers of blueprint 18, counted from the records at the moment of the request.
+  router.add('GET', '/api/owner/metrics', 'staff', async ({ caller, request }) => {
+    staffOf(caller);
+    const days = Number(request.query.days ?? 30);
+    return { metrics: await metrics(db, clock(), Number.isInteger(days) && days > 0 && days <= 365 ? days : 30) };
   });
 
   router.add('GET', '/api/owner/memory', 'staff', async ({ caller }) => {
