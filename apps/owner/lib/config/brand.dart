@@ -1,4 +1,4 @@
-import 'package:flutter/painting.dart' show Color;
+import 'dart:ui' show Color, Locale;
 
 /// Everything a rebrand changes in the Dart code, in one place. The web page's title and icons are in web/index.html
 /// and web/manifest.json, the Android name in android/app/src/main/AndroidManifest.xml.
@@ -33,4 +33,7 @@ class Brand {
 
   /// One font for Arabic and Latin text, bundled in assets/fonts and declared in pubspec.yaml.
   static const fontFamily = 'Rubik';
+
+  /// The languages the app speaks. It opens in the device's language when it is one of them, else in the first.
+  static const locales = [Locale('ar'), Locale('en')];
 }

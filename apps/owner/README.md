@@ -16,35 +16,31 @@ Anyone signed in can pause the agents. Only the owner can resume them. A Level 3
 
 The name, colours and font are in [`lib/config/brand.dart`](lib/config/brand.dart). The web page's title and icons are in `web/`, and the Android name and icons in `android/app/src/main/`.
 
+## Structure
+
+The Zirr house structure from Zirr Starter: models, services, controllers, bindings, views and widgets. See [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Run it
 
-"Open the demo" on the sign-in page uses sample data inside the app and needs no server.
+Every build belongs to one platform, named at build time. There is no demo mode. Start the site (`npm run dev -w @zirr/web`), then:
 
 ```bash
-flutter run -d chrome
+flutter run -d chrome --dart-define=PLATFORM_URL=http://localhost:3000
 ```
 
-To sign in to a real platform, start the site (`npm run dev -w @zirr/web`), then enter its address and the `OWNER_API_TOKEN`. When the app runs in a browser, set `OWNER_APP_ORIGIN` on the site to the app's address. On the hosted site the first deploy makes the token; `docs/runbook.md` ("Put it live for free") says where to read it.
+Sign in with the platform's `OWNER_API_TOKEN`. When the app runs in a browser, set `OWNER_APP_ORIGIN` on the site to the app's address. On the hosted site the first deploy makes the token; `docs/runbook.md` ("Put it live for free") says where to read it. The Pages build is made with `--dart-define=PLATFORM_URL=https://zirr-platform-ehab-arandas.vercel.app`.
 
 ## Check it
 
 ```bash
+dart format --output=none --set-exit-if-changed lib tool
 flutter analyze
+tool/check_layers.sh
+node tool/check_arabic.mjs
+flutter build web --release --wasm --dart-define=PLATFORM_URL=https://zirr-platform-ehab-arandas.vercel.app
 ```
 
-```bash
-flutter test --coverage
-```
-
-```bash
-sh tool/check_coverage.sh 60
-```
-
-The live test runs the app's real client against a running platform in demo mode. It is not part of `flutter test`:
-
-```bash
-API_URL=http://localhost:3100 OWNER_TOKEN=your-token flutter test integration/live_api_test.dart
-```
+There are no app tests, as in every Zirr app. The rules the owner relies on (approvals, levels, standing rules, the pause) are checked and tested on the platform, in `packages/core`.
 
 ## Not built yet
 
