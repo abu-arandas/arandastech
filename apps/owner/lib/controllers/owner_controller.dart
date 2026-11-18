@@ -198,6 +198,9 @@ class OwnerController extends GetxController {
     return ok;
   }
 
+  /// Only asks: the product goes live when the owner confirms it in Approvals, where the margin checks show.
+  Future<bool> publishProduct(Json product) => _act((p) => p.publishProduct(product['id'] as String));
+
   Future<bool> releaseOrder(Json order) => _act((p) => p.releaseOrder(order['id'] as String));
 
   /// The refund is only prepared here. It appears in Approvals, where the owner confirms the amount and the recipient.

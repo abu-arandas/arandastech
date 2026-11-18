@@ -8,7 +8,7 @@ How to run, check and connect what is in this repository. The plan it implements
 | -------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Agent team for OpenMausBot | `agents/openmausbot`           | The departments run inside the platform (`packages/core/src/agents`), from the same souls and skills. The OpenMausBot team is checked by `npm run agents:check` and not yet imported into a running OpenMausBot.                                   |
 | Database schema            | `supabase/migrations`          | Built, five migrations. Live on a free Neon PostgreSQL, applied by `npm run db:deploy` on each production build.                                                                                                                                   |
-| Platform services and API  | `packages/core`                | Built. 125 tests pass, including the nine-step acceptance run of blueprint §15 and the departments' jobs.                                                                                                                                          |
+| Platform services and API  | `packages/core`                | Built. 127 tests pass, including the nine-step acceptance run of blueprint §15 and the departments' jobs.                                                                                                                                          |
 | MCP server for the bots    | `packages/core/src/api/mcp.ts` | Built and tested through the API. Not yet tried from a real MCP client.                                                                                                                                                                            |
 | Public site and storefront | `apps/web`                     | Live at https://zirr-platform-ehab-arandas.vercel.app (Vercel project `zirr-platform`) in demo mode: Arabic and English, lead form, test checkout, order status. Payments are test payments only.                                                  |
 | Owner app (Flutter)        | `apps/owner`                   | Live on GitHub Pages at https://abu-arandas.github.io/arandastech/. Arabic and English. Sign-in with the server address and the owner token, plus an "Open the demo" button that shows sample data and changes nothing. Not released to any store. |
@@ -88,6 +88,12 @@ Everything here runs on free plans. The storefront and the API run on Vercel's H
    - `OWNER_USER_ID`,
    - `OWNER_APP_ORIGIN=https://abu-arandas.github.io`, so the owner app on GitHub Pages may call the API,
    - `DEMO_MODE=true` while payments are test payments only. A database stays in the mode it was first installed in, so going live later means a fresh database, and demo data never reaches customers.
+
+   To go from demo to live mode on the same database, set `DEMO_MODE=false` and `RESET_DEMO_DATABASE=yes` for Production, then deploy. The deploy empties the demo database (test orders, sample data, the old owner token and every saved connection), installs it again in live mode and makes a new owner token. It only ever empties a database that is in demo mode, so leaving the variable set is harmless. In live mode:
+   - the products start as drafts and the shop is empty: put each one on sale from the owner app (Business, Store), and confirm it in Approvals,
+   - checkout is closed, with a pointer to the contact form, until PayTabs is connected,
+   - the test tools under `/api/demo/` are gone,
+   - `OWNER_USER_ID` is put on the team, so the owner token signs in (`OWNER_EMAIL` names its email address, if set).
 
    You do not make `OWNER_API_TOKEN`, `PAYMENTS_WEBHOOK_SECRET` or `SUPPLIER_WEBHOOK_SECRET`. The first deploy makes each one in the database, in `ops.secrets`, and the site reads them from there. A variable you set yourself wins, for example the webhook secret a live payment provider gives you. The example's `change-me` never counts on Vercel.
 

@@ -496,3 +496,64 @@ describe('Vercel and Buffer', () => {
     });
   });
 });
+
+describe('live mode before PayTabs is connected', () => {
+  it('takes no order that could not be paid', async () => {
+    const live = await createTestPlatform({ demo: false, fetch: fakeFetch });
+    try {
+      await refreshConnectors(live.platform);
+      const api = createApi(live.platform, { ownerToken: OWNER_TOKEN, ownerUserId: DEMO_OWNER_ID, agentTokens: {} });
+      const ask = async (method: string, path: string, body?: unknown) =>
+        (await api({
+          method,
+          path,
+          query: {},
+          headers: { 'x-forwarded-for': '203.0.113.10' },
+          body: body === undefined ? '' : JSON.stringify(body),
+        })) as ApiResponse & { body: Json };
+      expect((await ask('GET', '/api/public/payments')).body.provider).toBe('none');
+      const refused = await ask('POST', '/api/public/checkout', {
+        items: [{ sku: 'RETAIL-DEV', quantity: 1 }],
+        buyer: { name: 'Sara', email: 'sara@example.com' },
+        locale: 'en',
+        idempotencyKey: 'closed-1',
+      });
+      expect(refused.status).toBe(503);
+      expect(refused.body.error.code).toBe('payments_closed');
+      expect((await ask('POST', '/api/demo/pay', { session: 'x' })).status).toBe(404);
+      expect(await live.platform.db.query(`select 1 from orders`)).toEqual([]);
+
+      // The shop starts empty in live mode: the owner publishes each product, and confirms it in Approvals.
+      expect((await ask('GET', '/api/public/catalog')).body.products).toEqual([]);
+      await live.platform.db.query(
+        `insert into staff_members (user_id, email, display_name, role) values ($1, 'o@example.test', 'Owner', 'owner')`,
+        [DEMO_OWNER_ID],
+      );
+      const signed = async (method: string, path: string, body?: unknown) =>
+        (await api({
+          method,
+          path,
+          query: {},
+          headers: { 'x-forwarded-for': '203.0.113.10', authorization: `Bearer ${OWNER_TOKEN}` },
+          body: body === undefined ? '' : JSON.stringify(body),
+        })) as ApiResponse & { body: Json };
+      const products = (await signed('GET', '/api/owner/products')).body.products as Json[];
+      const retail = products.find((p) => p.slug === 'zirr-retail');
+      expect(retail).toMatchObject({ status: 'draft', is_test: false });
+      expect(products.some((p) => p.is_test)).toBe(false);
+      const asked = await signed('POST', `/api/owner/products/${retail!.id}/publish`);
+      expect(asked.status).toBe(200);
+      expect(asked.body.request).not.toBeNull();
+      const decided = await signed('POST', `/api/owner/approvals/${asked.body.request.id}/decide`, {
+        decision: 'approve',
+      });
+      expect(decided.status).toBe(200);
+      const shop = (await ask('GET', '/api/public/catalog')).body.products as Json[];
+      expect(shop.map((p) => p.slug)).toEqual(['zirr-retail']);
+      const bad = await signed('POST', '/api/owner/products/not-a-product/publish');
+      expect(bad.body.action.status).toBe('blocked');
+    } finally {
+      await live.test.drop();
+    }
+  });
+});

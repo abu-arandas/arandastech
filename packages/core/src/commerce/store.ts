@@ -165,6 +165,18 @@ export class Store {
     );
   }
 
+  /** Every product for the owner, drafts included, with its status, so the owner can publish one. */
+  async products(): Promise<Array<Record<string, unknown>>> {
+    return this.db.query(
+      `select p.id, p.slug, p.kind, p.name, p.status, p.is_test, p.published_at,
+         coalesce((select jsonb_agg(jsonb_build_object('sku', v.sku, 'name', v.name, 'price_minor', v.price_minor,
+                     'currency', v.currency, 'unit_cost_minor', v.unit_cost_minor) order by v.sort)
+                   from product_variants v where v.product_id = p.id and v.active), '[]'::jsonb) as variants
+       from products p where ($1 or not p.is_test) order by p.is_test, p.created_at`,
+      [this.options.allowTestProducts],
+    );
+  }
+
   private async pricing(
     currency: string,
     unitCostMinor: number,

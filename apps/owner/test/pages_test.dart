@@ -147,6 +147,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(c.approvals, hasLength(approvalsBefore + 1));
     expect(c.approvals.last['level'], 3);
+
+    await tester.scrollUntilVisible(find.text('Put on sale'), 200, scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Put on sale'));
+    await tester.pumpAndSettle();
+    expect(c.products.firstWhere((p) => p['slug'] == 'zirr-pos')['status'], 'published');
+    expect(find.text('Put on sale'), findsNothing);
   });
 
   testWidgets('the owner changes the policy sheet, resolves an alert, approves memory and revokes a rule', (tester) async {

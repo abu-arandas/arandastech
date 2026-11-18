@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { checkInstallMode, deployMigrations } from '../src/lib/migrate';
+import { checkInstallMode, deployMigrations, resetDemoDatabase } from '../src/lib/migrate';
 import { chooseSecret, ensureSecrets, PLACEHOLDER, readSecrets, SECRETS } from '../src/lib/secrets';
+import { ensureOwner } from '../src/company';
 import { createPlatform, install } from '../src/platform';
 import { createTestDb, type TestDb } from './helpers/db';
 
@@ -61,6 +62,41 @@ describe('deploying to a hosted database', () => {
       await checkInstallMode(other.db, true);
       await checkInstallMode(other.db, true);
       await expect(checkInstallMode(other.db, false)).rejects.toThrow(/installed in demo mode/);
+    } finally {
+      await other.drop();
+    }
+  });
+
+  it('empties a demo database for live mode, and never a live one', async () => {
+    const other = await createTestDb({ empty: true });
+    try {
+      expect(await resetDemoDatabase(other.db)).toBe(false);
+      await deployMigrations(other.db);
+      await checkInstallMode(other.db, true);
+      await install(createPlatform(other.db, { demo: true, webhookSecrets: secrets }));
+      await ensureSecrets(other.db);
+      const oldToken = (await readSecrets(other.db)).owner_api_token;
+
+      expect(await resetDemoDatabase(other.db)).toBe(true);
+      expect(await other.db.query(`select to_regclass('public.products') as t`)).toEqual([{ t: null }]);
+
+      const again = await deployMigrations(other.db);
+      expect(again.applied.length).toBeGreaterThanOrEqual(4);
+      await checkInstallMode(other.db, false);
+      await install(createPlatform(other.db, { demo: false, webhookSecrets: secrets }));
+      await ensureSecrets(other.db);
+      expect(await other.db.query(`select 1 from products where is_test`)).toEqual([]);
+      expect((await readSecrets(other.db)).owner_api_token).not.toBe(oldToken);
+
+      const owner = '00000000-0000-4000-8000-0000000000aa';
+      expect(await ensureOwner(other.db, owner)).toBe(true);
+      expect(await ensureOwner(other.db, owner)).toBe(false);
+      expect(await other.db.query(`select role from staff_members where user_id = $1 and active`, [owner])).toEqual([
+        { role: 'owner' },
+      ]);
+
+      expect(await resetDemoDatabase(other.db)).toBe(false);
+      expect(await other.db.query(`select to_regclass('public.products') is not null as t`)).toEqual([{ t: true }]);
     } finally {
       await other.drop();
     }
