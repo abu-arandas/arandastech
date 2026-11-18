@@ -19,7 +19,8 @@ import {
 
 type Api = ReturnType<typeof createApi>;
 type Server = { platform: Platform; api: Api };
-const globals = globalThis as { __zirr?: Promise<Server> };
+const globals = globalThis as { __zirr?: Promise<Server>; __zirrRefreshed?: number };
+const REFRESH_MS = 30_000;
 
 const need = (name: string): string => {
   const value = process.env[name];
@@ -63,6 +64,7 @@ async function connect(db: Db): Promise<Server> {
   });
   // Each account the owner connected in the owner app goes live; the rest stay mocks.
   await refreshConnectors(platform);
+  globals.__zirrRefreshed = Date.now();
   const api = createApi(platform, {
     ownerToken: secret('owner_api_token'),
     ownerUserId: process.env.OWNER_USER_ID || undefined,
@@ -84,12 +86,18 @@ export function siteUrl(): string {
 }
 
 /** One platform per server process, built from the environment on first use. A failed start is tried again on the next call. */
-export function server(): Promise<Server> {
+export async function server(): Promise<Server> {
   globals.__zirr ??= build().catch((error: unknown) => {
     globals.__zirr = undefined;
     throw error;
   });
-  return globals.__zirr;
+  const out = await globals.__zirr;
+  // Another instance may have connected or removed an account since this one started: look again every half minute.
+  if (Date.now() - (globals.__zirrRefreshed ?? 0) > REFRESH_MS) {
+    globals.__zirrRefreshed = Date.now();
+    await refreshConnectors(out.platform).catch(() => undefined);
+  }
+  return out;
 }
 
 /**

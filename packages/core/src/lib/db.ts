@@ -42,25 +42,62 @@ class ClientDb implements Db {
   async close(): Promise<void> {}
 }
 
+/**
+ * A connection that broke before or between queries: the server closed an idle one, or the TLS handshake was cut.
+ * Hosted Postgres poolers (Neon) close idle connections, and a frozen serverless function wakes up holding them.
+ */
+export function isConnectionError(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e) return false;
+  if (e.code === 'ECONNRESET' || e.code === 'EPIPE' || e.code === 'ETIMEDOUT' || e.code === '57P01') return true;
+  return /Connection terminated|socket disconnected|Client has encountered a connection error/i.test(e.message ?? '');
+}
+
+/** Only a plain read is safe to send twice: a write may have reached the server before the connection broke. */
+const isRead = (text: string): boolean => /^\s*select\b/i.test(text);
+
 class PoolDb implements Db {
   constructor(private readonly pool: pg.Pool) {}
 
+  /** A pooled connection. A failure to connect is tried once more, since nothing was sent yet. */
+  private async connect(): Promise<pg.PoolClient> {
+    try {
+      return await this.pool.connect();
+    } catch (error) {
+      if (!isConnectionError(error)) throw error;
+      return this.pool.connect();
+    }
+  }
+
   async query<T = Row>(text: string, params: unknown[] = []): Promise<T[]> {
-    return (await this.pool.query(text, params)).rows as T[];
+    for (let attempt = 1; ; attempt++) {
+      const client = await this.connect();
+      try {
+        const rows = (await client.query(text, params)).rows as T[];
+        client.release();
+        return rows;
+      } catch (error) {
+        // A broken connection is thrown away, not given back to the pool.
+        const broken = isConnectionError(error);
+        client.release(broken ? (error as Error) : undefined);
+        if (broken && attempt === 1 && isRead(text)) continue;
+        throw error;
+      }
+    }
   }
 
   async tx<T>(fn: (db: Db) => Promise<T>): Promise<T> {
-    const client = await this.pool.connect();
+    const client = await this.connect();
     try {
       await client.query('begin');
       const out = await fn(new ClientDb(client, 0));
       await client.query('commit');
+      client.release();
       return out;
     } catch (error) {
       await client.query('rollback').catch(() => undefined);
+      client.release(isConnectionError(error) ? (error as Error) : undefined);
       throw error;
-    } finally {
-      client.release();
     }
   }
 
@@ -70,7 +107,11 @@ class PoolDb implements Db {
 }
 
 export function createDb(connectionString: string, max = 10): Db {
-  return new PoolDb(new pg.Pool({ connectionString, max }));
+  // Idle connections are closed by us well before a hosted pooler would close them under us.
+  const pool = new pg.Pool({ connectionString, max, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 10_000 });
+  // An idle connection that breaks is dropped by the pool; without a listener it would crash the process.
+  pool.on('error', () => undefined);
+  return new PoolDb(pool);
 }
 
 /** The only row of a result that must have exactly one. */
