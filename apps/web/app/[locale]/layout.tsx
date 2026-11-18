@@ -76,6 +76,10 @@ export default async function LocaleLayout({
             <span>
               © {new Date().getFullYear()} {t('brand', locale)}
             </span>
+            <nav>
+              <a href={`/${locale}/privacy`}>{t('privacy', locale)}</a>
+              <a href={`/${locale}/terms`}>{t('terms', locale)}</a>
+            </nav>
             <span>{t('smile', locale)}</span>
           </div>
         </footer>
