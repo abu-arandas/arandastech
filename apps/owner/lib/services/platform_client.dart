@@ -6,9 +6,15 @@ import '../models/json.dart';
 
 /// A message from the platform that is safe to show to the owner.
 class ApiError implements Exception {
-  ApiError(this.message);
+  ApiError(this.message, {this.status});
 
   final String message;
+
+  /// The HTTP status the platform answered with, when it answered.
+  final int? status;
+
+  /// The platform turned the token down: it is wrong, or it was replaced.
+  bool get rejectedToken => status == 401 || status == 403;
 
   @override
   String toString() => message;
@@ -33,7 +39,7 @@ class PlatformClient {
     final response = await http.Response.fromStream(await _client.send(request));
     final decoded = response.body.isEmpty ? const <String, Object?>{} : jsonDecode(utf8.decode(response.bodyBytes)) as Json;
     if (response.statusCode >= 400) {
-      throw ApiError((jsonMap(decoded['error'])['message'] as String?) ?? 'Request failed (${response.statusCode}).');
+      throw ApiError((jsonMap(decoded['error'])['message'] as String?) ?? 'Request failed (${response.statusCode}).', status: response.statusCode);
     }
     return decoded;
   }

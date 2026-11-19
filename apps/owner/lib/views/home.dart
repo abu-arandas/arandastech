@@ -24,7 +24,15 @@ class Home extends StatelessWidget {
         duration: Motion.medium,
         switchInCurve: Motion.enter,
         switchOutCurve: Motion.exit,
-        child: session.signedIn ? const DashboardPage(key: ValueKey('dashboard')) : const SignInPage(key: ValueKey('sign-in')),
+        child: session.signedIn
+            ? const DashboardPage(key: ValueKey('dashboard'))
+            // While the token kept on this device is tried, a quiet wait instead of a form that flashes and goes.
+            : session.resuming.value
+            ? const Scaffold(
+                key: ValueKey('resuming'),
+                body: Center(child: CircularProgressIndicator()),
+              )
+            : const SignInPage(key: ValueKey('sign-in')),
       ),
     );
   }

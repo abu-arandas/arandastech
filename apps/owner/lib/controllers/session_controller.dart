@@ -8,6 +8,7 @@ import '../models/metrics.dart';
 import '../models/overview.dart';
 import '../services/platform.dart';
 import '../services/platform_client.dart';
+import '../services/sign_in_store.dart';
 
 /// A screen's share of what the app reads from the platform. The session reads every share first and shows them
 /// together, so a sign-out or an action during the read never puts older data on screen.
@@ -21,9 +22,12 @@ abstract interface class PlatformReader {
 
 /// Who is signed in, the language, the pause, and the reading and refreshing every screen shares.
 class SessionController extends GetxController {
-  SessionController({required this._connect, required this.baseUrl, required Locale locale, this.refreshEvery}) : locale = locale.obs;
+  SessionController({required this._connect, required this.baseUrl, required Locale locale, required this._store, this.refreshEvery}) : locale = locale.obs;
 
   final PlatformConnector _connect;
+
+  /// Keeps the token on this device, so the owner signs in once.
+  final SignInStore _store;
 
   /// The platform this build belongs to (`--dart-define=PLATFORM_URL=...`).
   final String baseUrl;
@@ -62,12 +66,43 @@ class SessionController extends GetxController {
     Get.rootController.update();
   }
 
+  /// True while the app tries the token kept on this device, so the sign-in form does not flash first.
+  final resuming = false.obs;
+
+  /// Signs in again with the token kept on this device, once the screens are ready to read.
+  @override
+  void onReady() {
+    super.onReady();
+    final kept = _store.read();
+    if (kept != null && kept.isNotEmpty) unawaited(_resume(kept));
+  }
+
+  Future<void> _resume(String token) async {
+    resuming.value = true;
+    try {
+      await signIn(token);
+    } finally {
+      resuming.value = false;
+    }
+  }
+
   /// Signs in with the owner token. The dashboard appears only after the platform has answered, so a wrong token
-  /// never shows it, even briefly.
-  Future<bool> signIn(String token) async {
+  /// never shows it, even briefly. With [remember] the token stays on this device until sign-out.
+  Future<bool> signIn(String token, {bool remember = true}) async {
     final candidate = _connect(baseUrl, token.trim());
-    final ok = await guard(() => _read(candidate, keep: () => true));
+    ApiError? refused;
+    final ok = await guard(() async {
+      try {
+        await _read(candidate, keep: () => true);
+      } on ApiError catch (e) {
+        refused = e;
+        rethrow;
+      }
+    });
+    // A token the platform turned down is forgotten; a lost connection keeps it for the next try.
+    if (refused?.rejectedToken ?? false) _store.clear();
     if (ok) {
+      remember ? _store.write(token.trim()) : _store.clear();
       platform.value = candidate;
       _refresh?.cancel();
       if (refreshEvery != null) _refresh = Timer.periodic(refreshEvery!, (_) => unawaited(refreshQuietly()));
@@ -76,6 +111,7 @@ class SessionController extends GetxController {
   }
 
   void signOut() {
+    _store.clear();
     _version++;
     _refresh?.cancel();
     _refresh = null;
