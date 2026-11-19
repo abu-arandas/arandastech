@@ -68,6 +68,16 @@ export async function safeSendLimit(db: Db, limit: number, now: Date): Promise<{
   return rate > MAX_BOUNCE_RATE ? { limit: Math.floor(limit / 2), halved: true } : { limit, halved: false };
 }
 
+/** Whether the lead behind an unsubscribe link has stopped the emails. Unknown links say no. */
+export async function optedOut(db: Db, token: string): Promise<boolean> {
+  if (!/^[0-9a-f-]{36}$/i.test(token)) return false;
+  const [lead] = await db.query<{ do_not_contact: boolean }>(
+    `select do_not_contact from leads where opt_out_token = $1::uuid`,
+    [token],
+  );
+  return lead?.do_not_contact ?? false;
+}
+
 /** The one-click unsubscribe: the lead is never written to again. Unknown links change nothing and say so. */
 export async function optOut(db: Db, token: string, now: Date): Promise<boolean> {
   if (!/^[0-9a-f-]{36}$/i.test(token)) return false;

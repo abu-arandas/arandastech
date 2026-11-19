@@ -93,6 +93,14 @@ describe('the one-click unsubscribe', () => {
       body: 'List-Unsubscribe=One-Click',
     });
     expect(response).toMatchObject({ status: 200, body: { done: true } });
+    const status = await api({
+      method: 'GET',
+      path: `/api/public/unsubscribe/${lead.opt_out_token}`,
+      query: {},
+      headers: { 'x-forwarded-for': '203.0.113.5' },
+      body: '',
+    });
+    expect(status.body).toEqual({ stopped: true });
     const [after] = await t.platform.db.query<Json>('select * from leads where id = $1', [lead.id]);
     expect(after).toMatchObject({ do_not_contact: true, sequence: null });
     expect(await optOut(t.platform.db, '00000000-0000-4000-8000-000000000000', now)).toBe(false);

@@ -30,7 +30,10 @@ export default async function Unsubscribe({
   const { locale: raw, token } = await params;
   const locale = raw as Locale;
   const query = await searchParams;
-  if (query.done) return <Done>{t('unsubscribed', locale)}</Done>;
+  if (query.done) {
+    const status = await call<{ stopped: boolean }>('GET', `/api/public/unsubscribe/${encodeURIComponent(token)}`);
+    if (status.ok && status.data.stopped) return <Done>{t('unsubscribed', locale)}</Done>;
+  }
   return (
     <>
       <h1 className="enter">{t('unsubscribeTitle', locale)}</h1>
