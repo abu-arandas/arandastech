@@ -23,19 +23,25 @@ async function alertOnce(
   alert: { kind: string; severity: 'info' | 'warning'; summary: string; detail: Json; by: string },
 ): Promise<boolean> {
   const since = new Date(rt.platform.clock().getTime() - DAY);
-  const already = await rt.db.query(`select 1 from security_alerts where kind = $1 and created_at > $2`, [
-    alert.kind,
-    since,
-  ]);
-  if (already.length) return false;
-  await rt.db.query(
-    `insert into security_alerts (severity, kind, summary, detail, created_by_kind, created_by_id) values ($1, $2, $3, $4::jsonb, 'agent', $5)`,
-    [alert.severity, alert.kind, alert.summary, json(alert.detail), alert.by],
-  );
-  return true;
+  // One check at a time per kind: a manual run and the scheduled one could both find no alert and both open one.
+  return rt.db.tx(async (db) => {
+    await db.query(`select pg_advisory_xact_lock(hashtext('security_alert:' || $1))`, [alert.kind]);
+    const already = await db.query(`select 1 from security_alerts where kind = $1 and created_at > $2`, [
+      alert.kind,
+      since,
+    ]);
+    if (already.length) return false;
+    await db.query(
+      `insert into security_alerts (severity, kind, summary, detail, created_by_kind, created_by_id) values ($1, $2, $3, $4::jsonb, 'agent', $5)`,
+      [alert.severity, alert.kind, alert.summary, json(alert.detail), alert.by],
+    );
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------- Commerce
+
+// Only what the shop sells is checked: a published product's active variants. A switched-off SKU cannot lose money.
 
 async function catalogCheck(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   return rt.record('commerce.catalog_check', ctx, input, async (run) => {
@@ -47,7 +53,7 @@ async function catalogCheck(rt: AgentRuntime, input: Json, ctx: WorkflowContext)
       unit_cost_minor: number;
     }>(
       `select v.sku, p.name, v.price_minor, v.currency, v.unit_cost_minor from product_variants v join products p on p.id = v.product_id
-       where p.status = 'published' order by v.sku`,
+       where p.status = 'published' and v.active order by v.sku`,
     );
     const floorBps = await getPolicy(rt.db, 'margin.min_product_bps');
     const feeBps = await getPolicy(rt.db, 'pricing.payment_fee_bps');

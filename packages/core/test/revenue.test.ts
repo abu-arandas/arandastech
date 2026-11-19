@@ -326,6 +326,17 @@ describe('the revenue engine', () => {
     expect(await prospects()).toEqual(leads);
   });
 
+  it('a lead from the website who asked not to be contacted is never scored or moved', async () => {
+    const [lead] = await t.test.db.query<Json>(
+      `insert into leads (name, email, locale, message, source, do_not_contact)
+       values ('Opted Out', 'opted-out@example.com', 'en', 'We need a Flutter app with a budget and a deadline next month.', 'website', true)
+       returning id`,
+    );
+    const before = await t.test.db.query<Json>('select stage, score from leads where id = $1', [lead!.id]);
+    await t.platform.agents.runWorkflow('sales.qualify_leads', { count: 20 }, { trigger: 'manual' });
+    expect(await t.test.db.query<Json>('select stage, score from leads where id = $1', [lead!.id])).toEqual(before);
+  });
+
   it('converts the dinar to dollars at the peg', () => {
     expect(toUsdCents(1000, 'JOD')).toBe(141);
     expect(toUsdCents(2500, 'USD')).toBe(2500);

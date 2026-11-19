@@ -4,7 +4,7 @@ import { revenueStatus } from '../crm/revenue';
 import { listOpenApprovals } from '../governance/approvals';
 import { formatMoney } from '../lib/money';
 import type { Locale } from '../lib/types';
-import { type Json, say } from './common';
+import { AWAITING_REPLY, type Json, say } from './common';
 import type { AgentRuntime, WorkflowContext } from './runtime';
 
 /**
@@ -63,9 +63,9 @@ async function businessFigures(rt: AgentRuntime) {
           ?.toISOString() ?? null,
     },
     leads: await one<{ new_today: number; waiting_reply: number; qualified: number }>(
-      `select count(*) filter (where created_at > $1)::int as new_today,
-              count(*) filter (where stage = 'new')::int as waiting_reply,
-              count(*) filter (where stage = 'qualified')::int as qualified from leads where kind = 'inbound'`,
+      `select count(*) filter (where l.created_at > $1)::int as new_today,
+              count(*) filter (where ${AWAITING_REPLY})::int as waiting_reply,
+              count(*) filter (where l.stage = 'qualified')::int as qualified from leads l where l.kind = 'inbound'`,
       [dayAgo],
     ),
     orders: await one<{ in_progress: number; on_hold: number; paid_today: number }>(

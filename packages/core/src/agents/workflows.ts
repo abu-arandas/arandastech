@@ -6,7 +6,7 @@ import { getPolicy } from '../governance/settings';
 import { json, maybeOne } from '../lib/db';
 import type { Locale, Localized } from '../lib/types';
 import { listApprovedMemory, renderTemplate } from '../memory';
-import { type Json, say } from './common';
+import { AWAITING_REPLY, type Json, say } from './common';
 import { type AgentRuntime, manualNote, type Run, type WorkflowContext } from './runtime';
 
 /**
@@ -199,8 +199,9 @@ async function qualifyLeads(rt: AgentRuntime, input: Json, ctx: WorkflowContext)
   return rt.record('sales.qualify_leads', ctx, input, async (run) => {
     const count = Math.min(20, Math.max(1, Number(input.count ?? 3) || 3));
     // Only people who wrote to us are scored: a prospect's stage is moved by its outreach sequence and its replies.
+    // Someone who asked not to be contacted is left exactly as they are.
     const leads = (await listLeads(rt.db)).filter(
-      (lead) => lead.kind === 'inbound' && ['new', 'qualified'].includes(lead.stage),
+      (lead) => lead.kind === 'inbound' && !lead.do_not_contact && ['new', 'qualified'].includes(lead.stage),
     );
     await rt.readOutside(run);
     const flagged = new Set(
@@ -230,9 +231,7 @@ async function qualifyLeads(rt: AgentRuntime, input: Json, ctx: WorkflowContext)
 
 async function replyNewLeads(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   const waiting = await rt.db.query<{ id: string }>(
-    `select l.id from leads l where l.kind = 'inbound' and l.stage in ('new', 'qualified') and not l.do_not_contact
-       and not exists (select 1 from actions a where a.payload ->> 'lead_id' = l.id::text and a.action_type in ('gmail.send_email', 'gmail.create_draft'))
-     order by l.created_at limit 5`,
+    `select l.id from leads l where ${AWAITING_REPLY} order by l.created_at limit 5`,
   );
   const replies = [];
   for (const { id } of waiting) replies.push(await leadReply(rt, { lead_id: id }, ctx));
@@ -374,15 +373,29 @@ async function triage(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Prom
   });
 }
 
+/** How many messages one sweep sorts; the rest wait for the next sweep, oldest first. */
+const TRIAGE_BATCH = 25;
+
 async function triageInbox(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   const waiting = await rt.db.query<{ id: string }>(
-    // A lead's own reply is Sales' to answer (support.lead_answer); one left unhandled is waiting for a person.
-    `select id from messages where direction = 'in' and not handled and lead_id is null and channel in ('email', 'whatsapp')
-     order by created_at limit 10`,
+    // A lead's own reply is Sales' to answer (support.lead_answer). A message Support already sorted without a reply
+    // is waiting for a person, so it is skipped and never holds the newer ones back; one whose run failed is tried again.
+    `select m.id from messages m where m.direction = 'in' and not m.handled and m.lead_id is null and m.channel in ('email', 'whatsapp')
+       and not exists (select 1 from agent_runs r where r.workflow = 'support.triage' and r.status = 'succeeded'
+                       and r.input ->> 'message_id' = m.id::text)
+     order by m.created_at limit $1`,
+    [TRIAGE_BATCH],
   );
   const results = [];
   for (const { id } of waiting) results.push(await triage(rt, { message_id: id }, ctx));
-  return { triaged: results, note: waiting.length ? null : 'The inbox is clear.' };
+  return {
+    triaged: results,
+    note: waiting.length
+      ? waiting.length === TRIAGE_BATCH
+        ? 'More are waiting for the next sweep.'
+        : null
+      : 'The inbox is clear.',
+  };
 }
 
 // ---------------------------------------------------------------- Marketing
