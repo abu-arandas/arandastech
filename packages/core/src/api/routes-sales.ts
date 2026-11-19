@@ -14,7 +14,8 @@ import {
   voidInvoice,
 } from '../crm/billing';
 import { listLeads } from '../crm/crm';
-import { addProspects, changeLead, revenueStatus } from '../crm/pipeline';
+import { addProspects, changeLead } from '../crm/pipeline';
+import { revenueStatus } from '../crm/revenue';
 import { createRule, listRules, revokeRule } from '../governance/rules';
 import { getPolicy } from '../governance/settings';
 import { invalid } from '../lib/errors';
