@@ -27,6 +27,16 @@ export interface ConnectionSpec {
   inbound?: true;
 }
 
+/** The date a pasted token stops working, so Security can say so a week before. */
+const EXPIRES_ON: ConnectionField = {
+  key: 'expires_on',
+  label: 'Expires on',
+  secret: false,
+  optional: true,
+  help: 'Optional. The date the token stops working, such as 2026-12-19, for a reminder a week before',
+  pattern: /^20\d\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
+};
+
 export const CONNECTIONS: ConnectionSpec[] = [
   {
     id: 'gmail',
@@ -69,17 +79,7 @@ export const CONNECTIONS: ConnectionSpec[] = [
       'Give it access to your repositories with Issues and Pull requests set to Read and write, and Contents set to Read and write.',
       'Paste the token here and press Save.',
     ],
-    fields: [
-      { key: 'token', label: 'Fine-grained token', secret: true, help: 'Starts with github_pat_' },
-      {
-        key: 'expires_on',
-        label: 'Expires on',
-        secret: false,
-        optional: true,
-        help: 'Optional. The date the token stops working, such as 2026-12-19, for a reminder a week before',
-        pattern: /^20\d\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
-      },
-    ],
+    fields: [{ key: 'token', label: 'Fine-grained token', secret: true, help: 'Starts with github_pat_' }, EXPIRES_ON],
   },
   {
     id: 'vercel',
@@ -90,14 +90,7 @@ export const CONNECTIONS: ConnectionSpec[] = [
     fields: [
       { key: 'token', label: 'Access token', secret: true, help: 'From vercel.com/account/settings/tokens' },
       { key: 'team_id', label: 'Team', secret: false, automatic: true, help: 'Found from the token.' },
-      {
-        key: 'expires_on',
-        label: 'Expires on',
-        secret: false,
-        optional: true,
-        help: 'Optional. The date the token stops working, such as 2026-12-19, for a reminder a week before',
-        pattern: /^20\d\d-[01]\d-[0-3]\d$/,
-      },
+      EXPIRES_ON,
     ],
   },
   {
@@ -109,14 +102,7 @@ export const CONNECTIONS: ConnectionSpec[] = [
     fields: [
       { key: 'api_key', label: 'API key', secret: true, help: 'From publish.buffer.com/settings/api' },
       { key: 'channels', label: 'Channels', secret: false, automatic: true, help: 'Found from the key.' },
-      {
-        key: 'expires_on',
-        label: 'Expires on',
-        secret: false,
-        optional: true,
-        help: 'Optional. The date the token stops working, such as 2026-12-19, for a reminder a week before',
-        pattern: /^20\d\d-[01]\d-[0-3]\d$/,
-      },
+      EXPIRES_ON,
     ],
   },
   {
