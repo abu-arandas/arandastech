@@ -178,21 +178,29 @@ size (`revenue.average_deal_minor` until five invoices are paid), and what those
 and first emails. The funnel starts at 5% replies, 50% calls, 60% proposals and 30% wins, and is measured from the
 records once there are 20 contacted leads and 5 proposals in 90 days.
 
-| Step        | What happens                                                                                                                                                                                               |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Prospects   | The owner adds businesses (Sales, Add prospects, or `POST /api/owner/prospects`). An agency gets the `outreach` sequence, a shop, café or restaurant `outreach_shop`.                                      |
-| Outreach    | Every morning at 08:00 in Amman, Sales writes the next email of each sequence from the approved templates (intro, follow-up after 4 to 5 days, last email a week later), at most `sales.daily_send_limit`. |
-| Reply       | An email from a lead stops their outreach. "No thanks" in English or Arabic marks them do-not-contact for good. Any other reply raises an alert and gets the booking link (`sales.booking_link`).          |
-| Call booked | A Google Calendar booking notice that names a lead moves them to "Call booked". The owner can move any lead by hand.                                                                                       |
-| Proposal    | The owner writes it in the app; Sales emails its secret link (`/en/p/<token>`). One reminder after 3 days. The client accepts by typing their name.                                                        |
-| Invoice     | Accepting raises the deposit invoice (`billing.deposit_bps`) and Sales emails it (`/en/i/<token>`, with `billing.payment_instructions`). Two reminders after the due date, a week apart.                   |
-| Paid        | The owner marks it paid (bank, CliQ, PayPal, cash). It is posted to the services books, the client is thanked, and check-ins follow after 2 weeks and 2 months. A Gumroad sale is recorded as paid.        |
+| Step        | What happens                                                                                                                                                                                                                                                                                                                                             |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prospects   | The owner adds businesses (Sales, Add prospects, or `POST /api/owner/prospects`). An agency gets the `outreach` sequence, a shop, café or restaurant `outreach_shop`. Each gets a fit score (website, address on its own domain, region, app work in the notes, a deal value) with its reasons.                                                          |
+| Outreach    | Every morning at 08:00 in Amman, Sales writes the next email of each sequence from the approved templates, at most `sales.daily_send_limit`, best-fitting prospects first. The intro asks a one-line question, the follow-up 4 to 5 days later offers a small first job and the booking link, and the last email a week later asks who else to write to. |
+| Reply       | An email from a lead stops their outreach. "No thanks" in English or Arabic marks them do-not-contact for good. Any other reply raises an alert and gets the booking link (`sales.booking_link`).                                                                                                                                                        |
+| Call booked | A Google Calendar booking notice that names a lead moves them to "Call booked". The owner can move any lead by hand.                                                                                                                                                                                                                                     |
+| Proposal    | The owner writes it in the app; Sales emails its secret link (`/en/p/<token>`). One reminder after 3 days. The client accepts by typing their name.                                                                                                                                                                                                      |
+| Invoice     | Accepting raises the deposit invoice (`billing.deposit_bps`) and Sales emails it (`/en/i/<token>`, with `billing.payment_instructions`). Two reminders after the due date, a week apart.                                                                                                                                                                 |
+| Paid        | The owner marks it paid (bank, CliQ, PayPal, cash). It is posted to the services books, the client is thanked, and check-ins follow after 2 weeks and 2 months. A Gumroad sale is recorded as paid.                                                                                                                                                      |
 
 **Autopilot.** By default every sales email waits in Approvals. The Sales tab's autopilot switch makes one standing rule,
 "Sales autopilot", for the sales templates, up to the daily limit, for `rules.max_lifetime_days`; turn it on again to
 renew it. It sends only an email whose words are an approved template with its blanks filled in (`fitsTemplate`), so no
 other wording can use it. Answers to a lead's reply read outside content, so they always wait for the owner. An email
 that lapses in Approvals is proposed again the next morning; one the owner rejects stops that lead's sequence.
+
+**Lead scores.** A website lead is scored by fixed rules in `packages/core/src/crm/scoring.ts`: a package, detail, a
+named budget, a timeline, urgency, app work, a company address and a phone add points; selling us a service, a job
+application, a throwaway address, a message of links or a few words take them away. With an AI key, the assistant's
+score is averaged with the rules, and the rules alone decide for spam and job seekers. 60 and over is qualified.
+
+**New wording.** On each deploy, a template that is still a draft takes the latest wording from the code. An approved
+template, or one a department rewrote, is never changed.
 
 **Heartbeat.** `.github/workflows/heartbeat.yml` calls `/api/cron/agents` every 30 minutes, so new mail is read and
 answered within half an hour. The daily jobs still run once a day.

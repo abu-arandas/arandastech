@@ -77,20 +77,33 @@ describe('the revenue engine', () => {
     expect(sara!.next_step_at.toISOString()).toBe('2026-11-14T06:00:00.000Z');
   });
 
+  it('scores how well each prospect fits, without moving its stage', async () => {
+    const [lina] = await t.test.db.query<Json>(`select * from leads where email = 'lina@agency-one.example'`);
+    expect(lina).toMatchObject({ stage: 'new', score: 50 });
+    expect(lina!.score_reasons).toEqual([
+      '30: every prospect starts here',
+      '+10: a company address',
+      '+10: in Jordan or the region',
+    ]);
+  });
+
   it('writes the first outreach from the approved template, with the booking link and the way to say no', async () => {
     await t.platform.agents.runWorkflow('sales.sequences', {}, { trigger: 'schedule' });
     const intro = await emails(t, 'prospect-intro');
     expect(intro).toHaveLength(1);
     expect(intro[0]).toMatchObject({ status: 'pending', requested_by_id: 'sales', untrusted_input: false });
     expect(intro[0]!.payload.to).toBe('lina@agency-one.example');
-    expect(intro[0]!.payload.body).toContain('Hello Lina,');
-    expect(intro[0]!.payload.body).toContain('https://calendar.app.google/zirr-test');
+    // The first email asks a one-line question; the booking link waits for the follow-up.
+    expect(intro[0]!.payload.subject).toBe('Extra Flutter hands for Agency One');
+    expect(intro[0]!.payload.body).toContain('Hi Lina,');
+    expect(intro[0]!.payload.body).not.toContain('https://calendar.app.google/zirr-test');
     expect(intro[0]!.payload.body).toContain('reply "no thanks"');
     const shop = await emails(t, 'shop-intro');
     expect(shop[0]!.payload).toMatchObject({ to: 'omar@cafe.example', locale: 'ar' });
     expect(shop[0]!.payload.body).toContain('مجاناً 14 يوماً');
     const followUp = await emails(t, 'prospect-follow-up');
     expect(followUp.map((a) => a.payload.to)).toEqual(['sara@agency-two.example']);
+    expect(followUp[0]!.payload.body).toContain('https://calendar.app.google/zirr-test');
     const [lina] = await t.test.db.query<Json>(`select * from leads where email = 'lina@agency-one.example'`);
     expect(lina).toMatchObject({ stage: 'contacted', sequence_step: 1 });
   });
@@ -340,5 +353,35 @@ describe('the revenue engine', () => {
   it('converts the dinar to dollars at the peg', () => {
     expect(toUsdCents(1000, 'JOD')).toBe(141);
     expect(toUsdCents(2500, 'USD')).toBe(2500);
+  });
+});
+
+describe('the daily limit', () => {
+  let t: TestPlatform;
+  beforeAll(async () => {
+    t = await createTestPlatform();
+  });
+  afterAll(async () => t.test.drop());
+
+  it('writes first to the prospects that fit best', async () => {
+    const api = apiFor(t);
+    await setPolicy(t.test.db, 'sales.daily_send_limit', 1, OWNER);
+    await api.owner('POST', '/api/owner/prospects', {
+      prospects: [
+        { name: 'Sami Haddad', email: 'sami@gmail.com', company: 'Sami Apps' },
+        {
+          name: 'Dr. Rana Nasser',
+          email: 'rana@apps-house.example',
+          company: 'Apps House',
+          website: 'apps-house.example',
+          country: 'UAE',
+          notes: 'Flutter agency',
+        },
+      ],
+    });
+    await t.platform.agents.runWorkflow('sales.sequences', {}, { trigger: 'schedule' });
+    const intros = await emails(t, 'prospect-intro');
+    expect(intros.map((a) => a.payload.to)).toEqual(['rana@apps-house.example']);
+    expect(intros[0]!.payload.body).toContain('Hi Rana,');
   });
 });

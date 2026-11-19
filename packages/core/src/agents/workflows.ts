@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { mayPropose } from '../api/mcp';
 import { listLeads, type LeadRow, type MessageRow, updateLead } from '../crm/crm';
 import { startSequence } from '../crm/pipeline';
+import { assistantScore, combineScores, QUALIFIED, scoreLead } from '../crm/scoring';
 import { getPolicy } from '../governance/settings';
 import { json, maybeOne } from '../lib/db';
 import type { Locale, Localized } from '../lib/types';
@@ -74,35 +75,6 @@ async function companyFacts(rt: AgentRuntime): Promise<{
 
 // ---------------------------------------------------------------- Sales
 
-const FREE_MAIL = /@(gmail|googlemail|hotmail|outlook|live|yahoo|icloud|me|aol|proton|protonmail|mail)\./i;
-const PLANS =
-  /\b(deadline|budget|launch|week|month|quote|timeline|start)\b|\$|jod|usd|ميزاني|موعد|أسبوع|اسبوع|شهر|إطلاق|اطلاق|دينار|نبدأ|سعر/i;
-
-/** The lead score from fixed rules, with the reasons, so the owner can see why (blueprint 7.3 Sales: approved criteria). */
-export function scoreLead(
-  lead: Pick<LeadRow, 'email' | 'phone' | 'package_id' | 'message'>,
-  flagged: boolean,
-): {
-  score: number;
-  reasons: string[];
-} {
-  if (flagged) return { score: 0, reasons: ['The message tries to give instructions, so it is not scored.'] };
-  let score = 20;
-  const reasons: string[] = [];
-  const add = (points: number, reason: string): void => {
-    score += points;
-    reasons.push(`+${points}: ${reason}`);
-  };
-  if (lead.package_id) add(20, 'chose a package');
-  if (lead.message.trim().length >= 120) add(15, 'described the work in detail');
-  if (PLANS.test(lead.message)) add(15, 'mentions a timeline, a budget or a start');
-  if (!FREE_MAIL.test(lead.email)) add(15, 'writes from a company address');
-  if (lead.phone) add(10, 'left a phone number');
-  return { score: Math.min(100, score), reasons };
-}
-
-const QUALIFIED = 60;
-
 const leadReplySchema = z.object({
   subject: z.string().min(1).max(200),
   body: z.string().min(1).max(5000),
@@ -145,7 +117,7 @@ async function leadReply(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
       });
       if (written) {
         reply = { subject: written.subject, body: written.body };
-        scored = { score: written.score, reasons: written.score_reasons };
+        scored = combineScores(scored, { score: written.score, reasons: written.score_reasons }, lead);
         assumptions = written.assumptions;
       }
     }
@@ -213,7 +185,10 @@ async function qualifyLeads(rt: AgentRuntime, input: Json, ctx: WorkflowContext)
     );
     const scored = [];
     for (const lead of leads) {
-      const { score, reasons } = scoreLead(lead, flagged.has(lead.id));
+      // The rules again, with the assistant's part of the last score kept, so a model-assisted score is not lost.
+      const isFlagged = flagged.has(lead.id);
+      const rules = scoreLead(lead, isFlagged);
+      const { score, reasons } = isFlagged ? rules : combineScores(rules, assistantScore(lead.score_reasons), lead);
       await updateLead(rt.db, lead.id, { score, scoreReasons: reasons }, { kind: 'agent', id: 'sales' });
       if (score >= QUALIFIED && lead.stage === 'new')
         await updateLead(rt.db, lead.id, { stage: 'qualified' }, { kind: 'agent', id: 'sales' });
