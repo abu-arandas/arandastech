@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { mayPropose } from '../api/mcp';
 import { listLeads, type LeadRow, type MessageRow, updateLead } from '../crm/crm';
+import { startSequence } from '../crm/pipeline';
 import { ledgerCurrencies, moneySummary } from '../finance/ledger';
 import { minimumPrice } from '../finance/pricing';
 import { listOpenApprovals } from '../governance/approvals';
@@ -29,7 +30,7 @@ export interface Proposed {
   summary: string;
 }
 
-async function propose(
+export async function propose(
   rt: AgentRuntime,
   run: Run,
   type: string,
@@ -192,6 +193,8 @@ async function leadReply(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
       if (flagged) run.notes.push('The message tries to give instructions, so only a draft was saved.');
     }
     if (form && action) await rt.db.query('update messages set handled = true where id = $1', [form.id]);
+    // Without an answer from them, Sales follows up once, three days later.
+    if (action && !flagged) await startSequence(rt.db, lead.id, 'inbound', rt.platform.clock());
     return { lead_id: lead.id, score: scored.score, score_reasons: scored.reasons, assumptions, action };
   });
 }

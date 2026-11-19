@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { listInbox, listLeads, messagesFor, updateLead } from '../crm/crm';
+import { listInbox, listLeads, messagesFor, STAGES, updateLead } from '../crm/crm';
 import { moneySummary } from '../finance/ledger';
 import { actionSpec, ACTION_SPECS } from '../governance/actions';
 import { audit } from '../governance/audit';
@@ -55,17 +55,6 @@ interface Tool {
 
 const ALL = 'all' as const;
 const none = z.strictObject({});
-const STAGES = [
-  'new',
-  'qualified',
-  'proposal_sent',
-  'won',
-  'lost',
-  'in_delivery',
-  'delivered',
-  'paid',
-  'retained',
-] as const;
 
 const TOOLS: Tool[] = [
   {

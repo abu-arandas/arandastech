@@ -2,12 +2,13 @@ import 'approvals_service.dart';
 import 'business_service.dart';
 import 'company_service.dart';
 import 'platform_client.dart';
+import 'sales_service.dart';
 import 'systems_service.dart';
 import 'team_service.dart';
 
 /// Every service of one platform, signed in with one owner token.
 class Platform {
-  const Platform({required this.company, required this.approvals, required this.team, required this.business, required this.systems});
+  const Platform({required this.company, required this.approvals, required this.team, required this.business, required this.sales, required this.systems});
 
   /// The real platform over HTTP: the one main.dart picks.
   factory Platform.http(String baseUrl, String token) {
@@ -17,6 +18,7 @@ class Platform {
       approvals: HttpApprovalsService(client),
       team: HttpTeamService(client),
       business: HttpBusinessService(client),
+      sales: HttpSalesService(client),
       systems: HttpSystemsService(client),
     );
   }
@@ -25,6 +27,7 @@ class Platform {
   final ApprovalsService approvals;
   final TeamService team;
   final BusinessService business;
+  final SalesService sales;
   final SystemsService systems;
 }
 

@@ -132,6 +132,47 @@ export const POLICY_DEFAULTS = {
     description:
       'Most one department run may cost, in millionths of a US dollar. A run that reaches it stops and says so.',
   },
+  'revenue.monthly_goal_minor': {
+    value: { USD: 300_000 } as PerCurrency,
+    description:
+      'The revenue the company aims to collect each calendar month (Amman time), in US cents. 300000 is 3,000 US dollars.',
+  },
+  'revenue.average_deal_minor': {
+    value: { USD: 100_000 } as PerCurrency,
+    description:
+      'The usual size of one won deal, in US cents, until the books have enough paid invoices to measure it.',
+  },
+  'sales.sender_name': {
+    value: 'Ehab' as string,
+    description: 'The name that signs the sales emails.',
+  },
+  'sales.booking_link': {
+    value: '' as string,
+    description:
+      'The page where a lead books a call, for example a Google Calendar booking page (https://calendar.app.google/...). Empty: the emails ask for two times instead.',
+  },
+  'sales.showcase_link': {
+    value: 'https://zirr-site.vercel.app' as string,
+    description: 'The page the outreach emails point to, to show the work.',
+  },
+  'sales.daily_send_limit': {
+    value: 15 as number,
+    description:
+      'Most sales emails proposed in one day across all sequences, so the mailbox stays trusted. New outreach stops at the limit; replies and invoices always go.',
+  },
+  'billing.deposit_bps': {
+    value: 5000 as number,
+    description: 'Share of a proposal invoiced when the client accepts it, in basis points (5000 is half).',
+  },
+  'billing.due_days': {
+    value: 7 as number,
+    description: 'Days an invoice gives the client to pay.',
+  },
+  'billing.payment_instructions': {
+    value: '' as string,
+    description:
+      'How a client pays an invoice: bank transfer details (IBAN), a PayPal link or CliQ alias. Shown on every invoice page. Empty: the page asks the client to reply for the details.',
+  },
   'engineering.repository': {
     value: 'abu-arandas/arandastech' as string,
     description: 'The GitHub repository the Engineering department files issues in.',
@@ -143,6 +184,9 @@ export const POLICY_DEFAULTS = {
 } as const;
 
 export type PolicyKey = keyof typeof POLICY_DEFAULTS;
+
+/** Settings that hold a web address: empty, or a link that starts with https://. */
+const LINK_KEYS = new Set<string>(['sales.booking_link', 'sales.showcase_link']);
 export type PolicyValue<K extends PolicyKey> = (typeof POLICY_DEFAULTS)[K]['value'];
 
 /** Writes any default that is not in the database yet. Existing values are left alone. */
@@ -187,6 +231,10 @@ export async function setPolicy<K extends PolicyKey>(db: Db, key: K, value: Poli
     );
     if (!fine) throw invalid(`policy setting ${key} maps each currency (like USD) to a whole amount or null`);
   }
+  if (LINK_KEYS.has(key) && typeof value === 'string' && value !== '' && !/^https:\/\/[^\s]+$/.test(value))
+    throw invalid(`policy setting ${key} is a link that starts with https://`);
+  if (typeof value === 'string' && value.length > 2000)
+    throw invalid(`policy setting ${key} is at most 2000 characters`);
   await db.tx(async (tx) => {
     await tx.query(
       `insert into policy_settings (key, value, description, updated_by) values ($1, $2::jsonb, $3, $4)

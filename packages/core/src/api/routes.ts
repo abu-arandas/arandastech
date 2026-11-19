@@ -27,6 +27,7 @@ import { AppError, forbidden, invalid } from '../lib/errors';
 import { approveMemory } from '../memory';
 import type { Platform } from '../platform';
 import type { Caller, RouteContext, Router } from './http';
+import { registerSalesRoutes } from './routes-sales';
 
 const staffOf = (caller: Caller) => {
   if (caller.kind !== 'staff') throw forbidden('This is for the team only.');
@@ -62,6 +63,7 @@ const pauseBody = z.strictObject({
 
 export function registerRoutes(router: Router, platform: Platform): void {
   const { db, store, gateway, clock } = platform;
+  registerSalesRoutes(router, platform);
 
   // ---------------------------------------------------------------- Public: the website and the storefront
 
@@ -483,7 +485,11 @@ export function registerRoutes(router: Router, platform: Platform): void {
         name: z.string().min(1).max(100),
         action_type: z.string(),
         conditions: z
-          .strictObject({ template: z.string().optional(), recipient: z.literal('order_buyer').optional() })
+          .strictObject({
+            template: z.string().optional(),
+            templates: z.array(z.string().max(80)).max(30).optional(),
+            recipient: z.literal('order_buyer').optional(),
+          })
           .default({}),
         spend_limit_per_action_minor: z.number().int().nonnegative(),
         spend_limit_per_period_minor: z.number().int().nonnegative(),
@@ -635,6 +641,7 @@ export function registerRoutes(router: Router, platform: Platform): void {
     'commerce.catalog_check',
     'sales.qualify_leads',
     'sales.reply_new_leads',
+    'sales.sequences',
     'support.triage_inbox',
   ];
   router.add('POST', '/api/owner/agents/run', 'owner', async ({ caller, json }) => {

@@ -1,0 +1,21 @@
+name: Heartbeat
+
+# Wakes the platform every 30 minutes, so replies from leads are read and answered within half an hour instead of once
+# a day (Vercel's free plan runs its own cron once a day). The run only calls the platform's daily-run address, which
+# does nothing twice: the morning jobs are queued once per day and the sales emails still go out at 08:00 in Amman.
+# Free: scheduled workflows in a public repository use no paid minutes.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call the daily run
+        run: curl --fail --silent --show-error --max-time 90 https://zirr-platform-ehab-arandas.vercel.app/api/cron/agents -o /dev/null

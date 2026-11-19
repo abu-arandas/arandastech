@@ -5,6 +5,8 @@ import { type Db, json, maybeOne, one } from '../lib/db';
 import { invalid, notFound } from '../lib/errors';
 import type { Actor, Locale } from '../lib/types';
 import { SYSTEM } from '../lib/types';
+import { noteBooking, openLeadFrom } from './pipeline';
+import type { Stage } from './stages';
 
 /**
  * Text that tries to give a reader instructions instead of asking for help. This is a tripwire, not the defense:
@@ -48,12 +50,28 @@ export interface LeadRow {
   package_id: string | null;
   message: string;
   source: string;
-  stage: 'new' | 'qualified' | 'proposal_sent' | 'won' | 'lost' | 'in_delivery' | 'delivered' | 'paid' | 'retained';
+  stage: Stage;
   score: number | null;
   score_reasons: string[];
+  kind: 'inbound' | 'prospect';
+  company: string | null;
+  website: string | null;
+  country: string | null;
+  value_minor: number | null;
+  value_currency: string | null;
+  sequence: string | null;
+  sequence_step: number;
+  next_step_at: Date | null;
+  last_action_id: string | null;
+  last_contact_at: Date | null;
+  replied_at: Date | null;
+  do_not_contact: boolean;
+  notes: string;
   created_at: Date;
   updated_at: Date;
 }
+
+export { STAGES, type Stage } from './stages';
 
 export interface MessageRow {
   id: string;
@@ -130,7 +148,9 @@ export async function recordInbound(
       );
     }
     // A customer's email or chat message goes to Support. A form message is part of a lead, which Sales answers.
-    if (message.channel === 'email' || message.channel === 'whatsapp')
+    // An email from a lead still being won is an answer to Sales: it stops the follow-ups and gets Sales' reply.
+    const routed = message.channel === 'email' ? await routeToSales(tx, saved, message) : false;
+    if (!routed && (message.channel === 'email' || message.channel === 'whatsapp'))
       await enqueue(tx, 'support.triage', { message_id: saved.id }, { key: `support.triage:${saved.id}` });
     await audit(tx, {
       actor: SYSTEM,
@@ -140,6 +160,35 @@ export async function recordInbound(
     });
     return saved;
   });
+}
+
+/**
+ * A Google Calendar booking notice moves the lead who booked to "meeting" and needs no answer. An email from a lead
+ * still being won is that lead's reply: it is linked to them, stops their outreach and goes to Sales.
+ */
+async function routeToSales(
+  tx: Db,
+  saved: MessageRow,
+  message: { from: string; subject?: string; body: string; leadId?: string },
+): Promise<boolean> {
+  if (message.leadId) return false;
+  const booked = await noteBooking(tx, { from: message.from, subject: message.subject ?? '', body: message.body });
+  if (booked) {
+    await tx.query('update messages set handled = true, lead_id = $2 where id = $1', [saved.id, booked.id]);
+    return true;
+  }
+  const lead = await openLeadFrom(tx, message.from);
+  if (!lead) return false;
+  await tx.query('update messages set lead_id = $2 where id = $1', [saved.id, lead.id]);
+  await tx.query(
+    `update leads set replied_at = $2, stage = case when stage in ('new', 'contacted') then 'replied' else stage end,
+       sequence = case when sequence in ('outreach', 'outreach_shop', 'inbound') then null else sequence end,
+       next_step_at = case when sequence in ('outreach', 'outreach_shop', 'inbound') then null else next_step_at end
+     where id = $1`,
+    [lead.id, saved.created_at],
+  );
+  await enqueue(tx, 'support.lead_answer', { message_id: saved.id }, { key: `support.lead_answer:${saved.id}` });
+  return true;
 }
 
 /** A lead from the website form (blueprint 5.1 step 5). A repeated submission within ten minutes finds the same lead. */
@@ -183,6 +232,13 @@ export async function createLead(db: Db, raw: LeadInput, now: Date): Promise<{ l
       locale: input.locale,
       leadId: lead.id,
     });
+    // A prospect who writes through the website has answered: their outreach stops.
+    await tx.query(
+      `update leads set replied_at = $2, sequence = null, next_step_at = null,
+         stage = case when stage in ('new', 'contacted') then 'replied' else stage end
+       where kind = 'prospect' and lower(email) = lower($1) and sequence like 'outreach%'`,
+      [input.email, now],
+    );
     await enqueue(tx, 'sales.lead_reply', { lead_id: lead.id }, { key: `sales.lead_reply:${lead.id}` });
     await audit(tx, {
       actor: SYSTEM,
@@ -196,7 +252,7 @@ export async function createLead(db: Db, raw: LeadInput, now: Date): Promise<{ l
 
 export async function listLeads(db: Db, stage?: LeadRow['stage']): Promise<LeadRow[]> {
   return db.query<LeadRow>(
-    `select * from leads where ($1::text is null or stage = $1) order by created_at desc limit 200`,
+    `select * from leads where ($1::text is null or stage = $1) order by created_at desc limit 500`,
     [stage ?? null],
   );
 }

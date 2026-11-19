@@ -10,11 +10,12 @@ import '../../widgets/motion.dart';
 import '../../widgets/section_title.dart';
 import '../approvals/approvals_page.dart';
 import '../business/business_page.dart';
+import '../sales/sales_page.dart';
 import '../systems/systems_page.dart';
 import '../team/team_page.dart';
 import '../today/today_page.dart';
 
-/// The owner's five screens, which hold the six areas of blueprint 8.2. The pause control is on every one of them.
+/// The owner's six screens, which hold the six areas of blueprint 8.2. The pause control is on every one of them.
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -25,8 +26,8 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   int _tab = 0;
 
-  static const _tabs = ['Today', 'Approvals', 'Team', 'Business', 'Systems'];
-  static const _icons = [Icons.today, Icons.fact_check_outlined, Icons.groups_outlined, Icons.storefront_outlined, Icons.tune];
+  static const _tabs = ['Today', 'Sales', 'Approvals', 'Team', 'Business', 'Systems'];
+  static const _icons = [Icons.today, Icons.trending_up, Icons.fact_check_outlined, Icons.groups_outlined, Icons.storefront_outlined, Icons.tune];
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +88,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: PageHeading(_tabs[_tab], eyebrow: 'Owner app'),
                         ),
                       ),
-                      Expanded(child: const [TodayPage(), ApprovalsPage(), TeamPage(), BusinessPage(), SystemsPage()][_tab]),
+                      Expanded(child: const [TodayPage(), SalesPage(), ApprovalsPage(), TeamPage(), BusinessPage(), SystemsPage()][_tab]),
                     ],
                   ),
                 ),
@@ -103,7 +104,7 @@ class _DashboardPageState extends State<DashboardPage> {
               NavigationDestination(
                 // The count pops when a new request lands, the first one included (the badge is always there, only
                 // hidden at zero, so going from none to one is a change it sees).
-                icon: i == 1
+                icon: i == 2
                     ? PopOnChange(
                         value: approvals.approvals.length,
                         child: Badge(isLabelVisible: approvals.approvals.isNotEmpty, label: Text('${approvals.approvals.length}'), child: Icon(_icons[i])),
