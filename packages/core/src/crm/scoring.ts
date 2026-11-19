@@ -28,14 +28,14 @@ const AMOUNT =
   /(\$|usd|jod|jd|eur|€|aed|sar|dinars?|dollars?|دينار|دولار|ريال|درهم)\s?[\d٠-٩][\d٠-٩,.]*\s?k?|[\d٠-٩][\d٠-٩,.]*\s?(k|thousand|ألف|الف)?\s?(\$|usd|jod|jd|eur|€|aed|sar|dinars?|dollars?|دينار|دولار|ريال|درهم)/i;
 const BUDGET = /\b(budget|quote|pricing|price|cost|estimate)\b|ميزاني|سعر|تكلف|عرض سعر/i;
 const TIMELINE =
-  /\b(deadline|launch|timeline|start(ing)?|by (the )?end of|next (week|month)|this (week|month)|q[1-4]|january|february|march|april|june|july|august|september|october|november|december)\b|موعد|أسبوع|اسبوع|شهر|إطلاق|اطلاق|نبدأ|نهاية/i;
+  /\b(deadline|launch|timeline|start(ing)?|by (the )?end of|next (week|month)|this (week|month)|q[1-4]|january|february|march|april|june|july|august|september|october|november|december|(in|by|for|from|early|mid|late|end of) may|may \d{1,4})\b|موعد|أسبوع|اسبوع|شهر|إطلاق|اطلاق|نبدأ|نهاية/i;
 const URGENT = /\b(asap|urgent(ly)?|as soon as possible|right away|immediately)\b|عاجل|بأسرع وقت|ضروري|فوراً|فورا/i;
 const APP_WORK =
   /\b(app|apps|flutter|mobile|android|ios|e-?commerce|online (shop|store)|point of sale|pos|dashboard|mvp|supabase|firebase)\b|تطبيق|متجر|كاشير|نقطة بيع|لوحة/i;
 const JOB_SEEKER =
   /\b(cv|resume|résumé|internship|intern|hire me|looking for (a )?(job|work|position)|job (opening|application)|vacanc(y|ies))\b|سيرتي الذاتية|السيرة الذاتية|وظيفة|تدريب|أبحث عن عمل|ابحث عن عمل/i;
 const SELLING_TO_US =
-  /\b(seo services|backlinks?|guest post|link building|rank (your|on)|we (are|offer) (a|an)?\s?(digital marketing|seo|lead generation)|outsourc(e|ing) partner|crypto|casino|forex|loan offer)\b/i;
+  /\b(seo services|backlinks?|guest post|link building|rank (your|on)|we (are|offer) (a|an)?\s?(digital marketing|seo|lead generation)|outsourc(e|ing) partner|crypto|casino|forex|loan offer)\b|نقدم (لكم )?خدمات|خدمات (التسويق|تسويق|السيو)|تحسين محركات البحث|السيو|روابط خلفية|باك ?لينك|مقالات ضيف/i;
 const LINK = /https?:\/\/|www\./gi;
 
 /** The score of someone who wrote to us. `flagged` is true when the message tries to give the bots instructions. */
@@ -62,8 +62,14 @@ export function scoreLead(
   if (APP_WORK.test(message)) tally.add(5, 'asks for the kind of work we do');
   if (!FREE_MAIL.test(lead.email) && !THROWAWAY_MAIL.test(lead.email)) tally.add(15, 'writes from a company address');
   if (lead.phone) tally.add(10, 'left a phone number');
+  // Someone selling to us, looking for a job or hiding behind a throwaway address is never qualified, however much
+  // else the message has.
+  if (notABuyer(lead)) return tally.result(NOT_A_BUYER_CAP, `capped at ${NOT_A_BUYER_CAP}: not a buyer`);
   return tally.result();
 }
+
+/** The most a lead the rules call a non-buyer can score, well under `QUALIFIED`. */
+const NOT_A_BUYER_CAP = 10;
 
 /** True when the rules alone say the lead is not a buyer, whatever a model thinks of it. */
 const notABuyer = (lead: Pick<LeadRow, 'message' | 'email'>): boolean =>
@@ -141,7 +147,8 @@ class Tally {
     this.reasons.push(`${points > 0 ? '+' : ''}${points}: ${reason}`);
   }
 
-  result(): Score {
-    return { score: Math.max(0, Math.min(100, this.score)), reasons: this.reasons };
+  result(cap = 100, capReason?: string): Score {
+    const reasons = capReason && this.score > cap ? [...this.reasons, capReason] : this.reasons;
+    return { score: Math.max(0, Math.min(cap, this.score)), reasons };
   }
 }

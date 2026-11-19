@@ -593,6 +593,26 @@ describe('the fixed rules', () => {
     expect(
       combineScores(job, { score: 90, reasons: ['keen'] }, { email: 'c@gmail.com', message: 'سيرتي الذاتية' }),
     ).toBe(job);
+    // A detailed, well-dressed pitch stays a pitch, in Arabic too.
+    const pitch = scoreLead(
+      {
+        email: 'sales@marketing.example',
+        phone: '+971',
+        package_id: 'project',
+        message: `${'نقدم لكم خدمات التسويق وتحسين محركات البحث لتطبيقكم. '.repeat(6)}الميزانية 2000 دولار، نبدأ الشهر القادم.`,
+      },
+      false,
+    );
+    expect(pitch.score).toBe(10);
+    expect(pitch.reasons.at(-1)).toBe('capped at 10: not a buyer');
+    expect(
+      scoreLead({ email: 'e@x.example', phone: null, package_id: null, message: 'We launch in May 2027.' }, false)
+        .reasons,
+    ).toContain('+10: mentions a timeline or a start');
+    expect(
+      scoreLead({ email: 'e@x.example', phone: null, package_id: null, message: 'We may need help, maybe.' }, false)
+        .reasons,
+    ).not.toContain('+10: mentions a timeline or a start');
     const arabic = scoreLead(
       {
         email: 'd@shop.example',
