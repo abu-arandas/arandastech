@@ -2,15 +2,11 @@ import { z } from 'zod';
 import { mayPropose } from '../api/mcp';
 import { listLeads, type LeadRow, type MessageRow, updateLead } from '../crm/crm';
 import { startSequence } from '../crm/pipeline';
-import { ledgerCurrencies, moneySummary } from '../finance/ledger';
-import { minimumPrice } from '../finance/pricing';
-import { listOpenApprovals } from '../governance/approvals';
-import { pause } from '../governance/pause';
 import { getPolicy } from '../governance/settings';
 import { json, maybeOne } from '../lib/db';
-import { formatMoney } from '../lib/money';
 import type { Locale, Localized } from '../lib/types';
 import { listApprovedMemory, renderTemplate } from '../memory';
+import { type Json, say } from './common';
 import { type AgentRuntime, manualNote, type Run, type WorkflowContext } from './runtime';
 
 /**
@@ -19,8 +15,6 @@ import { type AgentRuntime, manualNote, type Run, type WorkflowContext } from '.
  * report figures calculated by code. With a model, the same workflow lets it write the text, and code still checks the
  * result, takes the figures from the books and sends every proposal through the gateway.
  */
-
-type Json = Record<string, unknown>;
 
 export interface Proposed {
   action_id: string;
@@ -78,8 +72,6 @@ async function companyFacts(rt: AgentRuntime): Promise<{
   };
 }
 
-const say = (en: string, ar: string, locale: Locale): string => (locale === 'ar' ? ar : en);
-
 // ---------------------------------------------------------------- Sales
 
 const FREE_MAIL = /@(gmail|googlemail|hotmail|outlook|live|yahoo|icloud|me|aol|proton|protonmail|mail)\./i;
@@ -123,6 +115,10 @@ async function leadReply(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
   return rt.record('sales.lead_reply', ctx, input, async (run) => {
     const lead = maybeOne(await rt.db.query<LeadRow>('select * from leads where id = $1', [input.lead_id]));
     if (!lead) return { skipped: 'The lead no longer exists.' };
+    // A prospect never wrote to us: it gets the outreach sequence, never a thank-you for a form it did not send.
+    if (lead.kind === 'prospect')
+      return { skipped: 'Prospects get the outreach emails, not the reply to a website form.' };
+    if (lead.do_not_contact) return { skipped: 'The lead asked not to be contacted.' };
     const form = maybeOne(
       await rt.db.query<MessageRow>(
         `select * from messages where lead_id = $1 and direction = 'in' order by created_at limit 1`,
@@ -202,7 +198,10 @@ async function leadReply(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
 async function qualifyLeads(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   return rt.record('sales.qualify_leads', ctx, input, async (run) => {
     const count = Math.min(20, Math.max(1, Number(input.count ?? 3) || 3));
-    const leads = (await listLeads(rt.db)).filter((lead) => ['new', 'qualified'].includes(lead.stage));
+    // Only people who wrote to us are scored: a prospect's stage is moved by its outreach sequence and its replies.
+    const leads = (await listLeads(rt.db)).filter(
+      (lead) => lead.kind === 'inbound' && ['new', 'qualified'].includes(lead.stage),
+    );
     await rt.readOutside(run);
     const flagged = new Set(
       (
@@ -231,7 +230,7 @@ async function qualifyLeads(rt: AgentRuntime, input: Json, ctx: WorkflowContext)
 
 async function replyNewLeads(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   const waiting = await rt.db.query<{ id: string }>(
-    `select l.id from leads l where l.stage in ('new', 'qualified')
+    `select l.id from leads l where l.kind = 'inbound' and l.stage in ('new', 'qualified') and not l.do_not_contact
        and not exists (select 1 from actions a where a.payload ->> 'lead_id' = l.id::text and a.action_type in ('gmail.send_email', 'gmail.create_draft'))
      order by l.created_at limit 5`,
   );
@@ -377,176 +376,13 @@ async function triage(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Prom
 
 async function triageInbox(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   const waiting = await rt.db.query<{ id: string }>(
-    `select id from messages where direction = 'in' and not handled and channel in ('email', 'whatsapp') order by created_at limit 10`,
+    // A lead's own reply is Sales' to answer (support.lead_answer); one left unhandled is waiting for a person.
+    `select id from messages where direction = 'in' and not handled and lead_id is null and channel in ('email', 'whatsapp')
+     order by created_at limit 10`,
   );
   const results = [];
   for (const { id } of waiting) results.push(await triage(rt, { message_id: id }, ctx));
   return { triaged: results, note: waiting.length ? null : 'The inbox is clear.' };
-}
-
-// ---------------------------------------------------------------- Operations and Finance: figures from the books
-
-async function moneyFigures(rt: AgentRuntime) {
-  const now = rt.platform.clock();
-  const currencies = [...new Set(['USD', 'JOD', ...(await ledgerCurrencies(rt.db))])];
-  const summaries = await Promise.all(currencies.map((currency) => moneySummary(rt.db, currency, now)));
-  return summaries.map((s) => ({
-    currency: s.currency,
-    status: s.status,
-    reasons: s.reasons,
-    pending: formatMoney(s.pending_revenue, s.currency),
-    settled_balance: formatMoney(s.waterfall.settled_balance, s.currency),
-    reserve: formatMoney(s.waterfall.refund_and_dispute_reserve, s.currency),
-    available: formatMoney(s.waterfall.available_cash, s.currency),
-    profit: formatMoney(s.waterfall.confirmed_net_profit, s.currency),
-    open_disputes: s.open_disputes,
-  }));
-}
-
-async function businessFigures(rt: AgentRuntime) {
-  const now = rt.platform.clock();
-  const dayAgo = new Date(now.getTime() - 86_400_000);
-  const one = async <T>(sql: string, params: unknown[] = []): Promise<T> => (await rt.db.query<T>(sql, params))[0] as T;
-  const open = await listOpenApprovals(rt.db, now);
-  const mode = await rt.mode();
-  return {
-    date: now.toISOString().slice(0, 10),
-    approvals: {
-      waiting: open.length,
-      level_3: open.filter((r) => r.level === 3).length,
-      next_lapses_at:
-        open
-          .map((r) => r.expires_at)
-          .sort((a, b) => a.getTime() - b.getTime())[0]
-          ?.toISOString() ?? null,
-    },
-    leads: await one<{ new_today: number; waiting_reply: number; qualified: number }>(
-      `select count(*) filter (where created_at > $1)::int as new_today,
-              count(*) filter (where stage = 'new')::int as waiting_reply,
-              count(*) filter (where stage = 'qualified')::int as qualified from leads`,
-      [dayAgo],
-    ),
-    orders: await one<{ in_progress: number; on_hold: number; paid_today: number }>(
-      `select count(*) filter (where status in ('paid', 'fulfilling', 'shipped'))::int as in_progress,
-              count(*) filter (where status = 'on_hold')::int as on_hold,
-              count(*) filter (where paid_at > $1)::int as paid_today from orders`,
-      [dayAgo],
-    ),
-    inbox: await one<{ unhandled: number; flagged: number }>(
-      `select count(*) filter (where not handled and channel in ('email', 'whatsapp'))::int as unhandled,
-              count(*) filter (where flagged and created_at > $1)::int as flagged
-       from messages where direction = 'in'`,
-      [dayAgo],
-    ),
-    alerts_open: (await one<{ n: number }>(`select count(*)::int as n from security_alerts where status = 'open'`)).n,
-    actions: await one<{ failed: number; held: number; done: number }>(
-      `select count(*) filter (where status = 'failed' and created_at > $1)::int as failed,
-              count(*) filter (where status in ('approved', 'auto_approved') and held_reason is not null)::int as held,
-              count(*) filter (where status = 'executed' and executed_at > $1)::int as done from actions`,
-      [dayAgo],
-    ),
-    agents: {
-      ...(await one<{ runs: number; failed: number }>(
-        `select count(*)::int as runs, count(*) filter (where status = 'failed')::int as failed from agent_runs
-         where started_at > $1 and workflow <> 'read_outside_content'`,
-        [dayAgo],
-      )),
-      mode: mode.mode,
-      ai_spent_today: `${(mode.spent_today_micros / 1_000_000).toFixed(2)} USD`,
-    },
-    money: await moneyFigures(rt),
-  };
-}
-
-type Figures = Awaited<ReturnType<typeof businessFigures>>;
-
-/** The briefing in fixed sentences: what manual mode says, and the check on what a model wrote. */
-export function briefingText(f: Figures, locale: Locale): string {
-  const money = f.money
-    .filter((m) => m.pending !== formatMoney(0, m.currency) || m.settled_balance !== formatMoney(0, m.currency))
-    .map((m) =>
-      say(
-        `- Money in ${m.currency}: ${m.available} available, ${m.pending} still pending, spend status ${m.status}.`,
-        `- المال بعملة ${m.currency}: ${m.available} متاح، و${m.pending} ما زال معلّقاً، وحالة الإنفاق ${m.status}.`,
-        locale,
-      ),
-    );
-  const lines =
-    locale === 'ar'
-      ? [
-          `ملخص يوم ${f.date}.`,
-          `- طلبات موافقة بانتظارك: ${f.approvals.waiting}، منها ${f.approvals.level_3} من المستوى 3.`,
-          `- عملاء محتملون جدد خلال آخر يوم: ${f.leads.new_today}. بانتظار أول رد: ${f.leads.waiting_reply}. مؤهَّلون: ${f.leads.qualified}.`,
-          `- الطلبات: ${f.orders.in_progress} قيد التنفيذ، و${f.orders.on_hold} موقوفة، و${f.orders.paid_today} دُفعت خلال آخر يوم.`,
-          `- صندوق الرسائل: ${f.inbox.unhandled} بلا معالجة، و${f.inbox.flagged} رسالة حاولت إعطاء أوامر خلال آخر يوم.`,
-          `- تنبيهات مفتوحة: ${f.alerts_open}. إجراءات فشلت خلال آخر يوم: ${f.actions.failed}. إجراءات يوقفها الإيقاف المؤقت: ${f.actions.held}.`,
-          ...money,
-          `- الأقسام: ${f.agents.runs} تشغيلاً خلال آخر يوم، فشل منها ${f.agents.failed}. ${f.agents.mode === 'ai' ? 'تعمل بالذكاء الاصطناعي' : 'تعمل يدوياً بلا ذكاء اصطناعي'}، وتكلفة اليوم ${f.agents.ai_spent_today}.`,
-        ]
-      : [
-          `Briefing for ${f.date}.`,
-          `- Approvals waiting for you: ${f.approvals.waiting}, of which ${f.approvals.level_3} at Level 3.`,
-          `- New leads in the last day: ${f.leads.new_today}. Waiting for a first reply: ${f.leads.waiting_reply}. Qualified: ${f.leads.qualified}.`,
-          `- Orders: ${f.orders.in_progress} in progress, ${f.orders.on_hold} on hold, ${f.orders.paid_today} paid in the last day.`,
-          `- Inbox: ${f.inbox.unhandled} not handled, ${f.inbox.flagged} that tried to give instructions in the last day.`,
-          `- Open alerts: ${f.alerts_open}. Actions that failed in the last day: ${f.actions.failed}. Held by a pause: ${f.actions.held}.`,
-          ...money,
-          `- Departments: ${f.agents.runs} runs in the last day, ${f.agents.failed} failed. ${f.agents.mode === 'ai' ? 'Working with AI' : 'Working in manual mode, without AI'}; spent today ${f.agents.ai_spent_today}.`,
-        ];
-  return lines.join('\n');
-}
-
-/** True when every number of two or more digits in a model's text is one of the figures, so none was invented. */
-export function onlyKnownNumbers(text: string, figures: unknown): boolean {
-  const known = new Set(JSON.stringify(figures).match(/\d+(?:\.\d+)?/g) ?? []);
-  return (text.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).every((n) => known.has(n.replace(/,/g, '')));
-}
-
-const textPairSchema = z.object({ en: z.string().min(1).max(3000), ar: z.string().min(1).max(3000) });
-
-async function dailyBriefing(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
-  return rt.record('operations.daily_briefing', ctx, input, async (run) => {
-    const figures = await businessFigures(rt);
-    const written = await rt.think(run, {
-      skills: ['daily-briefing'],
-      effort: 'low',
-      task: 'Write the owner a short daily briefing from these figures, once in English and once in Arabic. Lead with what needs the owner today. Use only these figures and never add a number. Say plainly what failed or is blocked. At most 150 words each.',
-      facts: figures,
-      schema: textPairSchema,
-    });
-    let text = { en: briefingText(figures, 'en'), ar: briefingText(figures, 'ar') };
-    if (written && onlyKnownNumbers(`${written.en}\n${written.ar}`, figures)) text = written;
-    else if (written)
-      run.notes.push('The AI briefing used a number that is not in the books, so the plain one is shown.');
-    return { text, figures };
-  });
-}
-
-async function moneyStatus(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
-  return rt.record('finance.money_status', ctx, input, async (run) => {
-    const money = await moneyFigures(rt);
-    const plain = (locale: Locale): string =>
-      money
-        .map((m) =>
-          say(
-            `${m.currency}: ${m.available} available after reserves, ${m.pending} pending (not money yet), confirmed profit ${m.profit}. Spend status: ${m.status}.`,
-            `${m.currency}: ${m.available} متاح بعد الاحتياطي، و${m.pending} معلّق (ليس مالاً بعد)، وصافي الربح المؤكد ${m.profit}. حالة الإنفاق: ${m.status}.`,
-            locale,
-          ),
-        )
-        .join('\n');
-    const written = await rt.think(run, {
-      skills: ['money-status'],
-      effort: 'low',
-      task: 'Explain these figures to the owner in plain words, once in English and once in Arabic: what money is really available, what is still pending and why it is not money yet. Never add a number. At most 120 words each.',
-      facts: money,
-      schema: textPairSchema,
-    });
-    let text = { en: plain('en'), ar: plain('ar') };
-    if (written && onlyKnownNumbers(`${written.en}\n${written.ar}`, money)) text = written;
-    else if (written) run.notes.push('The AI text used a number that is not in the books, so the plain one is shown.');
-    return { text, money, source: 'ledger_entries, calculated by code' };
-  });
 }
 
 // ---------------------------------------------------------------- Marketing
@@ -641,104 +477,6 @@ async function createIssue(rt: AgentRuntime, input: Json, ctx: WorkflowContext):
   });
 }
 
-// ---------------------------------------------------------------- Commerce
-
-async function catalogCheck(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
-  return rt.record('commerce.catalog_check', ctx, input, async () => {
-    const variants = await rt.db.query<{
-      sku: string;
-      name: Localized;
-      price_minor: number;
-      currency: string;
-      unit_cost_minor: number;
-    }>(
-      `select v.sku, p.name, v.price_minor, v.currency, v.unit_cost_minor from product_variants v join products p on p.id = v.product_id
-       where p.status = 'published' order by v.sku`,
-    );
-    const floorBps = await getPolicy(rt.db, 'margin.min_product_bps');
-    const feeBps = await getPolicy(rt.db, 'pricing.payment_fee_bps');
-    const fixed = await getPolicy(rt.db, 'pricing.payment_fee_fixed_minor');
-    const advertisingBps = await getPolicy(rt.db, 'pricing.advertising_bps');
-    const refundBps = await getPolicy(rt.db, 'pricing.refund_allowance_bps');
-    const checked = variants.map((v) => {
-      const floor = minimumPrice(
-        {
-          unitCostMinor: Number(v.unit_cost_minor),
-          fixedFeeMinor: fixed[v.currency] ?? 0,
-          feeBps,
-          advertisingBps,
-          refundBps,
-        },
-        floorBps,
-      );
-      return {
-        sku: v.sku,
-        name: v.name.en,
-        price: formatMoney(Number(v.price_minor), v.currency),
-        floor: floor === null ? null : formatMoney(floor, v.currency),
-        below_floor: floor === null || Number(v.price_minor) < floor,
-      };
-    });
-    return {
-      checked,
-      below_floor: checked.filter((v) => v.below_floor).map((v) => v.sku),
-      source: 'product_variants and the policy sheet, calculated by code',
-    };
-  });
-}
-
-// ---------------------------------------------------------------- Security
-
-async function securityReview(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
-  return rt.record('security.review', ctx, input, async (run) => {
-    const now = rt.platform.clock();
-    const dayAgo = new Date(now.getTime() - 86_400_000);
-    const hourAgo = new Date(now.getTime() - 3_600_000);
-    const findings: string[] = [];
-    const [{ flagged }] = (await rt.db.query<{ flagged: number }>(
-      `select count(*)::int as flagged from messages where flagged and created_at > $1`,
-      [dayAgo],
-    )) as [{ flagged: number }];
-    if (flagged >= 3) {
-      findings.push(`${flagged} messages tried to give instructions in the last day.`);
-      const already = await rt.db.query(
-        `select 1 from security_alerts where kind = 'repeated_manipulation' and created_at > $1`,
-        [dayAgo],
-      );
-      if (!already.length)
-        await rt.db.query(
-          `insert into security_alerts (severity, kind, summary, detail, created_by_kind, created_by_id) values ('warning', 'repeated_manipulation', $1, $2::jsonb, 'agent', 'security')`,
-          [`${flagged} messages tried to give the bots instructions in one day.`, json({ since: dayAgo })],
-        );
-    }
-    // A connector that keeps failing is paused, so it cannot fail customers again. Only the owner can end the pause.
-    const failing = await rt.db.query<{ connector: string; n: number }>(
-      `select connector, count(*)::int as n from actions where status = 'failed' and created_at > $1 group by connector having count(*) >= 5`,
-      [hourAgo],
-    );
-    for (const { connector, n } of failing) {
-      await pause(
-        rt.db,
-        { scope: 'connector', target: connector },
-        `Security paused it: ${n} actions failed in the last hour.`,
-        { kind: 'agent', id: 'security' },
-      );
-      findings.push(`Paused the ${connector} connector after ${n} failures in the last hour.`);
-    }
-    const [{ blocked }] = (await rt.db.query<{ blocked: number }>(
-      `select count(*)::int as blocked from actions where status = 'blocked' and created_at > $1`,
-      [dayAgo],
-    )) as [{ blocked: number }];
-    if (blocked) findings.push(`The policy engine blocked ${blocked} proposed actions in the last day.`);
-    const [{ critical }] = (await rt.db.query<{ critical: number }>(
-      `select count(*)::int as critical from security_alerts where status = 'open' and severity = 'critical'`,
-    )) as [{ critical: number }];
-    if (critical) findings.push(`${critical} critical alerts are open.`);
-    if (!findings.length) run.notes.push('Nothing unusual in the last day.');
-    return { findings };
-  });
-}
-
 // ---------------------------------------------------------------- Any department, for work no workflow covers
 
 async function openTask(rt: AgentRuntime, input: Json, ctx: WorkflowContext, department: string): Promise<unknown> {
@@ -777,12 +515,8 @@ export function registerWorkflows(rt: AgentRuntime): void {
   rt.register('sales.reply_new_leads', replyNewLeads);
   rt.register('support.triage', triage);
   rt.register('support.triage_inbox', triageInbox);
-  rt.register('operations.daily_briefing', dailyBriefing);
-  rt.register('finance.money_status', moneyStatus);
   rt.register('marketing.draft_posts', draftPosts);
   rt.register('engineering.create_issue', createIssue);
-  rt.register('commerce.catalog_check', catalogCheck);
-  rt.register('security.review', securityReview);
   for (const department of DEPARTMENT_IDS)
     rt.register(`${department}.open`, (inner, input, ctx) => openTask(inner, input, ctx, department));
 }

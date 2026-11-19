@@ -132,16 +132,16 @@ Free plans keep little or no backup history. Move the database to a paid plan be
 The eight departments of blueprint §7 run inside the platform. Each one does real work from the platform's own data and
 proposes every outside step to the gateway, so the levels and approvals above still hold.
 
-| Department  | What it does, and when                                                                                                                                          |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales       | Scores each new lead and writes the first reply from the lead form, as an email for your approval (a flagged message only gets a draft). Runs on each new lead. |
-| Support     | Sorts each email and WhatsApp message, answers from the approved FAQ for your approval, and raises an alert for legal, refund or urgent ones. Runs on each one. |
-| Operations  | The morning briefing in English and Arabic, every day at 05:00 UTC (08:00 in Amman), and the plans of the command center.                                       |
-| Finance     | The money status from the ledger. Only you can move money.                                                                                                      |
-| Commerce    | Checks every price against the margin floor in the policy sheet.                                                                                                |
-| Security    | Every day: flagged messages and failing connectors. It pauses a connector that keeps failing; only you can end a pause.                                         |
-| Marketing   | Drafts social posts in Buffer, from the command center. Publishing waits for you.                                                                               |
-| Engineering | Files a GitHub issue, from the command center. In a public repository it waits for you.                                                                         |
+| Department  | What it does, and when                                                                                                                                                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales       | Scores each new lead and writes the first reply from the lead form, as an email for your approval (a flagged message only gets a draft). Runs on each new lead. Prospects you added never get this reply: they get the outreach emails.                             |
+| Support     | Sorts each email and WhatsApp message, answers from the approved FAQ for your approval, and raises an alert for legal, refund or urgent ones. Runs on each one, and once a day sweeps up any message still waiting. A lead's own reply is left to Sales and to you. |
+| Operations  | The morning briefing in English and Arabic every day, with the month against the revenue goal and what Sales did toward it; it shows on Today in the owner app. Also the plans of the command center.                                                               |
+| Finance     | The money status from the ledger. Only you can move money.                                                                                                                                                                                                          |
+| Commerce    | Every day: checks every price against the margin floor in the policy sheet, and opens an alert (once a day) for any price under it.                                                                                                                                 |
+| Security    | Every day: flagged messages, failing connectors and background jobs that gave up, each as an alert once a day. It pauses a connector that keeps failing; only you can end a pause.                                                                                  |
+| Marketing   | Drafts social posts in Buffer, from the command center. Publishing waits for you.                                                                                                                                                                                   |
+| Engineering | Files a GitHub issue, from the command center. In a public repository it waits for you.                                                                                                                                                                             |
 
 The **command center** is in the owner app's Team tab, and at `POST /api/owner/commands`. Write what you want done; Operations
 shows the plan, with each task's department, connector and approval, and nothing runs until you press Go ahead.

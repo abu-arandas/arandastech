@@ -10,6 +10,7 @@ import type { Locale } from '../lib/types';
 import { renderTemplate } from '../memory';
 import { SALES_LINES, SALES_TEMPLATE_KEYS } from '../sales-templates';
 import type { AgentRuntime, Run, WorkflowContext } from './runtime';
+import type { Json } from './common';
 import type { Proposed } from './workflows';
 
 /**
@@ -21,7 +22,6 @@ import type { Proposed } from './workflows';
  * standing rule the owner made for those templates can send it, and Approvals holds it otherwise.
  */
 
-type Json = Record<string, unknown>;
 const DAY = 86_400_000;
 
 async function proposeEmail(

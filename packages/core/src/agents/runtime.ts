@@ -439,7 +439,13 @@ export class AgentRuntime {
     await expireRules(this.db, this.platform.clock());
     const day = this.platform.clock().toISOString().slice(0, 10);
     const queued: string[] = [];
-    for (const kind of ['security.review', 'operations.daily_briefing']) {
+    // The daily checks, plus a sweep of the inbox for any message whose own job gave up, so none waits for ever.
+    for (const kind of [
+      'security.review',
+      'commerce.catalog_check',
+      'support.triage_inbox',
+      'operations.daily_briefing',
+    ]) {
       const { queued: added } = await enqueue(this.db, kind, { day }, { key: `${kind}:${day}` });
       if (added) queued.push(kind);
     }

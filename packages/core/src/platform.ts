@@ -1,6 +1,8 @@
 import { registerCommandWorkflows } from './agents/command';
 import type { ModelClient } from './agents/model';
 import { AgentRuntime } from './agents/runtime';
+import { registerBriefingWorkflows } from './agents/briefing';
+import { registerCheckWorkflows } from './agents/checks';
 import { registerSalesWorkflows } from './agents/sales';
 import { registerWorkflows } from './agents/workflows';
 import { Store } from './commerce/store';
@@ -69,6 +71,8 @@ export function createPlatform(
   } as Platform;
   platform.agents = new AgentRuntime(platform, config.model ?? null);
   registerWorkflows(platform.agents);
+  registerBriefingWorkflows(platform.agents);
+  registerCheckWorkflows(platform.agents);
   registerSalesWorkflows(platform.agents);
   registerCommandWorkflows(platform.agents);
   return platform;

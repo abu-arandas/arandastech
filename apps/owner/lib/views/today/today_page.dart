@@ -9,6 +9,7 @@ import '../../widgets/page_list.dart';
 import '../dashboard/areas.dart';
 import '../dashboard/greeting.dart';
 import '../sales/goal_card.dart';
+import 'briefing_card.dart';
 import 'metrics_card.dart';
 import 'needs_you_card.dart';
 import 'stat_tile.dart';
@@ -41,8 +42,9 @@ class _Lead extends StatelessWidget {
   }
 }
 
-/// The dashboard's first screen: a hello, the month against the goal beside what needs the owner, the day's counts as
-/// tiles that open their area, and the numbers of the last 30 days. One column on a phone, a grid on wider screens.
+/// The dashboard's first screen: a hello, the month against the goal beside what needs the owner, the morning briefing,
+/// the day's counts as tiles that open their area, and the numbers of the last 30 days. One column on a phone, a grid
+/// on wider screens.
 class TodayPage extends StatelessWidget {
   const TodayPage({super.key});
 
@@ -76,6 +78,8 @@ class TodayPage extends StatelessWidget {
           const Greeting(),
           const SizedBox(height: 8),
           _Lead(overview: o),
+          const SizedBox(height: 16),
+          const Appear(child: BriefingCard()),
           const SizedBox(height: 16),
           GridRow(
             children: [
