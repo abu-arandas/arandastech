@@ -9,6 +9,7 @@ import '../controllers/session_controller.dart';
 import '../controllers/systems_controller.dart';
 import '../controllers/team_controller.dart';
 import '../services/platform.dart';
+import '../services/sign_in_store.dart';
 
 /// Registers the controllers. The only place that decides which platform the app runs on: main.dart passes the
 /// real one over HTTP.
@@ -25,7 +26,7 @@ class AppBinding extends Bindings {
 
   @override
   void dependencies() {
-    final session = Get.put(SessionController(connect: connect, baseUrl: baseUrl, locale: locale, refreshEvery: refreshEvery));
+    final session = Get.put(SessionController(connect: connect, baseUrl: baseUrl, locale: locale, store: SignInStore.device(), refreshEvery: refreshEvery));
     // Typed puts: inside the list, Dart would infer PlatformReader and register all five under that one type.
     final business = Get.put<BusinessController>(BusinessController(session));
     final sales = Get.put<SalesController>(SalesController(session));

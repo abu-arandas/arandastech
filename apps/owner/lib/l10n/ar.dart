@@ -5,6 +5,8 @@ const ar = <String, String>{
   'Sign in': 'تسجيل الدخول',
   'Owner token': 'رمز المالك',
   'Connect': 'اتصال',
+  'Stay signed in on this device': 'ابقَ متصلاً على هذا الجهاز',
+  'Sign out to forget it.': 'سجّل الخروج ليُنسى الرمز.',
   'Could not connect. Check the connection and the token.': 'تعذّر الاتصال. تحقّق من الاتصال والرمز.',
   'This page lost a button.': 'هذه الصفحة أضاعت زرّاً.',
   'The page you asked for is not here.': 'الصفحة التي طلبتها ليست هنا.',

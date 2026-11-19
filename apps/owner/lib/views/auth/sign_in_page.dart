@@ -18,6 +18,9 @@ class SignInPage extends StatefulWidget {
 class _SignInPageState extends State<SignInPage> {
   final _token = TextEditingController();
 
+  /// Keep the token on this device, so the next visit opens signed in.
+  bool _remember = true;
+
   @override
   void dispose() {
     _token.dispose();
@@ -62,9 +65,17 @@ class _SignInPageState extends State<SignInPage> {
                   autocorrect: false,
                   enableSuggestions: false,
                   textDirection: TextDirection.ltr,
-                  onSubmitted: (_) => session.signIn(_token.text),
+                  onSubmitted: (_) => session.signIn(_token.text, remember: _remember),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _remember,
+                  onChanged: (on) => setState(() => _remember = on),
+                  title: Text('Stay signed in on this device'.tr),
+                  subtitle: Text('Sign out to forget it.'.tr),
+                ),
+                const SizedBox(height: 8),
                 Obx(() {
                   final error = session.error.value;
                   return error == null
@@ -74,7 +85,12 @@ class _SignInPageState extends State<SignInPage> {
                           child: Text(error.tr, style: TextStyle(color: theme.colorScheme.error)),
                         );
                 }),
-                Obx(() => FilledButton(onPressed: session.busy.value ? null : () => session.signIn(_token.text), child: Text('Connect'.tr))),
+                Obx(
+                  () => FilledButton(
+                    onPressed: session.busy.value ? null : () => session.signIn(_token.text, remember: _remember),
+                    child: Text('Connect'.tr),
+                  ),
+                ),
               ],
             ),
           ),

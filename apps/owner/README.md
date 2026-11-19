@@ -44,7 +44,7 @@ There are no app tests, as in every Zirr app. The rules the owner relies on (app
 
 ## Not built yet
 
-- The token is kept in memory only. Signing in again is needed after a restart.
+- With "Stay signed in on this device" (on by default) the token is kept in the browser's storage, so the app opens signed in next time. Signing out forgets it, and a token the platform turns down is forgotten too. On an iPhone, add the app to the Home Screen from Safari (Share > Add to Home Screen) and sign in there once: the Home Screen app keeps its own storage.
 - Sign-in with a Supabase account and two-step sign-in.
 - Push notifications for new approvals.
 - An iOS project. Android and web are set up.
