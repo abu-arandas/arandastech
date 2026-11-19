@@ -2,8 +2,8 @@ import type { Connector } from '../connectors/types';
 import { type Db, json, maybeOne, one } from '../lib/db';
 import { conflict, notFound } from '../lib/errors';
 import { payloadHash } from '../lib/hash';
-import type { Actor, Clock } from '../lib/types';
-import { actionSpec } from './actions';
+import { type Actor, type Clock, SYSTEM } from '../lib/types';
+import { type ActionSpec, actionSpec } from './actions';
 import {
   type ActionRow,
   type ApprovalRequestRow,
@@ -197,96 +197,100 @@ export class Gateway {
     return { action: await this.execute(result.action.id), request: result.request };
   }
 
+  /** Runs an approved action in three phases: claim it, make the call, then record the result and what it changed. */
   async execute(actionId: string): Promise<ActionRow> {
-    // Phase 1: check that the action may run now, and claim it.
-    const claimed = await this.db.tx(async (tx): Promise<{ action: ActionRow; run: boolean }> => {
-      const action = maybeOne(await tx.query<ActionRow>('select * from actions where id = $1 for update', [actionId]));
-      if (!action) throw notFound('action');
-      if (!['auto_approved', 'approved', 'failed'].includes(action.status))
-        throw conflict(`an action in status ${action.status} cannot run`);
-      if (action.status === 'failed' && action.attempts >= MAX_ATTEMPTS)
-        throw conflict('this action has failed too many times');
-      if (payloadHash(action.payload) !== action.payload_hash) throw conflict('the payload does not match its hash');
-      const spec = actionSpec(action.action_type);
-      if (!spec) throw conflict(`unknown action type ${action.action_type}`);
-      if (action.level >= 2 && !action.standing_rule_id) {
-        const request = maybeOne(
-          await tx.query<ApprovalRequestRow>('select * from approval_requests where action_id = $1', [action.id]),
-        );
-        if (!request || request.status !== 'approved' || request.payload_hash !== action.payload_hash)
-          throw conflict('this action has no approval for its current payload');
-      }
-
-      const targets: PauseTarget[] = [
-        { scope: 'connector', target: action.connector },
-        ...(spec.pauseScopes?.(action.payload) ?? []),
-      ];
-      if (action.requested_by_kind === 'agent' && action.requested_by_id)
-        targets.push({ scope: 'department', target: action.requested_by_id });
-      if (action.standing_rule_id) targets.push({ scope: 'rule', target: action.standing_rule_id });
-      const paused = await activePause(tx, targets);
-      if (paused) {
-        const reason = `paused: ${paused.scope}${paused.target === '*' ? '' : ` ${paused.target}`}`;
-        if (action.held_reason !== reason) {
-          await tx.query('update actions set held_reason = $2 where id = $1', [action.id, reason]);
-          await audit(tx, {
-            actor: { kind: 'system', id: null },
-            type: 'action.held',
-            subject: { type: 'action', id: action.id },
-            data: { reason },
-          });
-        }
-        return { action: { ...action, held_reason: reason }, run: false };
-      }
-      const executing = one(
-        await tx.query<ActionRow>(
-          `update actions set status = 'executing', held_reason = null, attempts = attempts + 1, error = null where id = $1 returning *`,
-          [action.id],
-        ),
-      );
-      return { action: executing, run: true };
-    });
+    const claimed = await this.db.tx((tx) => this.claim(tx, actionId));
     if (!claimed.run) return claimed.action;
     const action = claimed.action;
-
-    // Phase 2: the call itself, outside any transaction. The idempotency key makes a retry safe.
+    // The call itself runs outside any transaction. The idempotency key makes a retry safe.
     let result: Record<string, unknown>;
     try {
-      const handler = this.internal.get(action.action_type);
-      if (action.connector === 'platform') {
-        if (!handler) throw new Error(`no handler for ${action.action_type}`);
-        result = await this.db.tx((tx) => handler(tx, action.payload, action));
-      } else {
-        const connector = this.connectors[action.connector];
-        if (!connector) throw new Error(`connector ${action.connector} is not available`);
-        result = await connector.execute(action.action_type, action.payload, {
-          db: this.db,
-          idempotencyKey: action.idempotency_key,
-        });
-      }
+      result = await this.call(action);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return this.db.tx(async (tx) => {
-        const failed = one(
-          await tx.query<ActionRow>(`update actions set status = 'failed', error = $2 where id = $1 returning *`, [
-            action.id,
-            message,
-          ]),
-        );
-        await tx.query(`update connectors set last_error = $2 where id = $1`, [action.connector, message]);
-        await audit(tx, {
-          actor: { kind: 'system', id: null },
-          type: 'action.failed',
-          subject: { type: 'action', id: action.id },
-          data: { error: message, attempt: failed.attempts },
-        });
-        if (failed.standing_rule_id) await noteRuleFailure(tx, failed.standing_rule_id, { kind: 'system', id: null });
-        return failed;
-      });
+      return this.recordFailure(action, error instanceof Error ? error.message : String(error));
     }
+    const executed = await this.recordSuccess(action, result);
+    await this.applyEffects(executed, result);
+    return executed;
+  }
 
-    // Phase 3: record the result, then what it changed.
-    const executed = await this.db.tx(async (tx) => {
+  /** Checks that the action may run now and marks it executing, or holds it while something it touches is paused. */
+  private async claim(tx: Db, actionId: string): Promise<{ action: ActionRow; run: boolean }> {
+    const action = maybeOne(await tx.query<ActionRow>('select * from actions where id = $1 for update', [actionId]));
+    if (!action) throw notFound('action');
+    if (!['auto_approved', 'approved', 'failed'].includes(action.status))
+      throw conflict(`an action in status ${action.status} cannot run`);
+    if (action.status === 'failed' && action.attempts >= MAX_ATTEMPTS)
+      throw conflict('this action has failed too many times');
+    if (payloadHash(action.payload) !== action.payload_hash) throw conflict('the payload does not match its hash');
+    const spec = actionSpec(action.action_type);
+    if (!spec) throw conflict(`unknown action type ${action.action_type}`);
+    if (action.level >= 2 && !action.standing_rule_id) await requireApproval(tx, action);
+
+    const reason = await this.pauseReason(tx, action, spec);
+    if (reason) {
+      await hold(tx, action, reason);
+      return { action: { ...action, held_reason: reason }, run: false };
+    }
+    const executing = one(
+      await tx.query<ActionRow>(
+        `update actions set status = 'executing', held_reason = null, attempts = attempts + 1, error = null where id = $1 returning *`,
+        [action.id],
+      ),
+    );
+    return { action: executing, run: true };
+  }
+
+  /** Why the action must wait, when its connector, department, rule or anything it names is paused. */
+  private async pauseReason(tx: Db, action: ActionRow, spec: ActionSpec): Promise<string | null> {
+    const targets: PauseTarget[] = [
+      { scope: 'connector', target: action.connector },
+      ...(spec.pauseScopes?.(action.payload) ?? []),
+    ];
+    if (action.requested_by_kind === 'agent' && action.requested_by_id)
+      targets.push({ scope: 'department', target: action.requested_by_id });
+    if (action.standing_rule_id) targets.push({ scope: 'rule', target: action.standing_rule_id });
+    const paused = await activePause(tx, targets);
+    return paused ? `paused: ${paused.scope}${paused.target === '*' ? '' : ` ${paused.target}`}` : null;
+  }
+
+  /** The platform's own handler in a transaction, or the connector that talks to the outside account. */
+  private async call(action: ActionRow): Promise<Record<string, unknown>> {
+    if (action.connector === 'platform') {
+      const handler = this.internal.get(action.action_type);
+      if (!handler) throw new Error(`no handler for ${action.action_type}`);
+      return this.db.tx((tx) => handler(tx, action.payload, action));
+    }
+    const connector = this.connectors[action.connector];
+    if (!connector) throw new Error(`connector ${action.connector} is not available`);
+    return connector.execute(action.action_type, action.payload, {
+      db: this.db,
+      idempotencyKey: action.idempotency_key,
+    });
+  }
+
+  private recordFailure(action: ActionRow, message: string): Promise<ActionRow> {
+    return this.db.tx(async (tx) => {
+      const failed = one(
+        await tx.query<ActionRow>(`update actions set status = 'failed', error = $2 where id = $1 returning *`, [
+          action.id,
+          message,
+        ]),
+      );
+      await tx.query(`update connectors set last_error = $2 where id = $1`, [action.connector, message]);
+      await audit(tx, {
+        actor: SYSTEM,
+        type: 'action.failed',
+        subject: { type: 'action', id: action.id },
+        data: { error: message, attempt: failed.attempts },
+      });
+      if (failed.standing_rule_id) await noteRuleFailure(tx, failed.standing_rule_id, SYSTEM);
+      return failed;
+    });
+  }
+
+  private recordSuccess(action: ActionRow, result: Record<string, unknown>): Promise<ActionRow> {
+    return this.db.tx(async (tx) => {
       const done = one(
         await tx.query<ActionRow>(
           `update actions set status = 'executed', result = $2::jsonb, executed_at = $3 where id = $1 returning *`,
@@ -295,36 +299,24 @@ export class Gateway {
       );
       await tx.query(`update connectors set last_ok_at = now(), last_error = null where id = $1`, [action.connector]);
       await audit(tx, {
-        actor: { kind: 'system', id: null },
+        actor: SYSTEM,
         type: 'action.executed',
         subject: { type: 'action', id: action.id },
         data: { action_type: action.action_type, payload_hash: action.payload_hash, result },
       });
       return done;
     });
-    for (const effect of this.effects.get(action.action_type) ?? []) {
+  }
+
+  /** What the action changed inside the company. A failure here is raised as a critical alert to reconcile by hand. */
+  private async applyEffects(executed: ActionRow, result: Record<string, unknown>): Promise<void> {
+    for (const effect of this.effects.get(executed.action_type) ?? []) {
       try {
         await this.db.tx((tx) => effect(tx, executed, result));
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        await this.db.tx(async (tx) => {
-          await tx.query(
-            `insert into security_alerts (severity, kind, summary, detail) values ('critical', 'effect_failed', $1, $2::jsonb)`,
-            [
-              `${action.action_type} ran, but recording its result failed. Reconcile it by hand.`,
-              json({ action_id: action.id, error: message }),
-            ],
-          );
-          await audit(tx, {
-            actor: { kind: 'system', id: null },
-            type: 'action.effect_failed',
-            subject: { type: 'action', id: action.id },
-            data: { error: message },
-          });
-        });
+        await raiseEffectFailure(this.db, executed, error instanceof Error ? error.message : String(error));
       }
     }
-    return executed;
   }
 
   /** Lapses every request that has reached its expiry, and tells the domains whose actions lapsed. */
@@ -371,4 +363,38 @@ export class Gateway {
     );
     return rows.length > 0;
   }
+}
+
+/** A Level 2 or 3 action without a standing rule runs only with an approval of its current payload. */
+async function requireApproval(tx: Db, action: ActionRow): Promise<void> {
+  const request = maybeOne(
+    await tx.query<ApprovalRequestRow>('select * from approval_requests where action_id = $1', [action.id]),
+  );
+  if (!request || request.status !== 'approved' || request.payload_hash !== action.payload_hash)
+    throw conflict('this action has no approval for its current payload');
+}
+
+/** Holds the action with [reason], recording the hold once. */
+async function hold(tx: Db, action: ActionRow, reason: string): Promise<void> {
+  if (action.held_reason === reason) return;
+  await tx.query('update actions set held_reason = $2 where id = $1', [action.id, reason]);
+  await audit(tx, { actor: SYSTEM, type: 'action.held', subject: { type: 'action', id: action.id }, data: { reason } });
+}
+
+async function raiseEffectFailure(db: Db, action: ActionRow, message: string): Promise<void> {
+  await db.tx(async (tx) => {
+    await tx.query(
+      `insert into security_alerts (severity, kind, summary, detail) values ('critical', 'effect_failed', $1, $2::jsonb)`,
+      [
+        `${action.action_type} ran, but recording its result failed. Reconcile it by hand.`,
+        json({ action_id: action.id, error: message }),
+      ],
+    );
+    await audit(tx, {
+      actor: SYSTEM,
+      type: 'action.effect_failed',
+      subject: { type: 'action', id: action.id },
+      data: { error: message },
+    });
+  });
 }
