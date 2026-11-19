@@ -12,7 +12,7 @@ import { SALES_TEMPLATES } from './sales-templates';
  */
 
 export const DEMO_OWNER_ID = '00000000-0000-4000-8000-000000000001';
-export const DEMO_SUPPLIER_ID = '00000000-0000-4000-8000-0000000000a1';
+const DEMO_SUPPLIER_ID = '00000000-0000-4000-8000-0000000000a1';
 
 const t = (en: string, ar: string): Localized => ({ en, ar });
 

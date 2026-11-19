@@ -13,7 +13,7 @@ export const toUsdCents = (amount: number, currency: string): number =>
   Math.round(amount * (USD_CENTS_PER_MINOR[currency] ?? 0));
 
 /** Starting rates for the funnel, until the company's own records have enough to measure them. */
-export const DEFAULT_RATES = { reply: 0.05, meeting: 0.5, proposal: 0.6, win: 0.3 };
+const DEFAULT_RATES = { reply: 0.05, meeting: 0.5, proposal: 0.6, win: 0.3 };
 /** Leads contacted in 90 days before the company's own rates replace the defaults (with 5 proposals). */
 const MEASURE_AFTER = 20;
 

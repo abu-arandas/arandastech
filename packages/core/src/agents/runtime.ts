@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { callTool, toolsFor } from '../api/mcp';
+import { expireRules } from '../governance/rules';
 import { getPolicy } from '../governance/settings';
 import { type Db, json, one } from '../lib/db';
 import type { Platform } from '../platform';
@@ -16,7 +17,7 @@ import { costMicros, type Effort, type ModelClient, textOf } from './model';
  * at no cost.
  */
 
-export type Trigger = 'command' | 'event' | 'schedule' | 'manual';
+type Trigger = 'command' | 'event' | 'schedule' | 'manual';
 
 export interface Run {
   id: string;
@@ -53,7 +54,7 @@ export interface WorkflowContext {
 }
 
 /** The department each workflow belongs to is the part of its name before the dot: sales.lead_reply runs as Sales. */
-export const departmentOf = (workflow: string): string => workflow.split('.')[0]!;
+const departmentOf = (workflow: string): string => workflow.split('.')[0]!;
 
 // How the runtime differs from a bot in OpenMausBot. It comes after the shared brief, so the brief still governs.
 const PLATFORM_NOTE = `
@@ -433,6 +434,9 @@ export class AgentRuntime {
 
   /** Queues the daily work once per day (blueprint 7.3: the briefing, and Security's look over the last day). */
   async scheduleDaily(): Promise<string[]> {
+    // Housekeeping first: lapsed approvals and standing rules past their date are closed, so nothing shows them as live.
+    await this.platform.gateway.expireDue();
+    await expireRules(this.db, this.platform.clock());
     const day = this.platform.clock().toISOString().slice(0, 10);
     const queued: string[] = [];
     for (const kind of ['security.review', 'operations.daily_briefing']) {

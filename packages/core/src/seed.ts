@@ -18,8 +18,6 @@ export const DEPARTMENTS = [
   { id: 'security', name: 'Security', mission: 'Keep accounts, data and the rules safe.' },
 ] as const;
 
-export type DepartmentId = (typeof DEPARTMENTS)[number]['id'];
-
 /** What every installation needs before anything else: the policy sheet, the departments and the connectors. Safe to run again. */
 export async function seedBase(db: Db): Promise<void> {
   await seedPolicy(db);

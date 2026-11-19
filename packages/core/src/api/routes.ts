@@ -1,5 +1,5 @@
 import type { Platform } from '../platform';
-import type { RouteContext, Router } from './http';
+import type { Router } from './http';
 import { registerAgentRoutes } from './routes-agents';
 import { registerConnectionRoutes } from './routes-connections';
 import { registerDemoRoutes } from './routes-demo';
@@ -18,5 +18,3 @@ export function registerRoutes(router: Router, platform: Platform): void {
   registerSettingsRoutes(router, platform);
   registerAgentRoutes(router, platform);
 }
-
-export type { RouteContext };

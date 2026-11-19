@@ -94,7 +94,6 @@ const prospectInput = z.strictObject({
   already_sent: z.number().int().min(0).max(3).optional(),
   last_sent_on: z.iso.date().optional(),
 });
-export type ProspectInput = z.input<typeof prospectInput>;
 
 /**
  * Adds businesses the owner chose to contact. Sales writes to each one from the outreach sequence, at most the daily
@@ -183,7 +182,6 @@ const change = z.strictObject({
   /** False stops the sequence the lead is in. */
   follow_up: z.boolean().optional(),
 });
-export type PipelineChange = z.input<typeof change>;
 
 /** The owner moves a lead: a stage, the value, a note, or stops the emails. An internal record: nothing is sent. */
 export async function changeLead(db: Db, leadId: string, raw: unknown, by: Actor): Promise<LeadRow> {

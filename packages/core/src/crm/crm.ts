@@ -72,8 +72,6 @@ export interface LeadRow {
   updated_at: Date;
 }
 
-export { STAGES, type Stage } from './stages';
-
 export interface MessageRow {
   id: string;
   lead_id: string | null;

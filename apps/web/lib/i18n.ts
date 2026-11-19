@@ -1,5 +1,4 @@
 export type Locale = 'en' | 'ar';
-export const LOCALES: Locale[] = ['en', 'ar'];
 export const isLocale = (value: string): value is Locale => value === 'en' || value === 'ar';
 
 /** Every piece of interface text, in both languages. lib/i18n.test.ts fails when a text has no Arabic. */

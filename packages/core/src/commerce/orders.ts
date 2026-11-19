@@ -82,7 +82,7 @@ export interface VariantRow {
 }
 
 /** The order states of blueprint 5.2. A state can move only along these lines. */
-export const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending_payment: ['paid', 'expired'],
   paid: ['on_hold', 'fulfilling', 'canceled', 'refunded'],
   on_hold: ['paid', 'canceled', 'refunded'],

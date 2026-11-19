@@ -1,7 +1,7 @@
 import type { Locale } from './i18n';
 
 /** One section of a legal page, in both languages. */
-export interface LegalSection {
+interface LegalSection {
   title: { en: string; ar: string };
   body: { en: string; ar: string }[];
 }

@@ -17,7 +17,7 @@ import { startSequence, stopSequence } from './pipeline';
  * bank, which posts it to the services books. Every email about them is proposed by Sales to the gateway.
  */
 
-export interface Item {
+interface Item {
   description: string;
   amount_minor: number;
 }

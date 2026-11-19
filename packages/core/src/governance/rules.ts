@@ -7,7 +7,7 @@ import { audit } from './audit';
 import { getPolicy } from './settings';
 
 /** The conditions a standing rule can put on an action. Every one that is present must hold. */
-export interface RuleConditions {
+interface RuleConditions {
   /** The message must use this approved template. */
   template?: string;
   /** The message must use one of these approved templates. */
@@ -168,7 +168,7 @@ export async function recordRuleUse(
   );
 }
 
-export async function suspendRule(db: Db, ruleId: string, reason: string, by: Actor): Promise<void> {
+async function suspendRule(db: Db, ruleId: string, reason: string, by: Actor): Promise<void> {
   const rows = await db.query(
     `update standing_rules set status = 'suspended', suspended_reason = $2 where id = $1 and status = 'active' returning id`,
     [ruleId, reason],

@@ -27,7 +27,7 @@ import type { Router } from './http';
 /** The revenue engine's addresses: the goal, the pipeline, prospects, proposals, invoices and Sales' autopilot. */
 
 /** The standing rule that lets Sales send its template emails without asking each time. */
-export const AUTOPILOT_RULE = 'Sales autopilot';
+const AUTOPILOT_RULE = 'Sales autopilot';
 
 export function registerSalesRoutes(router: Router, platform: Platform): void {
   const { db, clock } = platform;

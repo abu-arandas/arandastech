@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { listInbox, listLeads, messagesFor, STAGES, updateLead } from '../crm/crm';
+import { listInbox, listLeads, messagesFor, updateLead } from '../crm/crm';
+import { STAGES } from '../crm/stages';
 import { moneySummary } from '../finance/ledger';
-import { actionSpec, ACTION_SPECS } from '../governance/actions';
+import { actionSpec } from '../governance/actions';
 import { audit } from '../governance/audit';
 import { pause, type PauseScope } from '../governance/pause';
 import { json } from '../lib/db';
@@ -556,6 +557,3 @@ export async function callTool(
 
 /** The actions each department may propose, for the runtime's planner and its reports. */
 export const mayPropose = (department: string): string[] => MAY_PROPOSE[department] ?? [];
-
-export const MCP_TOOL_NAMES = TOOLS.map((tool) => tool.name);
-export const MCP_ACTION_TYPES = ACTION_SPECS.map((spec) => spec.type);

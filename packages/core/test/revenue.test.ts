@@ -274,6 +274,18 @@ describe('the revenue engine', () => {
     expect(off.body.autopilot).toBeNull();
   });
 
+  it('the daily tick closes an autopilot past its date, so the owner app never shows it as on', async () => {
+    const on = await api.owner('POST', '/api/owner/sales/autopilot', { on: true });
+    expect(on.body.autopilot.status).toBe('active');
+    t.clock.advance(366 * 24);
+    await t.platform.agents.scheduleDaily();
+    expect((await api.owner('GET', '/api/owner/revenue')).body.autopilot).toBeNull();
+    const rows = await t.test.db.query<{ status: string }>('select status from standing_rules where id = $1', [
+      on.body.autopilot.id,
+    ]);
+    expect(rows[0]!.status).toBe('expired');
+  });
+
   it('converts the dinar to dollars at the peg', () => {
     expect(toUsdCents(1000, 'JOD')).toBe(141);
     expect(toUsdCents(2500, 'USD')).toBe(2500);

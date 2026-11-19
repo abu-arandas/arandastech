@@ -4,7 +4,7 @@ import type { Db } from '../lib/db';
 import { AppError, invalid } from '../lib/errors';
 
 /** One value an outside account needs. Secret values are written once and never shown again, not even to the owner. */
-export interface ConnectionField {
+interface ConnectionField {
   key: string;
   label: string;
   secret: boolean;
