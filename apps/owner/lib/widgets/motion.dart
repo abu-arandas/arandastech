@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
-/// The owner app is a work tool, so it moves calmly and quickly: screens fade through, cards come in a step apart,
-/// the Today figures count up once, the approvals badge pops when a request lands, and one small moment (a tick that
-/// draws itself) when the inbox is cleared. Nothing moves on money, and with reduce motion on nothing moves at all.
+/// The owner app is a work tool, so it moves quickly: screens fade through, cards come in a step apart, the Today
+/// figures count up once, the approvals badge pops when a request lands, and a tick draws itself when the inbox is
+/// cleared. The playful parts (jokes, squish, flying buttons) are in fun.dart. Nothing moves on money, and with reduce
+/// motion on nothing moves at all.
 abstract final class Motion {
   static const fast = Duration(milliseconds: 160);
   static const medium = Duration(milliseconds: 280);
