@@ -1,6 +1,7 @@
 import type { Platform } from '../platform';
 import type { Router } from './http';
 import { registerAgentRoutes } from './routes-agents';
+import { registerBusinessRoutes } from './routes-business';
 import { registerConnectionRoutes } from './routes-connections';
 import { registerDemoRoutes } from './routes-demo';
 import { registerOwnerRoutes } from './routes-owner';
@@ -14,6 +15,7 @@ export function registerRoutes(router: Router, platform: Platform): void {
   registerPublicRoutes(router, platform);
   registerDemoRoutes(router, platform);
   registerOwnerRoutes(router, platform);
+  registerBusinessRoutes(router, platform);
   registerConnectionRoutes(router, platform);
   registerSettingsRoutes(router, platform);
   registerAgentRoutes(router, platform);

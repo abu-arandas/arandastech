@@ -40,9 +40,12 @@ Lint, formatting and types, as CI runs them:
 
 ```bash
 npm run lint
+npm run deadcode
 npm run format
 npm run typecheck
 ```
+
+Keeping the code readable: lint fails on a file over 800 lines or a function over 120, and `npm run deadcode` (knip) fails on an unused file, export or dependency. Split a long function into named steps rather than raising the limit.
 
 `npm run format` only checks. To fix the files, run `npx prettier --write "**/*.{ts,tsx,mjs,json,md,css}"`. The agent team's Markdown is left as written, because `zirr.md` is built from it.
 

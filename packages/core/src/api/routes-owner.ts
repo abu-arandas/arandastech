@@ -1,12 +1,11 @@
 import { z } from 'zod';
-import { listInbox, listLeads } from '../crm/crm';
-import { ledgerCurrencies, moneySummary } from '../finance/ledger';
 import { ACTION_SPECS } from '../governance/actions';
 import { listOpenApprovals } from '../governance/approvals';
 import { verifyAuditChain } from '../governance/audit';
 import { listPauses, pause, resume, type PauseScope } from '../governance/pause';
 import type { Platform } from '../platform';
 import { check, staffOf } from './guards';
+import { moneyByCurrency } from './routes-business';
 import type { Router } from './http';
 
 const SCOPES = [
@@ -26,49 +25,13 @@ const pauseBody = z.strictObject({
   reason: z.string().max(300).optional(),
 });
 
-/** The owner app's own reads and actions: the overview, approvals, actions, the audit log, the business, pauses and connectors. */
+/** The owner app's own reads and actions: the overview, approvals, actions, the audit log, pauses and connectors. */
 export function registerOwnerRoutes(router: Router, platform: Platform): void {
-  const { db, store, gateway, clock } = platform;
-
-  /** The money summary for every currency the books hold, USD and JOD always first. */
-  const moneyByCurrency = async (now: Date) => {
-    const currencies = [...new Set(['USD', 'JOD', ...(await ledgerCurrencies(db))])];
-    return Promise.all(currencies.map((currency) => moneySummary(db, currency, now)));
-  };
+  const { db, gateway, clock } = platform;
 
   router.add('GET', '/api/owner/overview', 'staff', async ({ caller }) => {
     staffOf(caller);
-    const now = clock();
-    const open = await listOpenApprovals(db, now);
-    const one = async <T>(sql: string): Promise<T> => (await db.query<T>(sql))[0] as T;
-    const pauses = (await listPauses(db)).filter((p) => p.paused);
-    const { mode, reason, model } = await platform.agents.mode();
-    return {
-      as_of: now.toISOString(),
-      demo: platform.config.demo,
-      paused: pauses.some((p) => p.scope === 'global'),
-      pauses,
-      approvals: {
-        open: open.length,
-        level_3: open.filter((r) => r.level === 3).length,
-        next_expiry: open.map((r) => r.expires_at).sort((a, b) => a.getTime() - b.getTime())[0] ?? null,
-      },
-      held_actions: (
-        await one<{ n: number }>(
-          `select count(*)::int as n from actions where status in ('approved', 'auto_approved') and held_reason is not null`,
-        )
-      ).n,
-      leads: await one(`select count(*) filter (where stage = 'new')::int as new, count(*)::int as total from leads`),
-      orders: await one(
-        `select count(*)::int as total, count(*) filter (where status = 'on_hold')::int as on_hold, count(*) filter (where status in ('paid', 'fulfilling', 'shipped'))::int as in_progress from orders`,
-      ),
-      inbox: await one(
-        `select count(*) filter (where not handled)::int as unhandled, count(*) filter (where flagged and not handled)::int as flagged from messages where direction = 'in'`,
-      ),
-      alerts: await one(`select count(*)::int as open from security_alerts where status = 'open'`),
-      agents: { mode, reason, model },
-      money: await moneyByCurrency(now),
-    };
+    return overview(platform, clock());
   });
 
   router.add('GET', '/api/owner/approvals', 'staff', async ({ caller }) => {
@@ -142,61 +105,6 @@ export function registerOwnerRoutes(router: Router, platform: Platform): void {
     };
   });
 
-  router.add('GET', '/api/owner/leads', 'staff', async ({ caller }) => {
-    staffOf(caller);
-    return { leads: await listLeads(db) };
-  });
-
-  router.add('GET', '/api/owner/inbox', 'staff', async ({ caller }) => {
-    staffOf(caller);
-    return { messages: await listInbox(db) };
-  });
-
-  router.add('GET', '/api/owner/products', 'staff', async ({ caller }) => {
-    staffOf(caller);
-    return { products: await store.products() };
-  });
-
-  // Publishing is level 2: this only asks, and the owner confirms it in Approvals, where the margin checks show.
-  router.add('POST', '/api/owner/products/:id/publish', 'owner', async ({ caller, params }) => {
-    const staff = staffOf(caller);
-    return gateway.propose({
-      type: 'store.publish_product',
-      payload: { product_id: params.id! },
-      requester: staff.actor,
-    });
-  });
-
-  router.add('GET', '/api/owner/orders', 'staff', async ({ caller }) => {
-    staffOf(caller);
-    return { orders: await store.orders() };
-  });
-
-  router.add('GET', '/api/owner/orders/:id', 'staff', async ({ caller, params }) => {
-    staffOf(caller);
-    return { order: await store.order(params.id!) };
-  });
-
-  router.add('POST', '/api/owner/orders/:id/release', 'owner', async ({ caller, params }) => {
-    const staff = staffOf(caller);
-    return { order: await store.release(params.id!, staff.actor, staff.isOwner) };
-  });
-
-  router.add('POST', '/api/owner/orders/:id/refund', 'staff', async ({ caller, params, json }) => {
-    const staff = staffOf(caller);
-    const body = check(
-      z.strictObject({ amount_minor: z.number().int().positive().optional(), reason: z.string().min(3).max(500) }),
-      json,
-    );
-    // Proposing a refund is preparation. It still waits in the inbox for the owner's confirmed approval.
-    return store.proposeRefund(params.id!, { amountMinor: body.amount_minor, reason: body.reason }, staff.actor);
-  });
-
-  router.add('GET', '/api/owner/finance', 'staff', async ({ caller }) => {
-    staffOf(caller);
-    return { summaries: await moneyByCurrency(clock()) };
-  });
-
   router.add('GET', '/api/owner/pauses', 'staff', async ({ caller }) => {
     staffOf(caller);
     return { pauses: await listPauses(db) };
@@ -225,4 +133,39 @@ export function registerOwnerRoutes(router: Router, platform: Platform): void {
       ),
     };
   });
+}
+
+/** The Today screen: what waits for the owner, what is held or paused, and the money, at one moment. */
+async function overview(platform: Platform, now: Date) {
+  const { db } = platform;
+  const open = await listOpenApprovals(db, now);
+  const one = async <T>(sql: string): Promise<T> => (await db.query<T>(sql))[0] as T;
+  const pauses = (await listPauses(db)).filter((p) => p.paused);
+  const { mode, reason, model } = await platform.agents.mode();
+  return {
+    as_of: now.toISOString(),
+    demo: platform.config.demo,
+    paused: pauses.some((p) => p.scope === 'global'),
+    pauses,
+    approvals: {
+      open: open.length,
+      level_3: open.filter((r) => r.level === 3).length,
+      next_expiry: open.map((r) => r.expires_at).sort((a, b) => a.getTime() - b.getTime())[0] ?? null,
+    },
+    held_actions: (
+      await one<{ n: number }>(
+        `select count(*)::int as n from actions where status in ('approved', 'auto_approved') and held_reason is not null`,
+      )
+    ).n,
+    leads: await one(`select count(*) filter (where stage = 'new')::int as new, count(*)::int as total from leads`),
+    orders: await one(
+      `select count(*)::int as total, count(*) filter (where status = 'on_hold')::int as on_hold, count(*) filter (where status in ('paid', 'fulfilling', 'shipped'))::int as in_progress from orders`,
+    ),
+    inbox: await one(
+      `select count(*) filter (where not handled)::int as unhandled, count(*) filter (where flagged and not handled)::int as flagged from messages where direction = 'in'`,
+    ),
+    alerts: await one(`select count(*)::int as open from security_alerts where status = 'open'`),
+    agents: { mode, reason, model },
+    money: await moneyByCurrency(db, now),
+  };
 }

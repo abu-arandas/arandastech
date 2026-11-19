@@ -21,7 +21,7 @@ lib/
   views/           pages, one folder per feature: auth, dashboard, today, approvals, team, business, systems
   widgets/         UI shared by more than one feature: motion, the brand mark, the language button, page layout
   l10n/            Arabic for every English text; English text is its own key
-tool/              check_layers.sh (rules 1 and 3), check_arabic.mjs (rule 6)
+tool/              check_layers.sh (rules 1, 3 and 10), check_arabic.mjs (rule 6)
 ```
 
 ## Rules
@@ -35,6 +35,7 @@ tool/              check_layers.sh (rules 1 and 3), check_arabic.mjs (rule 6)
 7. **Brand values come from `config/brand.dart`,** never from string literals in views.
 8. **Long lists are built lazily** (the audit log uses `ListView.builder`).
 9. **Errors become messages.** Controllers catch failures and set an `error` the screen shows; nothing the owner does should crash a page.
+10. **Files stay small.** No file in `lib` is over 400 lines: split a screen into named widgets and a controller into parts. `tool/check_layers.sh` fails otherwise.
 10. **CI is the bar:** `dart format`, `flutter analyze` with zero issues under the house rules in `analysis_options.yaml`, the layer and Arabic checks, and a web build. There are no app tests, as in every Zirr app.
 
 ## How a screen gets its data

@@ -9,6 +9,29 @@ import type { Platform } from '../platform';
 import { check, staffOf } from './guards';
 import type { Router } from './http';
 
+/** What the owner sends to create a standing rule (blueprint 2.5). */
+const ruleBody = z.strictObject({
+  name: z.string().min(1).max(100),
+  action_type: z.string(),
+  conditions: z
+    .strictObject({
+      template: z.string().optional(),
+      templates: z.array(z.string().max(80)).max(30).optional(),
+      recipient: z.literal('order_buyer').optional(),
+    })
+    .default({}),
+  spend_limit_per_action_minor: z.number().int().nonnegative(),
+  spend_limit_per_period_minor: z.number().int().nonnegative(),
+  currency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .optional(),
+  recipient_limit_per_period: z.number().int().positive(),
+  period: z.enum(['day', 'week', 'month']),
+  expires_at: z.iso.datetime(),
+  max_failures: z.number().int().positive().max(20).optional(),
+});
+
 /** Standing rules, policy settings, security alerts, metrics and business memory. */
 export function registerSettingsRoutes(router: Router, platform: Platform): void {
   const { db, clock } = platform;
@@ -20,30 +43,7 @@ export function registerSettingsRoutes(router: Router, platform: Platform): void
 
   router.add('POST', '/api/owner/rules', 'owner', async ({ caller, json }) => {
     const staff = staffOf(caller);
-    const body = check(
-      z.strictObject({
-        name: z.string().min(1).max(100),
-        action_type: z.string(),
-        conditions: z
-          .strictObject({
-            template: z.string().optional(),
-            templates: z.array(z.string().max(80)).max(30).optional(),
-            recipient: z.literal('order_buyer').optional(),
-          })
-          .default({}),
-        spend_limit_per_action_minor: z.number().int().nonnegative(),
-        spend_limit_per_period_minor: z.number().int().nonnegative(),
-        currency: z
-          .string()
-          .regex(/^[A-Z]{3}$/)
-          .optional(),
-        recipient_limit_per_period: z.number().int().positive(),
-        period: z.enum(['day', 'week', 'month']),
-        expires_at: z.iso.datetime(),
-        max_failures: z.number().int().positive().max(20).optional(),
-      }),
-      json,
-    );
+    const body = check(ruleBody, json);
     const rule = await createRule(
       db,
       {

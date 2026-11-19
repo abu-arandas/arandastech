@@ -16,4 +16,14 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Readable and maintainable: no file over 800 lines, no function over 120 (the same rule as Zirr Retail).
+    // Tests are left out, as one describe block holds many short tests.
+    files: ['packages/*/src/**/*.ts', 'apps/web/**/*.{ts,tsx}', 'agents/**/*.mjs'],
+    ignores: ['**/*.test.ts', '**/*.generated.ts'],
+    rules: {
+      'max-lines': ['error', { max: 800 }],
+      'max-lines-per-function': ['error', { max: 120 }],
+    },
+  },
 );
