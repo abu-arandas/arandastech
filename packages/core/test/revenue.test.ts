@@ -39,6 +39,9 @@ const emails = async (t: TestPlatform, template?: string): Promise<Json[]> =>
     [template ?? null],
   );
 
+const actionIds = async (t: TestPlatform): Promise<string[]> =>
+  (await t.test.db.query<{ id: string }>('select id from actions order by id')).map((row) => row.id);
+
 describe('the revenue engine', () => {
   let t: TestPlatform;
   let api: ReturnType<typeof apiFor>;
@@ -134,6 +137,24 @@ describe('the revenue engine', () => {
     expect(handled).toEqual({ handled: true, lead_id: lina!.id });
     const alerts = await t.test.db.query<Json>(`select kind from security_alerts where kind = 'lead_replied'`);
     expect(alerts).toHaveLength(1);
+  });
+
+  it("the inbox sweep leaves a lead's reply for a person, and never answers it with the support template", async () => {
+    await t.test.db.query(`update leads set stage = 'meeting' where email = 'lina@agency-one.example'`);
+    const before = await actionIds(t);
+    const message = await recordInbound(t.test.db, {
+      channel: 'email',
+      from: 'lina@agency-one.example',
+      subject: 'Re: our call',
+      body: 'Thanks for the call. Can you send the contract to our lawyer?',
+      locale: 'en',
+    });
+    await t.platform.agents.runDue();
+    await t.platform.agents.runWorkflow('support.triage_inbox', {}, { trigger: 'manual' });
+    expect(await actionIds(t)).toEqual(before);
+    const [kept] = await t.test.db.query<Json>('select handled from messages where id = $1', [message.id]);
+    expect(kept!.handled).toBe(false);
+    await t.test.db.query(`update leads set stage = 'replied' where email = 'lina@agency-one.example'`);
   });
 
   it('"no thanks" in either language means nothing is ever sent again', async () => {
@@ -284,6 +305,25 @@ describe('the revenue engine', () => {
       on.body.autopilot.id,
     ]);
     expect(rows[0]!.status).toBe('expired');
+  });
+
+  it('a prospect never gets the reply meant for a website form, and keeps its outreach', async () => {
+    const prospects = () =>
+      t.test.db.query<Json>(
+        `select email, stage, sequence, sequence_step, score from leads where kind = 'prospect' order by email`,
+      );
+    const [before, leads] = [await actionIds(t), await prospects()];
+    const [lina] = await t.test.db.query<Json>(`select id from leads where email = 'lina@agency-one.example'`);
+    const direct = (await t.platform.agents.runWorkflow(
+      'sales.lead_reply',
+      { lead_id: lina!.id },
+      { trigger: 'manual' },
+    )) as Json;
+    expect(direct.skipped).toContain('Prospects get the outreach emails');
+    await t.platform.agents.runWorkflow('sales.reply_new_leads', {}, { trigger: 'manual' });
+    await t.platform.agents.runWorkflow('sales.qualify_leads', {}, { trigger: 'manual' });
+    expect(await actionIds(t)).toEqual(before);
+    expect(await prospects()).toEqual(leads);
   });
 
   it('converts the dinar to dollars at the peg', () => {

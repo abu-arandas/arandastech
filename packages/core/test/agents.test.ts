@@ -3,7 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { planByRules } from '../src/agents/command';
 import { claimJob, enqueue } from '../src/agents/jobs';
 import { costMicros, type ModelClient, type ModelRequest } from '../src/agents/model';
-import { briefingText, classify, matchFaq, onlyKnownNumbers, scoreLead } from '../src/agents/workflows';
+import { briefingText, onlyKnownNumbers } from '../src/agents/briefing';
+import { classify, matchFaq, scoreLead } from '../src/agents/workflows';
 import { createApi, type ApiResponse } from '../src/api/index';
 import { DEMO_OWNER_ID } from '../src/company';
 import { createLead, recordInbound } from '../src/crm/crm';
@@ -212,6 +213,8 @@ describe('manual mode: no AI key', () => {
   it('the daily run writes the briefing in both languages and Security looks over the day', async () => {
     expect(await t.platform.agents.scheduleDaily()).toEqual([
       'security.review',
+      'commerce.catalog_check',
+      'support.triage_inbox',
       'operations.daily_briefing',
       'sales.sequences',
     ]);
@@ -225,6 +228,10 @@ describe('manual mode: no AI key', () => {
     expect(briefing.text.en).toContain('Approvals waiting for you:');
     expect(briefing.text.ar).toContain('طلبات موافقة بانتظارك');
     expect(briefing.figures.approvals.waiting).toBeGreaterThan(0);
+    // The morning briefing says where the month stands against the goal, in both languages.
+    expect(briefing.text.en).toContain('Monthly goal: ');
+    expect(briefing.text.ar).toContain('هدف الشهر:');
+    expect(briefing.figures.sales).toMatchObject({ goal: '3000.00 USD', deals_needed: expect.any(Number) });
     const runs = (await owner('GET', '/api/owner/agents/runs?department=security')).body.runs;
     expect(runs[0]).toMatchObject({ workflow: 'security.review', status: 'succeeded', trigger_kind: 'schedule' });
   });
@@ -238,6 +245,37 @@ describe('manual mode: no AI key', () => {
     expect((await owner('POST', '/api/owner/agents/run', { workflow: 'not.a.workflow' })).status).toBe(422);
     expect((await owner('POST', '/api/owner/agents/run', {})).body.ran).toEqual([]);
     expect((await owner('GET', '/api/owner/agents/jobs')).body.jobs.length).toBeGreaterThan(0);
+  });
+
+  it('Commerce raises one alert a day for a price under the margin floor', async () => {
+    const [variant] = await t.test.db.query<Json>(
+      `select v.id, v.sku from product_variants v join products p on p.id = v.product_id where p.status = 'published' limit 1`,
+    );
+    await t.test.db.query('update product_variants set price_minor = 1, unit_cost_minor = 5000 where id = $1', [
+      variant!.id,
+    ]);
+    const first = (await t.platform.agents.runWorkflow('commerce.catalog_check', {}, { trigger: 'manual' })) as Json;
+    expect(first.below_floor).toContain(variant!.sku);
+    await t.platform.agents.runWorkflow('commerce.catalog_check', {}, { trigger: 'manual' });
+    const alerts = await t.test.db.query<Json>(`select * from security_alerts where kind = 'price_below_floor'`);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toMatchObject({ severity: 'warning', created_by_id: 'commerce', status: 'open' });
+    expect(alerts[0]!.summary).toContain(variant!.sku);
+  });
+
+  it('Security tells the owner when a background job gave up', async () => {
+    await t.test.db.query(
+      `insert into jobs (kind, payload, status, attempts, max_attempts, last_error, finished_at)
+       values ('sales.lead_reply', '{}', 'failed', 4, 4, 'The mail server did not answer.', $1)`,
+      [t.clock.now()],
+    );
+    const review = (await t.platform.agents.runWorkflow('security.review', {}, { trigger: 'manual' })) as Json;
+    expect(review.findings.some((finding: string) => /background jobs? failed in the last day/.test(finding))).toBe(
+      true,
+    );
+    const [alert] = await t.test.db.query<Json>(`select * from security_alerts where kind = 'jobs_failed'`);
+    expect(alert).toMatchObject({ severity: 'warning', created_by_id: 'security', status: 'open' });
+    expect(alert!.summary).toMatch(/background jobs? gave up in the last day/);
   });
 
   it('work no fixed workflow covers is skipped and says it needs the AI model', async () => {
@@ -531,6 +569,16 @@ describe('the fixed rules', () => {
         alerts_open: 0,
         actions: { failed: 0, held: 0, done: 0 },
         agents: { runs: 0, failed: 0, mode: 'manual', ai_spent_today: '0.00 USD' },
+        sales: {
+          goal: '3000.00 USD',
+          collected: '0.00 USD',
+          on_track: false,
+          days_left: 12,
+          deals_needed: 3,
+          month: { first_emails: 0, follow_ups: 0, replies: 0, meetings: 0, proposals: 0, won: 0 },
+          follow_ups_due: 0,
+          prospects_waiting: 0,
+        },
         money: [
           {
             currency: 'USD',
@@ -549,5 +597,8 @@ describe('the fixed rules', () => {
     );
     expect(text).not.toContain('Money in');
     expect(text).toContain('Working in manual mode');
+    expect(text).toContain(
+      'Monthly goal: 0.00 USD of 3000.00 USD, behind the pace, 12 days left. Deals still needed: 3.',
+    );
   });
 });

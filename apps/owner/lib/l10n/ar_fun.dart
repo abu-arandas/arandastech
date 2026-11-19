@@ -37,6 +37,9 @@ const arFun = <String, String>{
   'Everything is running.': 'كل شيء شغّال.',
   'Held actions are kept, not dropped.': 'الإجراءات المعلّقة محفوظة ولن تُحذف.',
   'One press stops every agent.': 'ضغطة وحدة بتوقف كل الوكلاء.',
+  // The morning briefing on Today
+  'Read all': 'اقرأ الكل',
+  'Show less': 'اعرض أقل',
   // Celebrations
   'Goal reached!': 'وصلت الهدف!',
   'You found the secret button!': 'لقيت الزرّ السرّي!',
