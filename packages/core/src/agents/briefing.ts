@@ -5,7 +5,7 @@ import { listOpenApprovals } from '../governance/approvals';
 import { formatMoney } from '../lib/money';
 import type { Locale } from '../lib/types';
 import { AWAITING_REPLY, type Json, say } from './common';
-import type { AgentRuntime, WorkflowContext } from './runtime';
+import type { AgentRuntime, Run, WorkflowContext } from './runtime';
 
 /**
  * Operations' morning briefing and Finance's money status. Every figure is counted by code from the records and the
@@ -165,8 +165,37 @@ async function dailyBriefing(rt: AgentRuntime, input: Json, ctx: WorkflowContext
     if (written && onlyKnownNumbers(`${written.en}\n${written.ar}`, figures)) text = written;
     else if (written)
       run.notes.push('The AI briefing used a number that is not in the books, so the plain one is shown.');
+    await sundayReport(rt, run, text);
     return { text, figures };
   });
+}
+
+const OWNER_APP = 'https://abu-arandas.github.io/arandastech/';
+
+/**
+ * On Sundays in Amman the briefing also goes to the owner's own mailbox, so one look a week is enough. It is sent only
+ * through a live Gmail, to the mailbox itself, once per Sunday.
+ */
+async function sundayReport(rt: AgentRuntime, run: Run, text: { en: string; ar: string }): Promise<void> {
+  const amman = new Date(rt.platform.clock().getTime() + 3 * 3_600_000);
+  if (amman.getUTCDay() !== 0 || rt.platform.connectors.gmail?.mode !== 'live') return;
+  const day = amman.toISOString().slice(0, 10);
+  const { action } = await rt.platform.gateway.propose({
+    type: 'gmail.notify_owner',
+    payload: {
+      subject: `Zirr this week, ${day} | زِرّ هذا الأسبوع`,
+      body: `${text.en}\n\nWhat waits for you: ${OWNER_APP}\n\n---\n\n${text.ar}\n\nما ينتظرك: ${OWNER_APP}`,
+    },
+    requester: { kind: 'agent', id: 'operations' },
+    evidence: [{ kind: 'workflow', id: 'operations.daily_briefing' }],
+    idempotencyKey: `operations.sunday_report:${day}`,
+    agentRunId: run.id,
+  });
+  run.notes.push(
+    action.status === 'executed'
+      ? 'The Sunday report went to your mailbox.'
+      : `The Sunday report was not sent: the email is ${action.status}.`,
+  );
 }
 
 async function moneyStatus(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {

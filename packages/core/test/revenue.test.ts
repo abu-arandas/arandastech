@@ -291,6 +291,13 @@ describe('the revenue engine', () => {
     await t.platform.agents.runWorkflow('sales.sequences', {}, { trigger: 'schedule' });
     const rami = (await emails(t, 'prospect-intro')).find((a) => a.payload.to === 'rami@agency-three.example');
     expect(rami).toMatchObject({ status: 'executed', standing_rule_id: on.body.autopilot.id });
+    // Each sales email can be stopped in one click: a link in the words, and the header mail apps show as a button.
+    expect(rami!.payload.unsubscribe_url).toMatch(
+      /^https:\/\/shop\.example\.test\/api\/public\/unsubscribe\/[0-9a-f-]{36}$/,
+    );
+    expect(rami!.payload.body).toMatch(
+      /open https:\/\/shop\.example\.test\/en\/u\/[0-9a-f-]{36} and I won't write again/,
+    );
 
     const fits = (body: string) =>
       fitsTemplate(t.test.db, 'prospect-intro', 'en', { subject: rami!.payload.subject, body });

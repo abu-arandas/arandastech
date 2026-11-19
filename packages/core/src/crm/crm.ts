@@ -6,6 +6,7 @@ import { invalid, notFound } from '../lib/errors';
 import { parseOrRefuse } from '../lib/validate';
 import type { Actor, Locale } from '../lib/types';
 import { SYSTEM } from '../lib/types';
+import { isBounceNotice, noteBounce } from './deliverability';
 import { noteBooking, openLeadFrom } from './pipeline';
 import type { Stage } from './stages';
 
@@ -67,6 +68,8 @@ export interface LeadRow {
   last_contact_at: Date | null;
   replied_at: Date | null;
   do_not_contact: boolean;
+  bounced_at: Date | null;
+  opt_out_token: string;
   notes: string;
   created_at: Date;
   updated_at: Date;
@@ -171,6 +174,12 @@ async function routeToSales(
   message: { from: string; subject?: string; body: string; leadId?: string },
 ): Promise<boolean> {
   if (message.leadId) return false;
+  // A delivery failure stops the emails to that address, and needs no answer: nobody reads a mail server's inbox.
+  if (isBounceNotice(message)) {
+    await noteBounce(tx, message, new Date());
+    await tx.query('update messages set handled = true where id = $1', [saved.id]);
+    return true;
+  }
   const booked = await noteBooking(tx, { from: message.from, subject: message.subject ?? '', body: message.body });
   if (booked) {
     await tx.query('update messages set handled = true, lead_id = $2 where id = $1', [saved.id, booked.id]);

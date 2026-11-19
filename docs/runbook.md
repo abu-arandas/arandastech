@@ -202,6 +202,19 @@ score is averaged with the rules, and the rules alone decide for spam and job se
 **New wording.** On each deploy, a template that is still a draft takes the latest wording from the code. An approved
 template, or one a department rewrote, is never changed.
 
+**Deliverability.** A mail server's failure notice ("Delivery Status Notification", "Undeliverable") marks each
+address it names that Sales wrote to as bounced and do-not-contact, and goes to nobody. Every sequence email carries an
+unsubscribe link (`/en/u/<token>`, where a button stops the emails, since opening the link alone changes nothing) and
+the `List-Unsubscribe` one-click header, which posts to `/api/public/unsubscribe/<token>`. While more than 5% of the
+addresses written to in two weeks bounced (from 20 addresses on), the daily limit is halved and Security raises an
+alert once a day.
+
+**Keys that expire.** GitHub, Vercel and Buffer take an optional "Expires on" date in Connections. A week before it,
+Security raises an alert once a day.
+
+**The Sunday report.** On Sundays in Amman, with Gmail live, the morning briefing also goes to the owner's own mailbox
+(`gmail.notify_owner`, Level 1: it can reach no one else), in English and Arabic with a link to the owner app.
+
 **Heartbeat.** `.github/workflows/heartbeat.yml` calls `/api/cron/agents` every 30 minutes, so new mail is read and
 answered within half an hour. The daily jobs still run once a day.
 

@@ -1,4 +1,5 @@
 import { mayPropose } from '../api/mcp';
+import { safeSendLimit } from '../crm/deliverability';
 import { invoicesToRemind, type InvoiceRow, markInvoiceSent, markProposalSent, type ProposalRow } from '../crm/billing';
 import type { LeadRow, MessageRow } from '../crm/crm';
 import { OPEN_STAGES, SEQUENCES, stopSequence, wantsNoMore } from '../crm/pipeline';
@@ -27,7 +28,15 @@ const DAY = 86_400_000;
 async function proposeEmail(
   rt: AgentRuntime,
   run: Run,
-  email: { to: string; subject: string; body: string; locale: Locale; template: string; lead_id?: string },
+  email: {
+    to: string;
+    subject: string;
+    body: string;
+    locale: Locale;
+    template: string;
+    lead_id?: string;
+    unsubscribe_url?: string;
+  },
   evidence: unknown[],
   key: string,
   untrusted = false,
@@ -36,6 +45,7 @@ async function proposeEmail(
     throw new Error(`The ${run.department} department may not send email.`);
   const payload: Json = { ...email };
   if (!email.lead_id) delete payload.lead_id;
+  if (!email.unsubscribe_url) delete payload.unsubscribe_url;
   const { action } = await rt.platform.gateway.propose({
     type: 'gmail.send_email',
     payload,
@@ -139,7 +149,12 @@ async function sequences(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
     const now = rt.platform.clock();
     // Lapsed approvals are closed first, so their emails can be asked for again today.
     await rt.platform.gateway.expireDue();
-    let budget = (await getPolicy(rt.db, 'sales.daily_send_limit')) - (await sentToday(rt));
+    const allowed = await safeSendLimit(rt.db, await getPolicy(rt.db, 'sales.daily_send_limit'), now);
+    if (allowed.halved)
+      run.notes.push(
+        `More than 5% of recent addresses bounced, so today's limit is halved to ${allowed.limit}. Check the prospect list.`,
+      );
+    let budget = allowed.limit - (await sentToday(rt));
     const result: SequenceResult = {
       proposed: [],
       waiting: 0,
@@ -238,7 +253,14 @@ async function nextStep(rt: AgentRuntime, run: Run, lead: LeadRow, now: Date, bu
   const action = await proposeEmail(
     rt,
     run,
-    { to: lead.email, ...text, locale: lead.locale, template: step.template, lead_id: lead.id },
+    {
+      to: lead.email,
+      ...text,
+      locale: lead.locale,
+      template: step.template,
+      lead_id: lead.id,
+      unsubscribe_url: optOutLinks(rt, lead)?.oneClick,
+    },
     [
       { kind: 'lead', id: lead.id },
       { kind: 'memory', id: `template:${step.template}` },
@@ -266,9 +288,23 @@ async function endSequence(db: Db, lead: LeadRow, end: Stage | null): Promise<vo
   );
 }
 
+/** The lead's unsubscribe page (a link in the email) and its one-click address (the List-Unsubscribe header). */
+function optOutLinks(rt: AgentRuntime, lead: LeadRow): { page: string; oneClick: string } | null {
+  const site = rt.platform.config.siteUrl;
+  if (!site || !lead.opt_out_token) return null;
+  return {
+    page: `${site}/${lead.locale}/u/${lead.opt_out_token}`,
+    oneClick: `${site}/api/public/unsubscribe/${lead.opt_out_token}`,
+  };
+}
+
 /** The values for the lead's next email; a proposal reminder also needs the proposal, and stops without one. */
 async function stepValues(rt: AgentRuntime, lead: LeadRow): Promise<Record<string, string> | null> {
-  const values = leadValues(lead);
+  const links = optOutLinks(rt, lead);
+  const values = {
+    ...leadValues(lead),
+    ...(links ? { opt_out: SALES_LINES.optOutLink[lead.locale](links.page) } : {}),
+  };
   if (lead.sequence !== 'proposal') return values;
   const proposal = maybeOne(
     await rt.db.query<ProposalRow>(

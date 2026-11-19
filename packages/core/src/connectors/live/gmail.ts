@@ -65,7 +65,13 @@ const encodeHeader = (value: string): string => {
 };
 
 /** A plain-text email in the form Gmail's API takes: base64url of the whole message. */
-export function buildMime(message: { from: string; to: string; subject: string; body: string }): string {
+export function buildMime(message: {
+  from: string;
+  to: string;
+  subject: string;
+  body: string;
+  unsubscribeUrl?: string;
+}): string {
   const body = Buffer.from(message.body, 'utf8')
     .toString('base64')
     .replace(/(.{76})/g, '$1\r\n');
@@ -73,6 +79,10 @@ export function buildMime(message: { from: string; to: string; subject: string; 
     `From: ${encodeHeader(message.from)}`,
     `To: ${encodeHeader(message.to)}`,
     `Subject: ${encodeHeader(message.subject)}`,
+    // Mail apps show their own unsubscribe button for these, and one press posts to the address.
+    ...(message.unsubscribeUrl
+      ? [`List-Unsubscribe: <${message.unsubscribeUrl}>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click']
+      : []),
     'MIME-Version: 1.0',
     'Content-Type: text/plain; charset=UTF-8',
     'Content-Transfer-Encoding: base64',
@@ -133,9 +143,11 @@ export class GmailConnector extends LiveConnector {
   protected async call(actionType: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
     const raw = buildMime({
       from: this.creds.address,
-      to: String(payload.to),
+      // A note to the owner goes to the mailbox itself, whatever the payload says.
+      to: actionType === 'gmail.notify_owner' ? this.creds.address : String(payload.to),
       subject: String(payload.subject),
       body: String(payload.body),
+      unsubscribeUrl: typeof payload.unsubscribe_url === 'string' ? payload.unsubscribe_url : undefined,
     });
     if (actionType === 'gmail.create_draft') {
       const draft = await this.gmail<{ id: string }>('/drafts', {
@@ -144,7 +156,7 @@ export class GmailConnector extends LiveConnector {
       });
       return { draft_id: draft.id };
     }
-    if (actionType === 'gmail.send_email') {
+    if (actionType === 'gmail.send_email' || actionType === 'gmail.notify_owner') {
       const sent = await this.gmail<{ id: string; threadId: string }>('/messages/send', {
         method: 'POST',
         body: JSON.stringify({ raw }),

@@ -38,6 +38,19 @@ export const TEXT = {
   total: { en: 'Total', ar: 'المجموع' },
   address: { en: 'Delivery address', ar: 'عنوان التوصيل' },
   continueToPayment: { en: 'Continue to payment', ar: 'تابع إلى الدفع' },
+  unsubscribeTitle: {
+    en: 'Stop the emails from Zirr?',
+    ar: 'إيقاف رسائل زِرّ؟',
+  },
+  unsubscribeButton: { en: 'Yes, stop them', ar: 'نعم، أوقفها' },
+  unsubscribed: {
+    en: 'Done. You will not hear from us again. Sorry for the bother.',
+    ar: 'تمّ. لن نراسلك مجدداً، ونعتذر عن الإزعاج.',
+  },
+  unsubscribeUnknown: {
+    en: 'This link is not one we know. Reply "no thanks" to the email instead and we will stop.',
+    ar: 'لا نعرف هذا الرابط. ردّ على الرسالة بكلمة «لا شكراً» وسنتوقف.',
+  },
   buyOnGumroad: {
     en: 'Buy on Gumroad: card or PayPal, the file comes at once',
     ar: 'اشترِ عبر Gumroad: بالبطاقة أو PayPal، ويصلك الملف فورًا',
