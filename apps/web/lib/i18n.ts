@@ -38,6 +38,10 @@ export const TEXT = {
   total: { en: 'Total', ar: 'المجموع' },
   address: { en: 'Delivery address', ar: 'عنوان التوصيل' },
   continueToPayment: { en: 'Continue to payment', ar: 'تابع إلى الدفع' },
+  buyOnGumroad: {
+    en: 'Buy on Gumroad: card or PayPal, the file comes at once',
+    ar: 'اشترِ عبر Gumroad: بالبطاقة أو PayPal، ويصلك الملف فورًا',
+  },
   paymentsClosed: {
     en: 'Card payments open soon. To buy now, send us a message and we will reply by email.',
     ar: 'الدفع بالبطاقة يُفتح قريبًا. للشراء الآن، أرسل لنا رسالة وسنردّ عليك بالبريد.',

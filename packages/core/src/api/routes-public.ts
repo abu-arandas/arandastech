@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { livePayments, paytabsCallback, whatsappWebhook } from '../connectors/registry';
+import { readConnection } from '../connectors/connections';
 import { createLead } from '../crm/crm';
+import { handleGumroadPing } from '../crm/gumroad';
 import { AppError } from '../lib/errors';
 import type { Platform } from '../platform';
 import { check } from './guards';
@@ -41,6 +43,7 @@ export function registerPublicRoutes(router: Router, platform: Platform): void {
 
   router.add('GET', '/api/public/payments', 'public', async () => ({
     provider: livePayments(platform) ? 'paytabs' : platform.config.demo ? 'test' : 'none',
+    gumroad: await gumroadShop(platform),
   }));
 
   // Where the buyer pays: PayTabs' own card page when PayTabs is connected, the test page in demo mode otherwise.
@@ -89,10 +92,20 @@ export function registerPublicRoutes(router: Router, platform: Platform): void {
   router.add('POST', '/api/webhooks/paytabs', 'public', async ({ request }) =>
     paytabsCallback(platform, request.body, request.headers.signature),
   );
+  router.add('POST', '/api/webhooks/gumroad/:key', 'public', async ({ request, params }) =>
+    handleGumroadPing(db, params.key!, request.body, clock()),
+  );
   router.add('POST', '/api/webhooks/whatsapp', 'public', async ({ request }) =>
     whatsappWebhook(platform, request.body, request.headers['x-hub-signature-256']),
   );
   router.add('POST', '/api/webhooks/supplier', 'public', async ({ request }) =>
     store.handleSupplierWebhook(request.body, request.headers['x-signature']),
   );
+}
+
+/** Where the storefront sends a buyer while its own card checkout is closed: the owner's Gumroad shop, if connected. */
+async function gumroadShop(platform: Platform): Promise<{ shop_url: string; products: string[] } | null> {
+  const saved = await readConnection(platform.db, 'gumroad');
+  if (!saved.shop_url || !saved.products || !saved.ping_key) return null;
+  return { shop_url: saved.shop_url, products: saved.products.split(',').map((p) => p.trim().toLowerCase()) };
 }

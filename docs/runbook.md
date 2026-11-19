@@ -212,14 +212,15 @@ provider. A key is typed once: it goes into `ops.secrets` as `connector:<id>:<fi
 not even to the owner. When every value a connector needs is saved, it goes live at once and is checked against the
 provider; **Disconnect** puts the mock back. Each live call is made once per idempotency key (`connector_calls`).
 
-| Account  | What the owner pastes                                          | Found or made by the platform                                     |
-| -------- | -------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Gmail    | Google OAuth client ID and secret, then Sign in with Google    | The refresh token and the mailbox address                         |
-| GitHub   | A fine-grained token (Issues, Pull requests, Contents)         | Nothing else                                                      |
-| Vercel   | An access token                                                | The team                                                          |
-| Buffer   | A personal API key                                             | The Facebook and LinkedIn channels                                |
-| WhatsApp | Phone number ID, a permanent system-user token, the app secret | The webhook verify token; the webhook is `/api/webhooks/whatsapp` |
-| PayTabs  | Profile ID and server key (region `jor` by default)            | The callback is `/api/webhooks/paytabs`                           |
+| Account  | What the owner pastes                                           | Found or made by the platform                                     |
+| -------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Gmail    | Google OAuth client ID and secret, then Sign in with Google     | The refresh token and the mailbox address                         |
+| GitHub   | A fine-grained token (Issues, Pull requests, Contents)          | Nothing else                                                      |
+| Vercel   | An access token                                                 | The team                                                          |
+| Buffer   | A personal API key                                              | The Facebook and LinkedIn channels                                |
+| WhatsApp | Phone number ID, a permanent system-user token, the app secret  | The webhook verify token; the webhook is `/api/webhooks/whatsapp` |
+| PayTabs  | Profile ID and server key (region `jor` by default)             | The callback is `/api/webhooks/paytabs`                           |
+| Gumroad  | The shop address and the products to count (seller ID optional) | The secret ping address `/api/webhooks/gumroad/<key>`             |
 
 - New mail is read when the owner app refreshes (at most once a minute) and by the daily cron run, then Support answers it.
   Publish the Google app (Google Auth Platform, Publish app) so the sign-in does not expire after 7 days; with only the
@@ -229,6 +230,12 @@ provider; **Disconnect** puts the mock back. Each live call is made once per ide
   the merchant account.
 - In demo mode a standing rule never acts through a live account, because anyone can place an order there: each send
   waits in Approvals.
+- **Gumroad** only receives. Paste the ping address into Gumroad (Settings, Advanced, Ping) and press Send test ping;
+  the test is written to the audit log and records nothing. Each real sale of a listed product becomes a paid invoice
+  (`paid_via` gumroad) in the services books, the buyer becomes a client and gets the check-ins after 2 weeks and 2
+  months, unless they told Gumroad not to contact them. A repeated ping changes nothing (`gumroad_sales`). Gumroad sends
+  the receipt and the file itself. While card checkout is closed, a listed product's checkout page sends the buyer to
+  its Gumroad page. A refund on Gumroad is not pinged: void or refund it in the owner app.
 - WhatsApp free-form replies reach a customer only within 24 hours of their last message (Meta's rule).
 
 ## Before anything goes live

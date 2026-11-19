@@ -293,6 +293,7 @@ export const CONNECTORS = [
     status: 'built',
     note: 'Mock provider. Needs a live provider that can receive and withdraw in Jordan.',
   },
+  { id: 'gumroad', name: 'Gumroad', status: 'built', note: 'Receives sale pings once the owner connects the shop.' },
   { id: 'supplier', name: 'Suppliers', status: 'built', note: 'Mock supplier. Needed only for physical products.' },
   { id: 'facebook', name: 'Facebook and Meta', status: 'planned', note: 'Publishing goes through Buffer first.' },
   { id: 'linkedin', name: 'LinkedIn', status: 'planned', note: 'Publishing goes through Buffer first.' },
