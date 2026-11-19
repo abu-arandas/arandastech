@@ -37,6 +37,34 @@ describe('deploying to a hosted database', () => {
     expect(published).toEqual([]);
   });
 
+  it('gives unapproved templates the latest wording, and never touches an approved or rewritten one', async () => {
+    const platform = createPlatform(test.db, { demo: false, webhookSecrets: secrets });
+    const old = JSON.stringify({ en: { subject: 'Old', body: 'Old' }, ar: { subject: 'قديم', body: 'قديم' } });
+    await test.db.query(`update memory_items set body = $1::jsonb where key = 'template:prospect-intro'`, [old]);
+    await test.db.query(
+      `update memory_items set body = $1::jsonb, status = 'approved' where key = 'template:prospect-follow-up'`,
+      [old],
+    );
+    await test.db.query(
+      `update memory_items set body = $1::jsonb, source = 'Sales department' where key = 'template:prospect-close'`,
+      [old],
+    );
+    await install(platform);
+    const body = async (key: string) =>
+      (
+        await test.db.query<{ body: { en: { subject: string } } }>('select body from memory_items where key = $1', [
+          key,
+        ])
+      )[0]!.body.en.subject;
+    expect(await body('template:prospect-intro')).toBe('Extra Flutter hands for {{company}}');
+    expect(await body('template:prospect-follow-up')).toBe('Old');
+    expect(await body('template:prospect-close')).toBe('Old');
+    const [intro] = await test.db.query<{ status: string }>(
+      `select status from memory_items where key = 'template:prospect-intro'`,
+    );
+    expect(intro!.status).toBe('draft');
+  });
+
   it('keeps installing after the owner renames a product', async () => {
     const platform = createPlatform(test.db, { demo: true, webhookSecrets: secrets });
     await install(platform);

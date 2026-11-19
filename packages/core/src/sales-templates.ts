@@ -3,7 +3,7 @@
  * check-ins. New wording, for the owner to approve in business memory before any of it reaches a customer.
  *
  * Every value in double braces is filled in by code from the records and the policy sheet, never by a model:
- * - `name`, `company`: the lead,
+ * - `name`, `first_name`, `company`: the lead (`first_name` is the name it is greeted by),
  * - `sender`: `sales.sender_name`, `showcase`: `sales.showcase_link`,
  * - `booking_line`: the booking link sentence (`sales.booking_link`), or a request for two times when it is not set,
  * - `opt_out`: the sentence that lets a prospect stop the emails,
@@ -25,37 +25,39 @@ const SIGN_AR = '{{sender}}\nزِرّ، استوديو Flutter في عمّان';
 
 export const SALES_TEMPLATES: Record<string, SalesTemplate> = {
   // ---------------------------------------------------------------- Outreach to agencies (sequence "outreach")
+  // Short, about one thing each, and each one adds something new. The first asks a question a busy person can answer
+  // in one line; the call link comes in the second, once they know who is writing.
   'prospect-intro': {
     title: 'Outreach 1: first email to an agency',
     en: {
-      subject: 'Flutter help for {{company}}',
-      body: `Hello {{name}},\n\nI'm {{sender}}, a Flutter and Supabase developer in Amman. I build Arabic and English apps under an agency's own name, so your clients only ever see {{company}}.\n\nWhen you have more app work than people, I can take a project at a fixed quote, or keep days free for you every month. My own work, including Zirr Retail (an online shop, back office and point of sale in one Flutter app), is here: {{showcase}}\n\n{{booking_line}}\n\n${SIGN_EN}\n\n{{opt_out}}`,
+      subject: 'Extra Flutter hands for {{company}}',
+      body: `Hi {{first_name}},\n\nWhen {{company}} has more Flutter work than people, I can take it on under your name: a fixed quote within two working days, a working build every week, and Arabic and English screens done properly, right to left included.\n\nI'm {{sender}}, a Flutter and Supabase developer in Amman. My own product, Zirr Retail (an online shop, back office and point of sale in one Flutter app), shows the standard I work to:\n{{showcase}}\n\nDo you ever pass app work to outside developers? A one-line reply is plenty.\n\n${SIGN_EN}\n\n{{opt_out}}`,
     },
     ar: {
-      subject: 'مساعدة في Flutter لـ {{company}}',
-      body: `مرحباً {{name}}،\n\nأنا {{sender}}، مطوّر Flutter وSupabase في عمّان. أبني تطبيقات بالعربي والإنجليزي باسم الوكالة نفسها، فلا يرى عملاؤكم إلا اسم {{company}}.\n\nحين يكون لديكم عمل أكثر من فريقكم، أستطيع أن أتولّى مشروعاً بسعر ثابت، أو أحجز لكم أياماً كل شهر. أعمالي، ومنها زِرّ للتجزئة (متجر إلكتروني ولوحة إدارة ونقطة بيع في تطبيق Flutter واحد)، هنا: {{showcase}}\n\n{{booking_line}}\n\n${SIGN_AR}\n\n{{opt_out}}`,
+      subject: 'مطوّر Flutter إضافي لفريق {{company}}',
+      body: `مرحباً {{first_name}}،\n\nحين يكون لدى {{company}} عمل Flutter أكثر من فريقكم، أستطيع أن أتولّاه باسمكم: سعر ثابت خلال يومَي عمل، ونسخة تعمل كل أسبوع، وشاشات عربية وإنجليزية متقنة من اليمين إلى اليسار.\n\nأنا {{sender}}، مطوّر Flutter وSupabase في عمّان. منتجي زِرّ للتجزئة (متجر إلكتروني ولوحة إدارة ونقطة بيع في تطبيق Flutter واحد) يُظهر مستوى العمل الذي ألتزم به:\n{{showcase}}\n\nهل تُسندون أحياناً مشاريع تطبيقات إلى مطوّرين من خارج الفريق؟ يكفيني ردّ بسطر واحد.\n\n${SIGN_AR}\n\n{{opt_out}}`,
     },
   },
   'prospect-follow-up': {
     title: 'Outreach 2: follow-up to an agency',
     en: {
-      subject: 'Re: Flutter help for {{company}}',
-      body: `Hello {{name}},\n\nA short follow-up to my last email. If a Flutter project is waiting for a free developer at {{company}}, I can send a fixed quote within two working days of seeing the brief, and show you a working build every week.\n\n{{booking_line}}\n\n${SIGN_EN}\n\n{{opt_out}}`,
+      subject: 'Re: Extra Flutter hands for {{company}}',
+      body: `Hi {{first_name}},\n\nOne thing I should have said: agencies usually start me on something small, such as one screen, a bug list or a prototype, so you can judge the work before a bigger project. I sign your NDA, the code lives in your repository from the first day, and your client never sees my name.\n\nIf that could help at {{company}}:\n{{booking_line}}\n\n${SIGN_EN}\n\n{{opt_out}}`,
     },
     ar: {
-      subject: 'رد: مساعدة في Flutter لـ {{company}}',
-      body: `مرحباً {{name}}،\n\nمتابعة قصيرة لرسالتي السابقة. إن كان لدى {{company}} مشروع Flutter ينتظر مطوّراً متفرّغاً، أرسل لكم سعراً ثابتاً خلال يومَي عمل من قراءة المتطلبات، وتشاهدون نسخة تعمل كل أسبوع.\n\n{{booking_line}}\n\n${SIGN_AR}\n\n{{opt_out}}`,
+      subject: 'رد: مطوّر Flutter إضافي لفريق {{company}}',
+      body: `مرحباً {{first_name}}،\n\nفاتني أن أذكر أمراً: عادةً تبدأ الوكالات معي بعمل صغير، مثل شاشة واحدة أو قائمة أخطاء أو نموذج أوّلي، لتحكموا على العمل قبل أي مشروع أكبر. أوقّع اتفاقية السرية الخاصة بكم، ويكون الكود في مستودعكم من اليوم الأول، ولا يرى عميلكم اسمي أبداً.\n\nإن كان هذا يفيد {{company}}:\n{{booking_line}}\n\n${SIGN_AR}\n\n{{opt_out}}`,
     },
   },
   'prospect-close': {
     title: 'Outreach 3: last email',
     en: {
-      subject: 'Re: Flutter help for {{company}}',
-      body: `Hello {{name}},\n\nI won't keep writing, so this is my last email for now. If Flutter work comes up later, reply to this email any time and I'll answer within one working day.\n\nThank you for reading.\n\n${SIGN_EN}`,
+      subject: 'Re: Extra Flutter hands for {{company}}',
+      body: `Hi {{first_name}},\n\nI'll stop here so I don't fill your inbox. If someone else at {{company}} looks after outside developers, I'd be grateful for their name.\n\nAnd if Flutter work comes up later, a reply to this email reaches me any time, and I answer within one working day.\n\nThank you for reading.\n\n${SIGN_EN}`,
     },
     ar: {
-      subject: 'رد: مساعدة في Flutter لـ {{company}}',
-      body: `مرحباً {{name}}،\n\nلا أريد أن أثقل عليكم، فهذه آخر رسالة مني الآن. إن احتجتم إلى عمل Flutter لاحقاً، ردّوا على هذه الرسالة في أي وقت وسأجيب خلال يوم عمل واحد.\n\nشكراً لوقتكم.\n\n${SIGN_AR}`,
+      subject: 'رد: مطوّر Flutter إضافي لفريق {{company}}',
+      body: `مرحباً {{first_name}}،\n\nسأتوقّف هنا كي لا أثقل بريدكم. إن كان في {{company}} شخص آخر يتولّى التعامل مع المطوّرين من خارج الفريق، أكون شاكراً لو أرسلتم لي اسمه.\n\nوإن ظهر عمل Flutter لاحقاً، فالردّ على هذه الرسالة يصلني في أي وقت، وأجيب خلال يوم عمل واحد.\n\nشكراً لوقتكم.\n\n${SIGN_AR}`,
     },
   },
 
@@ -63,35 +65,35 @@ export const SALES_TEMPLATES: Record<string, SalesTemplate> = {
   'shop-intro': {
     title: 'Shop outreach 1: point of sale and online shop',
     en: {
-      subject: 'A point of sale and online shop for {{company}}',
-      body: `Hello {{name}},\n\nI'm {{sender}} from Zirr in Amman. We make a point of sale and an online shop that work in Arabic and English, share one stock list, and keep selling when the internet drops.\n\nWe install it for you, and you try it free for 14 days before paying anything. You can see it here: {{showcase}}\n\n{{booking_line}}\n\n${SIGN_EN}\n\n{{opt_out}}`,
+      subject: 'A till and online shop for {{company}}',
+      body: `Hi {{first_name}},\n\nI'm {{sender}} from Zirr in Amman. We make a till and an online shop that share one stock list, print receipts in Arabic and English, and keep selling when the internet drops. In Jordan they also send your JoFotara e-invoices.\n\nWe set it up with your own products, and you try it free for 14 days before paying anything:\n{{showcase}}\n\nWould a free trial be worth a look for {{company}}? A one-line reply is plenty.\n\n${SIGN_EN}\n\n{{opt_out}}`,
     },
     ar: {
       subject: 'نظام كاشير ومتجر إلكتروني لـ {{company}}',
-      body: `مرحباً {{name}}،\n\nأنا {{sender}} من زِرّ في عمّان. نصنع نظام كاشير ومتجراً إلكترونياً يعملان بالعربي والإنجليزي، بقائمة مخزون واحدة، ويستمر البيع حتى لو انقطع الإنترنت.\n\nنركّبه عندكم، وتجرّبونه مجاناً 14 يوماً قبل أن تدفعوا شيئاً. تجدونه هنا: {{showcase}}\n\n{{booking_line}}\n\n${SIGN_AR}\n\n{{opt_out}}`,
+      body: `مرحباً {{first_name}}،\n\nأنا {{sender}} من زِرّ في عمّان. نصنع نظام كاشير ومتجراً إلكترونياً بقائمة مخزون واحدة، يطبعان الفواتير بالعربي والإنجليزي، ويستمر البيع حتى لو انقطع الإنترنت. وفي الأردن يرسلان فواتير «جوفوترا» الإلكترونية عنكم.\n\nنجهّزه بمنتجاتكم، وتجرّبونه مجاناً 14 يوماً قبل أن تدفعوا شيئاً:\n{{showcase}}\n\nهل تستحق التجربة المجانية نظرة من {{company}}؟ يكفيني ردّ بسطر واحد.\n\n${SIGN_AR}\n\n{{opt_out}}`,
     },
   },
   'shop-follow-up': {
     title: 'Shop outreach 2: follow-up',
     en: {
-      subject: 'Re: A point of sale and online shop for {{company}}',
-      body: `Hello {{name}},\n\nA short follow-up. The 14-day free trial still stands: we set it up with your own products, and you keep it only if it helps.\n\n{{booking_line}}\n\n${SIGN_EN}\n\n{{opt_out}}`,
+      subject: 'Re: A till and online shop for {{company}}',
+      body: `Hi {{first_name}},\n\nA short follow-up, with how the free trial works: we add your products, show your staff the till, and leave it running. For 14 days you sell on it as normal. If it doesn't help, you pay nothing and we take it away.\n\nTo see it with your own products:\n{{booking_line}}\n\n${SIGN_EN}\n\n{{opt_out}}`,
     },
     ar: {
       subject: 'رد: نظام كاشير ومتجر إلكتروني لـ {{company}}',
-      body: `مرحباً {{name}}،\n\nمتابعة قصيرة. التجربة المجانية لمدة 14 يوماً ما زالت متاحة: نجهّزها بمنتجاتكم، وتحتفظون بها فقط إن أفادتكم.\n\n{{booking_line}}\n\n${SIGN_AR}\n\n{{opt_out}}`,
+      body: `مرحباً {{first_name}}،\n\nمتابعة قصيرة، مع طريقة التجربة المجانية: نضيف منتجاتكم، ونُري موظفيكم نظام الكاشير، ونتركه يعمل. لمدة 14 يوماً تبيعون عليه كالمعتاد، وإن لم يفدكم فلا تدفعون شيئاً ونزيله.\n\nلتروه بمنتجاتكم:\n{{booking_line}}\n\n${SIGN_AR}\n\n{{opt_out}}`,
     },
   },
 
   'shop-close': {
     title: 'Shop outreach 3: last email',
     en: {
-      subject: 'Re: A point of sale and online shop for {{company}}',
-      body: `Hello {{name}},\n\nThis is my last email for now. If you want to try the point of sale or the online shop later, reply to this email any time and we will set up your free trial.\n\nThank you for reading.\n\n${SIGN_EN}`,
+      subject: 'Re: A till and online shop for {{company}}',
+      body: `Hi {{first_name}},\n\nThis is my last email for now. If someone else at {{company}} decides on the till, I'd be grateful if you passed this on.\n\nAnd if you want the free trial later, reply to this email any time and we will set it up.\n\nThank you for reading.\n\n${SIGN_EN}`,
     },
     ar: {
       subject: 'رد: نظام كاشير ومتجر إلكتروني لـ {{company}}',
-      body: `مرحباً {{name}}،\n\nهذه آخر رسالة مني الآن. إن أردتم تجربة نظام الكاشير أو المتجر الإلكتروني لاحقاً، ردّوا على هذه الرسالة في أي وقت وسنجهّز لكم التجربة المجانية.\n\nشكراً لوقتكم.\n\n${SIGN_AR}`,
+      body: `مرحباً {{first_name}}،\n\nهذه آخر رسالة مني الآن. إن كان شخص آخر في {{company}} يقرّر بشأن نظام الكاشير، أكون شاكراً لو أوصلتم له هذه الرسالة.\n\nوإن أردتم التجربة المجانية لاحقاً، ردّوا على هذه الرسالة في أي وقت وسنجهّزها لكم.\n\nشكراً لوقتكم.\n\n${SIGN_AR}`,
     },
   },
 
@@ -100,22 +102,22 @@ export const SALES_TEMPLATES: Record<string, SalesTemplate> = {
     title: 'Follow-up to a website lead',
     en: {
       subject: 'Re: your message to Zirr',
-      body: `Hello {{name}},\n\nI'm following up on the message you sent us. A short call is usually the quickest way to agree the scope and the price.\n\n{{booking_line}}\n\n${SIGN_EN}`,
+      body: `Hi {{first_name}},\n\nI'm following up on the message you sent us. To give you a firm price, I need three things: what the app must do, who will use it, and when you need it.\n\nA short call usually covers all three:\n{{booking_line}}\n\nIf you'd rather write, reply with them here and I'll send the quote within two working days.\n\n${SIGN_EN}`,
     },
     ar: {
       subject: 'رد: رسالتك إلى زِرّ',
-      body: `مرحباً {{name}}،\n\nأتابع معك بخصوص رسالتك إلينا. مكالمة قصيرة هي عادةً أسرع طريقة لنتفق على نطاق العمل والسعر.\n\n{{booking_line}}\n\n${SIGN_AR}`,
+      body: `مرحباً {{first_name}}،\n\nأتابع معك بخصوص رسالتك إلينا. لأرسل لك سعراً ثابتاً، أحتاج إلى ثلاثة أمور: ما الذي يجب أن يقوم به التطبيق، ومن سيستخدمه، ومتى تحتاجه.\n\nمكالمة قصيرة تغطّي الثلاثة عادةً:\n{{booking_line}}\n\nوإن كنت تفضّل الكتابة، أرسلها رداً على هذه الرسالة وسأرسل لك السعر خلال يومَي عمل.\n\n${SIGN_AR}`,
     },
   },
   'meeting-invite': {
     title: 'Answer to a prospect who replied: book a call',
     en: {
       subject: 'Re: a call with Zirr',
-      body: `Hello {{name}},\n\nThank you for your reply. The easiest next step is a short call, where I hear what you need and you see the work.\n\n{{booking_line}}\n\n${SIGN_EN}`,
+      body: `Hi {{first_name}},\n\nThank you for your reply. The quickest next step is a short call: you tell me what you need, I show you work like it, and you get a fixed quote within two working days.\n\n{{booking_line}}\n\n${SIGN_EN}`,
     },
     ar: {
       subject: 'رد: مكالمة مع زِرّ',
-      body: `مرحباً {{name}}،\n\nشكراً لردّك. أسهل خطوة تالية مكالمة قصيرة، أسمع فيها ما تحتاجونه وتشاهدون العمل.\n\n{{booking_line}}\n\n${SIGN_AR}`,
+      body: `مرحباً {{first_name}}،\n\nشكراً لردّك. أسرع خطوة تالية مكالمة قصيرة: تخبرني بما تحتاجونه، وأريك عملاً مشابهاً، ويصلك سعر ثابت خلال يومَي عمل.\n\n{{booking_line}}\n\n${SIGN_AR}`,
     },
   },
 
@@ -124,11 +126,11 @@ export const SALES_TEMPLATES: Record<string, SalesTemplate> = {
     title: 'Proposal email',
     en: {
       subject: 'Proposal {{number}}: {{title}}',
-      body: `Hello {{name}},\n\nThank you for the call. Here is the proposal for {{title}}, with the scope and the price: {{total}}.\n\nRead it and accept it here: {{link}}\n\nIt is valid until {{valid_until}}. Reply to this email with any question or change.\n\n${SIGN_EN}`,
+      body: `Hello {{name}},\n\nThank you for the call. Here is the proposal for {{title}}, with the scope and the price: {{total}}.\n\nRead it and accept it here: {{link}}\n\nOnce you accept, the first invoice comes to you by email. The proposal is valid until {{valid_until}}. Reply to this email with any question or change.\n\n${SIGN_EN}`,
     },
     ar: {
       subject: 'عرض السعر {{number}}: {{title}}',
-      body: `مرحباً {{name}}،\n\nشكراً على المكالمة. هذا عرض السعر لـ {{title}}، بنطاق العمل والسعر: {{total}}.\n\nاقرأه ووافق عليه من هنا: {{link}}\n\nالعرض ساري حتى {{valid_until}}. ردّ على هذه الرسالة بأي سؤال أو تعديل.\n\n${SIGN_AR}`,
+      body: `مرحباً {{name}}،\n\nشكراً على المكالمة. هذا عرض السعر لـ {{title}}، بنطاق العمل والسعر: {{total}}.\n\nاقرأه ووافق عليه من هنا: {{link}}\n\nبعد موافقتك تصلك الفاتورة الأولى بالبريد. العرض ساري حتى {{valid_until}}. ردّ على هذه الرسالة بأي سؤال أو تعديل.\n\n${SIGN_AR}`,
     },
   },
   'proposal-reminder': {
@@ -194,11 +196,11 @@ export const SALES_TEMPLATES: Record<string, SalesTemplate> = {
     title: 'Client check-in, two months after payment',
     en: {
       subject: 'A quick hello from Zirr',
-      body: `Hello {{name}},\n\nI hope the work is serving you well. If you have a next project in mind, or know someone who needs a Flutter app, I'd be glad to help.\n\n{{booking_line}}\n\n${SIGN_EN}`,
+      body: `Hello {{name}},\n\nI hope the work is serving you well. If you have a next project in mind, I'd be glad to help. And if you know one business that needs a Flutter app or a till, an introduction by email is the best thank-you there is.\n\n{{booking_line}}\n\n${SIGN_EN}`,
     },
     ar: {
       subject: 'تحية سريعة من زِرّ',
-      body: `مرحباً {{name}}،\n\nأتمنى أن يكون العمل مفيداً لكم. إن كان لديكم مشروع قادم، أو تعرفون من يحتاج تطبيق Flutter، يسعدني أن أساعد.\n\n{{booking_line}}\n\n${SIGN_AR}`,
+      body: `مرحباً {{name}}،\n\nأتمنى أن يكون العمل مفيداً لكم. إن كان لديكم مشروع قادم، يسعدني أن أساعد. وإن كنتم تعرفون نشاطاً تجارياً يحتاج تطبيق Flutter أو نظام كاشير، فتعريفنا ببعض عبر البريد هو أجمل شكر.\n\n{{booking_line}}\n\n${SIGN_AR}`,
     },
   },
 };

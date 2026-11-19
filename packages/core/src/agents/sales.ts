@@ -67,8 +67,22 @@ async function commonValues(rt: AgentRuntime, locale: Locale): Promise<Record<st
 
 const leadValues = (lead: LeadRow): Record<string, string> => ({
   name: lead.name,
+  first_name: firstName(lead.name),
   company: lead.company ?? lead.name,
 });
+
+/** Words that are only half a first name, such as Abd in Abd Allah. */
+const JOINS_NEXT = /^(abd|abdel|abdul|abu|عبد|أبو|ابو)$/i;
+const TITLE = /^(mr|mrs|ms|dr|eng)\.?$|^[مد]\.$/i;
+
+/** The name an email greets someone by: the first name, kept whole when it has two parts, such as عبد الله. */
+export function firstName(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return name.trim();
+  const [first, second] = TITLE.test(words[0]!) ? words.slice(1) : words;
+  if (!first) return name.trim();
+  return second && JOINS_NEXT.test(first) ? `${first} ${second}` : first;
+}
 
 /** Writes one template, or says that the owner still has to approve it. */
 async function write(
@@ -117,7 +131,7 @@ type StepOutcome = 'waiting' | 'stopped' | 'ended' | 'held_by_limit' | 'skipped'
 
 /**
  * Each morning: every lead whose next step is due gets its next email proposed, within the daily limit, and unpaid
- * invoices get their reminders. Answers to clients come first, then follow-ups, then first emails.
+ * invoices get their reminders. Answers to clients come first, then follow-ups, then first emails, best fit first.
  */
 async function sequences(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   return rt.record('sales.sequences', ctx, input, async (run) => {
@@ -169,7 +183,8 @@ async function sequences(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
 function dueLeads(db: Db, now: Date): Promise<LeadRow[]> {
   return db.query<LeadRow>(
     `select * from leads where next_step_at <= $1 and sequence is not null and not do_not_contact
-     order by case when sequence in ('check_in', 'proposal') then 0 when sequence_step > 0 then 1 else 2 end, next_step_at
+     order by case when sequence in ('check_in', 'proposal') then 0 when sequence_step > 0 then 1 else 2 end,
+       case when sequence_step = 0 and kind = 'prospect' then score end desc nulls last, next_step_at
      limit 200`,
     [now],
   );

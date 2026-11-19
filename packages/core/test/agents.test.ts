@@ -4,7 +4,9 @@ import { planByRules } from '../src/agents/command';
 import { claimJob, enqueue } from '../src/agents/jobs';
 import { costMicros, type ModelClient, type ModelRequest } from '../src/agents/model';
 import { briefingText, onlyKnownNumbers } from '../src/agents/briefing';
-import { classify, matchFaq, scoreLead } from '../src/agents/workflows';
+import { firstName } from '../src/agents/sales';
+import { classify, matchFaq } from '../src/agents/workflows';
+import { combineScores, scoreLead, scoreProspect } from '../src/crm/scoring';
 import { createApi, type ApiResponse } from '../src/api/index';
 import { DEMO_OWNER_ID } from '../src/company';
 import { createLead, recordInbound } from '../src/crm/crm';
@@ -79,7 +81,8 @@ describe('manual mode: no AI key', () => {
     expect(send!.agent_run_id).toBeTruthy();
 
     const [scored] = await t.test.db.query<Json>('select * from leads where id = $1', [lead.id]);
-    expect(scored!.score).toBe(70);
+    expect(scored!.score).toBe(75);
+    expect(scored!.score_reasons).toContain('+10: mentions a timeline or a start');
     expect(scored!.stage).toBe('qualified');
 
     const [run] = await t.test.db.query<Json>(`select * from agent_runs where workflow = 'sales.lead_reply'`);
@@ -402,8 +405,12 @@ describe('with an AI model', () => {
     expect(Number(run!.cost_micros)).toBe(
       costMicros({ model: 'claude-opus-5-5', usage: { input_tokens: 2000, output_tokens: 500 } as never }),
     );
-    const [lead] = await t.test.db.query<Json>(`select score from leads where email = 'rami@agency.example'`);
-    expect(lead!.score).toBe(82);
+    // The model's 82 is checked by the rules: the two are averaged, and the reasons say so.
+    const [lead] = await t.test.db.query<Json>(
+      `select score, score_reasons from leads where email = 'rami@agency.example'`,
+    );
+    expect(lead!.score).toBe(71);
+    expect(lead!.score_reasons[0]).toBe('Rules 60, assistant 82, average 71.');
   });
 
   it('falls back to manual mode when the model fails or answers in the wrong shape, and says so', async () => {
@@ -541,15 +548,90 @@ describe('with an AI model', () => {
 describe('the fixed rules', () => {
   it('score a lead with reasons', () => {
     expect(scoreLead({ email: 'a@gmail.com', phone: null, package_id: null, message: 'hi' }, false)).toEqual({
-      score: 20,
-      reasons: [],
+      score: 10,
+      reasons: ['-10: said very little'],
     });
     const full = scoreLead(
-      { email: 'a@agency.example', phone: '+962', package_id: 'project', message: `${'x'.repeat(120)} budget` },
+      {
+        email: 'a@agency.example',
+        phone: '+962',
+        package_id: 'project',
+        message: `${'We need a Flutter app for a client. '.repeat(9)}Budget is $8,000 and we launch next month, asap.`,
+      },
       false,
     );
-    expect(full.score).toBe(95);
+    expect(full.score).toBe(100);
+    expect(full.reasons).toContain('+15: names a budget');
     expect(scoreLead({ email: 'a@agency.example', phone: null, package_id: null, message: 'x' }, true).score).toBe(0);
+  });
+
+  it('mark down people who are not buyers, in both languages', () => {
+    const seo = scoreLead(
+      {
+        email: 'b@seo.example',
+        phone: null,
+        package_id: null,
+        message: 'We offer SEO services and backlinks for your site.',
+      },
+      false,
+    );
+    expect(seo.score).toBe(0);
+    expect(seo.reasons[0]).toBe('-40: sells us a service, not work for us');
+    const job = scoreLead(
+      { email: 'c@gmail.com', phone: null, package_id: null, message: 'أبحث عن عمل، هذه سيرتي الذاتية' },
+      false,
+    );
+    expect(job.reasons).toContain('-30: reads like a job application, not a project');
+    expect(job.score).toBe(0);
+    // A model cannot lift someone the rules call a job seeker.
+    expect(
+      combineScores(job, { score: 90, reasons: ['keen'] }, { email: 'c@gmail.com', message: 'سيرتي الذاتية' }),
+    ).toBe(job);
+    const arabic = scoreLead(
+      {
+        email: 'd@shop.example',
+        phone: null,
+        package_id: null,
+        message: 'نريد متجر إلكتروني بميزانية ٣٠٠٠ دينار، عاجل',
+      },
+      false,
+    );
+    expect(arabic.reasons).toEqual(
+      expect.arrayContaining(['+15: names a budget', '+5: needs it soon', '+5: asks for the kind of work we do']),
+    );
+  });
+
+  it('score how well a prospect fits', () => {
+    const best = scoreProspect({
+      email: 'lina@agency-one.example',
+      website: 'https://www.agency-one.example/work',
+      country: 'Jordan',
+      notes: 'Builds mobile apps for banks',
+      value: '1500',
+    });
+    expect(best).toEqual({
+      score: 100,
+      reasons: [
+        '+10: has a website',
+        '+15: the address is on its own website',
+        '+10: a company address',
+        '+10: in Jordan or the region',
+        '+15: the notes say it does app work',
+        '+10: the owner expects a deal value',
+      ],
+    });
+    expect(scoreProspect({ email: 'someone@gmail.com' })).toEqual({
+      score: 20,
+      reasons: ['-10: a personal address, not the company'],
+    });
+  });
+
+  it('greet people by their first name', () => {
+    expect(firstName('Lina Haddad')).toBe('Lina');
+    expect(firstName('  Omar  ')).toBe('Omar');
+    expect(firstName('عبد الله الخطيب')).toBe('عبد الله');
+    expect(firstName('Dr. Sara Nasser')).toBe('Sara');
+    expect(firstName('Abu Ali')).toBe('Abu Ali');
   });
 
   it('sort messages in both languages', () => {

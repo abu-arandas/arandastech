@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { audit } from '../governance/audit';
-import { type Db, maybeOne } from '../lib/db';
+import { type Db, json, maybeOne } from '../lib/db';
 import { invalid, notFound } from '../lib/errors';
 import { toMinor } from '../lib/money';
 import type { Actor } from '../lib/types';
 import type { LeadRow } from './crm';
+import { scoreProspect } from './scoring';
 import { STAGES, type Stage } from './stages';
 
 /**
@@ -137,10 +138,11 @@ export async function addProspects(
       const sent = p.already_sent ?? 0;
       const lastSent = p.last_sent_on ? new Date(`${p.last_sent_on}T06:00:00Z`) : now;
       const next = sent === 0 ? now : addDays(lastSent, steps[Math.min(sent, steps.length) - 1]!.waitDays);
+      const fit = scoreProspect(p);
       await tx.query(
         `insert into leads (kind, name, email, company, website, country, locale, message, source, notes, value_minor,
-           value_currency, stage, sequence, sequence_step, next_step_at, last_contact_at, created_at)
-         values ('prospect', $1, $2, $3, $4, $5, $6, '', 'outreach', $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+           value_currency, stage, sequence, sequence_step, next_step_at, last_contact_at, created_at, score, score_reasons)
+         values ('prospect', $1, $2, $3, $4, $5, $6, '', 'outreach', $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::jsonb)`,
         [
           p.name,
           p.email,
@@ -157,6 +159,8 @@ export async function addProspects(
           next,
           sent > 0 ? lastSent : null,
           now,
+          fit.score,
+          json(fit.reasons),
         ],
       );
       added += 1;
