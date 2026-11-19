@@ -7,6 +7,7 @@ import { stagger } from '@/app/_components/text';
 
 type L = { en: string; ar: string };
 interface Product {
+  slug: string;
   kind: string;
   name: L;
   variants: Array<{ sku: string; name: L; price_minor: number; currency: string }>;
@@ -45,8 +46,17 @@ export default async function Checkout({
   const variant = product?.variants.find((v) => v.sku === sku);
   if (!product || !variant) notFound();
   const error = (await searchParams).error;
-  const payments = await call<{ provider: string }>('GET', '/api/public/payments');
+  const payments = await call<{ provider: string; gumroad: { shop_url: string; products: string[] } | null }>(
+    'GET',
+    '/api/public/payments',
+  );
   const open = payments.ok && payments.data.provider !== 'none';
+  // While card checkout is closed, a licence sold on Gumroad is bought there, and the sale comes back by Gumroad's ping.
+  const gumroad = payments.ok ? payments.data.gumroad : null;
+  const gumroadUrl =
+    !open && gumroad?.products.includes(product.slug)
+      ? `${gumroad.shop_url}/l/${encodeURIComponent(product.slug)}`
+      : null;
   return (
     <>
       {/* Checkout stays calm: the page comes in, and the button gives when pressed. Nothing else moves here. */}
@@ -62,7 +72,14 @@ export default async function Checkout({
           {error}
         </p>
       )}
-      {!open && (
+      {gumroadUrl && (
+        <p className="enter" style={stagger(0, 160)}>
+          <a className="button" href={gumroadUrl} rel="noopener">
+            {t('buyOnGumroad', locale)}
+          </a>
+        </p>
+      )}
+      {!open && !gumroadUrl && (
         <p className="enter" role="status" style={stagger(0, 160)}>
           {t('paymentsClosed', locale)} <Link href={`/${locale}/contact`}>{t('contact', locale)}</Link>
         </p>

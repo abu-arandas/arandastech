@@ -23,6 +23,8 @@ export interface ConnectionSpec {
   signIn?: 'google';
   /** What the owner does, step by step, to get the values. */
   steps: string[];
+  /** Only receives notices from the provider (Gumroad's sale ping): there is no connector for the gateway to call. */
+  inbound?: true;
 }
 
 export const CONNECTIONS: ConnectionSpec[] = [
@@ -140,6 +142,46 @@ export const CONNECTIONS: ConnectionSpec[] = [
         optional: true,
         help: 'jor for Jordan (the default), are, sau, egy, omn or global',
         pattern: /^(jor|are|sau|egy|omn|global)$/,
+      },
+    ],
+  },
+  {
+    id: 'gumroad',
+    inbound: true,
+    steps: [
+      'Paste your Gumroad shop address and the products to count here, and press Save. A secret ping address is made.',
+      'On Gumroad, open Settings, Advanced, and paste the ping address shown below into Ping. Press Update settings, then Send test ping.',
+      'Each sale then becomes a paid invoice, a customer and the check-ins, without typing it in.',
+    ],
+    fields: [
+      {
+        key: 'shop_url',
+        label: 'Shop address',
+        secret: false,
+        help: 'Your Gumroad profile, such as https://yourname.gumroad.com',
+        pattern: /^https:\/\/[a-z0-9-]+\.gumroad\.com$/,
+      },
+      {
+        key: 'products',
+        label: 'Products',
+        secret: false,
+        help: 'The end of each product link, comma between them, such as zirr-retail',
+        pattern: /^[a-z0-9-]{2,60}(,[a-z0-9-]{2,60}){0,19}$/i,
+      },
+      {
+        key: 'seller_id',
+        label: 'Seller ID',
+        secret: false,
+        optional: true,
+        help: 'Optional. Shown in the test ping; when set, a sale from any other seller is refused',
+        pattern: /^[\w=-]{6,80}$/,
+      },
+      {
+        key: 'ping_key',
+        label: 'Ping key',
+        secret: false,
+        automatic: true,
+        help: 'Made by the platform. It is part of the ping address.',
       },
     ],
   },

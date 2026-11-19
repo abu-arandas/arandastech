@@ -17,7 +17,7 @@ export function registerConnectionRoutes(router: Router, platform: Platform): vo
   const { db } = platform;
 
   const site = (): string => platform.config.siteUrl ?? 'http://localhost:3000';
-  const connectionId = z.enum(['gmail', 'github', 'vercel', 'buffer', 'whatsapp', 'payments']);
+  const connectionId = z.enum(['gmail', 'github', 'vercel', 'buffer', 'whatsapp', 'payments', 'gumroad']);
 
   router.add('GET', '/api/owner/connections', 'staff', async ({ caller }) => {
     staffOf(caller);

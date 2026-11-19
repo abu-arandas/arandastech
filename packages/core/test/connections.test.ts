@@ -71,7 +71,7 @@ const connection = async (id: string): Promise<Json> =>
 describe('the connections page', () => {
   it('starts with every account on its mock, and lists the steps and addresses to copy', async () => {
     const list = (await call('GET', '/api/owner/connections')).body.connections as Json[];
-    expect(list.map((c) => c.id)).toEqual(['gmail', 'github', 'vercel', 'buffer', 'whatsapp', 'payments']);
+    expect(list.map((c) => c.id)).toEqual(['gmail', 'github', 'vercel', 'buffer', 'whatsapp', 'payments', 'gumroad']);
     expect(list.every((c) => c.mode === 'mock')).toBe(true);
     const gmail = list[0]!;
     expect(gmail.sign_in).toBe('google');

@@ -87,7 +87,7 @@ export async function refreshConnectors(host: ConnectorHost): Promise<void> {
     const values = table?.present ? await readConnection(host.db, spec.id) : {};
     const live = isComplete(spec, values);
     const mock = host.mocks[spec.id];
-    if (live) host.connectors[spec.id] = build(spec, values, host.fetch);
+    if (live && !spec.inbound) host.connectors[spec.id] = build(spec, values, host.fetch);
     else if (mock) host.connectors[spec.id] = mock;
     await host.db.query(
       `update connectors set mode = $2, status = case when $2 = 'live' then 'live' when status = 'live' then 'built' else status end where id = $1 and mode is distinct from $2`,
@@ -139,6 +139,8 @@ function addressesFor(
       ...(values.verify_token ? [{ label: 'Verify token', value: values.verify_token }] : []),
     ];
   if (id === 'payments') return [{ label: 'Callback (IPN) URL', value: `${site}/api/webhooks/paytabs` }];
+  if (id === 'gumroad' && values.ping_key)
+    return [{ label: 'Ping address', value: `${site}/api/webhooks/gumroad/${values.ping_key}` }];
   return [];
 }
 
@@ -160,6 +162,7 @@ export async function saveConnection(
   if (id === 'buffer' && typed.api_key)
     found.channels = JSON.stringify(await findBufferChannels(host.fetch, typed.api_key));
   if (id === 'whatsapp' && !(await readConnection(host.db, id)).verify_token) found.verify_token = randomToken();
+  if (id === 'gumroad' && !(await readConnection(host.db, id)).ping_key) found.ping_key = randomToken();
   // A new Google client means the old sign-in no longer matches it.
   if (id === 'gmail' && (typed.client_id || typed.client_secret))
     Object.assign(found, { refresh_token: null, address: null });
@@ -180,6 +183,10 @@ export async function check(
   id: string,
 ): Promise<{ mode: string; health: { ok: boolean; note: string } | null }> {
   await refreshConnectors(host);
+  if (connectionSpec(id)?.inbound) {
+    const [row] = await host.db.query<{ mode: string }>('select mode from connectors where id = $1', [id]);
+    return { mode: row?.mode ?? 'mock', health: null };
+  }
   const connector = host.connectors[id];
   if (!connector || connector.mode !== 'live') return { mode: 'mock', health: null };
   const health = await connector.health();
