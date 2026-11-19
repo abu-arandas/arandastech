@@ -1,21 +1,19 @@
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../config/brand.dart';
 import '../../config/breakpoints.dart';
-import '../../controllers/approvals_controller.dart';
 import '../../controllers/session_controller.dart';
-import '../../widgets/brand_mark.dart';
+import '../../widgets/fun.dart';
 import '../../widgets/language_button.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/section_title.dart';
-import '../approvals/approvals_page.dart';
-import '../business/business_page.dart';
-import '../sales/sales_page.dart';
-import '../systems/systems_page.dart';
-import '../team/team_page.dart';
-import '../today/today_page.dart';
+import 'areas.dart';
+import 'pause_control.dart';
+import 'side_bar.dart';
 
-/// The owner's six screens, which hold the six areas of blueprint 8.2. The pause control is on every one of them.
+/// The owner's dashboard, shaped by the window: a bottom bar on a phone, a slim icon rail on a tablet, and a full
+/// sidebar with the pause card on a desktop. The pause control is on every screen in every shape.
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -24,97 +22,123 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  int _tab = 0;
+  var _area = Area.today;
 
-  static const _tabs = ['Today', 'Sales', 'Approvals', 'Team', 'Business', 'Systems'];
-  static const _icons = [Icons.today, Icons.trending_up, Icons.fact_check_outlined, Icons.groups_outlined, Icons.storefront_outlined, Icons.tune];
+  void _open(Area area) => setState(() => _area = area);
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = context.screen;
+    final content = AreaScope(
+      current: _area,
+      open: _open,
+      child: _AreaView(area: _area),
+    );
+    if (screen.index < Screen.md.index) return _PhoneShell(area: _area, onSelect: _open, child: content);
+    return Scaffold(
+      body: Row(
+        children: [
+          SideBar(current: _area, onSelect: _open, extended: screen.index >= Screen.xl.index),
+          Expanded(
+            child: SafeArea(
+              left: false,
+              right: false,
+              child: Column(
+                children: [
+                  const StatusBanner(),
+                  Expanded(child: content),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A phone: the brand and a few icons on top, the six areas along the bottom.
+class _PhoneShell extends StatelessWidget {
+  const _PhoneShell({required this.area, required this.onSelect, required this.child});
+
+  final Area area;
+  final ValueChanged<Area> onSelect;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final session = Get.find<SessionController>();
-    final approvals = Get.find<ApprovalsController>();
-    return Obx(() {
-      final scheme = Theme.of(context).colorScheme;
-      final paused = session.paused;
-      return Scaffold(
-        appBar: AppBar(
-          title: const BrandTitle(),
-          actions: [
-            IconButton(tooltip: 'Refresh'.tr, onPressed: session.reload, icon: const Icon(Icons.refresh)),
-            const LanguageButton(),
-            IconButton(tooltip: 'Sign out'.tr, onPressed: session.signOut, icon: const Icon(Icons.logout)),
-          ],
-        ),
-        body: Column(
+    return Scaffold(
+      appBar: AppBar(
+        titleSpacing: 16,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Material(
-              color: paused ? scheme.errorContainer : scheme.surfaceContainerHigh,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        paused ? 'Everything is paused. Held actions are kept, not dropped.'.tr : session.error.value?.tr ?? '',
-                        style: TextStyle(color: paused ? scheme.onErrorContainer : scheme.error),
-                      ),
-                    ),
-                    if (paused)
-                      FilledButton(onPressed: () => session.setPaused(value: false), child: Text('Resume'.tr))
-                    else
-                      FilledButton.tonalIcon(
-                        onPressed: () => session.setPaused(value: true),
-                        icon: const Icon(Icons.pause_circle_outline),
-                        label: Text('Pause everything'.tr),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            // Tabs fade through, quickly: this is a tool, not a show.
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: Motion.medium,
-                switchInCurve: Motion.enter,
-                switchOutCurve: Motion.exit,
-                child: KeyedSubtree(
-                  key: ValueKey(_tab),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      GridContainer(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 16),
-                          child: PageHeading(_tabs[_tab], eyebrow: 'Owner app'),
-                        ),
-                      ),
-                      Expanded(child: const [TodayPage(), SalesPage(), ApprovalsPage(), TeamPage(), BusinessPage(), SystemsPage()][_tab]),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            const SecretMark(),
+            const SizedBox(width: 10),
+            Flexible(child: Text(Brand.wordmark.tr, overflow: TextOverflow.ellipsis)),
           ],
         ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _tab,
-          onDestinationSelected: (i) => setState(() => _tab = i),
-          destinations: [
-            for (var i = 0; i < _tabs.length; i++)
-              NavigationDestination(
-                // The count pops when a new request lands, the first one included (the badge is always there, only
-                // hidden at zero, so going from none to one is a change it sees).
-                icon: i == 2
-                    ? PopOnChange(
-                        value: approvals.approvals.length,
-                        child: Badge(isLabelVisible: approvals.approvals.isNotEmpty, label: Text('${approvals.approvals.length}'), child: Icon(_icons[i])),
-                      )
-                    : Icon(_icons[i]),
-                label: _tabs[i].tr,
-              ),
-          ],
-        ),
-      );
-    });
+        actions: [
+          const PauseIconButton(),
+          IconButton(tooltip: 'Refresh'.tr, onPressed: session.reload, icon: const Icon(Icons.refresh)),
+          const LanguageButton(),
+          IconButton(tooltip: 'Sign out'.tr, onPressed: session.signOut, icon: const Icon(Icons.logout)),
+        ],
+      ),
+      body: Column(
+        children: [
+          const StatusBanner(withButton: true),
+          Expanded(child: child),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: area.index,
+        // Six areas on a narrow phone: only the chosen one keeps its label, so none is cut short.
+        labelBehavior: MediaQuery.sizeOf(context).width < 400
+            ? NavigationDestinationLabelBehavior.onlyShowSelected
+            : NavigationDestinationLabelBehavior.alwaysShow,
+        onDestinationSelected: (i) => onSelect(Area.values[i]),
+        destinations: [
+          for (final a in Area.values)
+            NavigationDestination(
+              icon: AreaIcon(area: a, selected: false),
+              selectedIcon: AreaIcon(area: a, selected: true),
+              label: a.label.tr,
+            ),
+        ],
+      ),
+    );
   }
+}
+
+/// The chosen area under its heading. Areas fade through quickly; Today has no fixed heading, as its hello scrolls
+/// with the cards.
+class _AreaView extends StatelessWidget {
+  const _AreaView({required this.area});
+
+  final Area area;
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+    duration: Motion.medium,
+    switchInCurve: Motion.enter,
+    switchOutCurve: Motion.exit,
+    child: KeyedSubtree(
+      key: ValueKey(area),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (area != Area.today)
+            GridContainer(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: PageHeading(area.label, eyebrow: 'Owner app'),
+              ),
+            ),
+          Expanded(child: area.page),
+        ],
+      ),
+    ),
+  );
 }

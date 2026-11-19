@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../controllers/sales_controller.dart';
 import '../../models/revenue.dart';
+import '../../widgets/fun.dart';
 import '../../widgets/motion.dart';
 
 /// The month against the revenue goal: what is in, what is owed, and what it still takes, in plain numbers.
@@ -18,12 +19,18 @@ class GoalCard extends StatelessWidget {
       final theme = Theme.of(context);
       final scheme = theme.colorScheme;
       return Card(
+        margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${'Monthly goal'.tr} · ${r.month}', style: theme.textTheme.titleMedium),
+              Row(
+                children: [
+                  Expanded(child: Text('${'Monthly goal'.tr} · ${r.month}', style: theme.textTheme.titleMedium)),
+                  if (r.collectedCents >= r.goalCents && r.goalCents > 0) const _Celebrate(),
+                ],
+              ),
               const SizedBox(height: 8),
               Text(
                 '${usd(r.collectedCents)} / ${usd(r.goalCents)}',
@@ -126,5 +133,33 @@ class _Row extends StatelessWidget {
         ),
       ],
     ),
+  );
+}
+
+/// The goal is reached: a party icon, and buttons fly from it the first time it shows in a run of the app.
+class _Celebrate extends StatefulWidget {
+  const _Celebrate();
+
+  static var _done = false;
+
+  @override
+  State<_Celebrate> createState() => _CelebrateState();
+}
+
+class _CelebrateState extends State<_Celebrate> {
+  @override
+  void initState() {
+    super.initState();
+    if (_Celebrate._done) return;
+    _Celebrate._done = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) buttonBurst(context, count: 36);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: 'Goal reached!'.tr,
+    child: Icon(Icons.celebration_outlined, color: Theme.of(context).colorScheme.secondary),
   );
 }

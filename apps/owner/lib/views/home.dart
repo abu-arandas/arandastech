@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../config/routes.dart';
 import '../controllers/session_controller.dart';
+import '../widgets/fun.dart';
 import '../widgets/motion.dart';
 import 'auth/sign_in_page.dart';
 import 'dashboard/dashboard_page.dart';
@@ -26,11 +27,11 @@ class Home extends StatelessWidget {
         switchOutCurve: Motion.exit,
         child: session.signedIn
             ? const DashboardPage(key: ValueKey('dashboard'))
-            // While the token kept on this device is tried, a quiet wait instead of a form that flashes and goes.
+            // While the token kept on this device is tried, the pressing mark instead of a form that flashes and goes.
             : session.resuming.value
             ? const Scaffold(
                 key: ValueKey('resuming'),
-                body: Center(child: CircularProgressIndicator()),
+                body: Center(child: FunLoader()),
               )
             : const SignInPage(key: ValueKey('sign-in')),
       ),

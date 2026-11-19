@@ -19,7 +19,7 @@ lib/
   controllers/     GetX controllers: session (sign-in, language, pause, refresh), approvals, team, business, systems
   bindings/        GetX dependency injection: the one place that picks the platform
   views/           pages, one folder per feature: auth, dashboard, today, approvals, team, business, systems
-  widgets/         UI shared by more than one feature: motion, the brand mark, the language button, page layout
+  widgets/         UI shared by more than one feature: motion, fun (jokes, squish, button burst), the brand mark, the language button, page layout
   l10n/            Arabic for every English text; English text is its own key
 tool/              check_layers.sh (rules 1, 3 and 10), check_arabic.mjs (rule 6)
 ```
@@ -36,7 +36,7 @@ tool/              check_layers.sh (rules 1, 3 and 10), check_arabic.mjs (rule 6
 8. **Long lists are built lazily** (the audit log uses `ListView.builder`).
 9. **Errors become messages.** Controllers catch failures and set an `error` the screen shows; nothing the owner does should crash a page.
 10. **Files stay small.** No file in `lib` is over 400 lines: split a screen into named widgets and a controller into parts. `tool/check_layers.sh` fails otherwise.
-10. **CI is the bar:** `dart format`, `flutter analyze` with zero issues under the house rules in `analysis_options.yaml`, the layer and Arabic checks, and a web build. There are no app tests, as in every Zirr app.
+11. **CI is the bar:** `dart format`, `flutter analyze` with zero issues under the house rules in `analysis_options.yaml`, the layer and Arabic checks, and a web build. There are no app tests, as in every Zirr app.
 
 ## How a screen gets its data
 
@@ -46,3 +46,10 @@ tool/              check_layers.sh (rules 1, 3 and 10), check_arabic.mjs (rule 6
 
 - **No Supabase and no `supabase/` folder.** The owner app talks to the platform's API (`apps/web`), and the platform holds the database (`supabase/migrations` at the repository root, with its SQL checks run by `packages/core`).
 - **Sign-in is the owner token**, not an email and password: the platform makes the token on its first deploy (`docs/runbook.md`).
+
+## Shape and fun
+
+- **One dashboard, three shapes** (`views/dashboard/`): under 768 px a top bar and a bottom bar with the six areas; from 768 px a slim icon rail; from 1200 px a full sidebar with the pause card at its foot. `areas.dart` lists the areas once; `AreaScope.go` lets a card open another area (Today's tiles and "Review approvals").
+- **Today is a grid:** the hello, the goal beside what waits for the owner (stacked on narrower screens, with what waits first), six count tiles that open their area, and the 30-day numbers.
+- **Fun lives in `widgets/fun.dart`:** the jokes (`Jokes`, Arabic in `l10n/ar_fun.dart`, which `check_arabic.mjs` cannot see inside lists, so add both together), `Squish` for anything pressable, the pressing-mark loader, `buttonBurst` (little shirt buttons instead of confetti) and the secret in the logo (press it five times).
+- **Where jokes never go:** money, payments, refunds, failed actions, errors and the approval cards themselves. Those stay plain. With reduce motion on, nothing moves and everything shows at once.
