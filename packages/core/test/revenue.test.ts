@@ -80,7 +80,11 @@ describe('the revenue engine', () => {
   it('scores how well each prospect fits, without moving its stage', async () => {
     const [lina] = await t.test.db.query<Json>(`select * from leads where email = 'lina@agency-one.example'`);
     expect(lina).toMatchObject({ stage: 'new', score: 50 });
-    expect(lina!.score_reasons).toEqual(['+10: a company address', '+10: in Jordan or the region']);
+    expect(lina!.score_reasons).toEqual([
+      '30: every prospect starts here',
+      '+10: a company address',
+      '+10: in Jordan or the region',
+    ]);
   });
 
   it('writes the first outreach from the approved template, with the booking link and the way to say no', async () => {

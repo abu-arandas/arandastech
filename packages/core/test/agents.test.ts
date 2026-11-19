@@ -555,7 +555,7 @@ describe('the fixed rules', () => {
   it('score a lead with reasons', () => {
     expect(scoreLead({ email: 'a@gmail.com', phone: null, package_id: null, message: 'hi' }, false)).toEqual({
       score: 10,
-      reasons: ['-10: said very little'],
+      reasons: ['20: every website lead starts here', '-10: said very little'],
     });
     const full = scoreLead(
       {
@@ -582,7 +582,7 @@ describe('the fixed rules', () => {
       false,
     );
     expect(seo.score).toBe(0);
-    expect(seo.reasons[0]).toBe('-40: sells us a service, not work for us');
+    expect(seo.reasons[1]).toBe('-40: sells us a service, not work for us');
     const job = scoreLead(
       { email: 'c@gmail.com', phone: null, package_id: null, message: 'أبحث عن عمل، هذه سيرتي الذاتية' },
       false,
@@ -638,6 +638,7 @@ describe('the fixed rules', () => {
     expect(best).toEqual({
       score: 100,
       reasons: [
+        '30: every prospect starts here',
         '+10: has a website',
         '+15: the address is on its own website',
         '+10: a company address',
@@ -648,7 +649,7 @@ describe('the fixed rules', () => {
     });
     expect(scoreProspect({ email: 'someone@gmail.com' })).toEqual({
       score: 20,
-      reasons: ['-10: a personal address, not the company'],
+      reasons: ['30: every prospect starts here', '-10: a personal address, not the company'],
     });
   });
 

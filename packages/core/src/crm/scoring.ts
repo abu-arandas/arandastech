@@ -44,7 +44,7 @@ export function scoreLead(
   flagged: boolean,
 ): Score {
   if (flagged) return { score: 0, reasons: ['The message tries to give instructions, so it is not scored.'] };
-  const tally = new Tally(20);
+  const tally = new Tally(20, 'every website lead starts here');
   const message = lead.message.trim();
   if (SELLING_TO_US.test(message)) tally.add(-40, 'sells us a service, not work for us');
   if (JOB_SEEKER.test(message)) tally.add(-30, 'reads like a job application, not a project');
@@ -123,7 +123,7 @@ export function scoreProspect(prospect: {
   notes?: string | null;
   value?: string | null;
 }): Score {
-  const tally = new Tally(30);
+  const tally = new Tally(30, 'every prospect starts here');
   const domain = prospect.email.split('@')[1]?.toLowerCase() ?? '';
   const site = prospect.website ? siteDomain(prospect.website) : null;
   if (site) tally.add(10, 'has a website');
@@ -139,8 +139,13 @@ export function scoreProspect(prospect: {
 
 /** Points with their reasons, kept between 0 and 100. */
 class Tally {
-  private readonly reasons: string[] = [];
-  constructor(private score: number) {}
+  private readonly reasons: string[];
+  constructor(
+    private score: number,
+    base: string,
+  ) {
+    this.reasons = [`${score}: ${base}`];
+  }
 
   add(points: number, reason: string): void {
     this.score += points;

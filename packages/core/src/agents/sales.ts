@@ -131,7 +131,8 @@ type StepOutcome = 'waiting' | 'stopped' | 'ended' | 'held_by_limit' | 'skipped'
 
 /**
  * Each morning: every lead whose next step is due gets its next email proposed, within the daily limit, and unpaid
- * invoices get their reminders. Answers to clients come first, then follow-ups, then first emails, best fit first.
+ * invoices get their reminders. Clients' check-ins and proposal reminders come first, then follow-ups, then first
+ * emails, the best-fitting prospects first. Replies from leads are answered by their own workflow, not here.
  */
 async function sequences(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   return rt.record('sales.sequences', ctx, input, async (run) => {

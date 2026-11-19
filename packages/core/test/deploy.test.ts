@@ -46,7 +46,7 @@ describe('deploying to a hosted database', () => {
       [old],
     );
     await test.db.query(
-      `update memory_items set body = $1::jsonb, source = 'Sales department' where key = 'template:prospect-close'`,
+      `update memory_items set body = $1::jsonb, owner = 'sales' where key = 'template:prospect-close'`,
       [old],
     );
     await install(platform);

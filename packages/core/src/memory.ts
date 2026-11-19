@@ -51,7 +51,7 @@ export async function proposeMemory(
   const saved = one(
     await db.query<MemoryItem>(
       `insert into memory_items (key, kind, title, body, source, owner, sensitivity) values ($1, $2, $3, $4::jsonb, $5, $6, $7)
-       on conflict (key) do update set title = excluded.title, body = excluded.body, source = excluded.source,
+       on conflict (key) do update set title = excluded.title, body = excluded.body, source = excluded.source, owner = excluded.owner,
          status = 'draft', version = memory_items.version + 1
        returning *`,
       [item.key, item.kind, item.title, json(item.body), item.source, item.owner, item.sensitivity ?? 'internal'],

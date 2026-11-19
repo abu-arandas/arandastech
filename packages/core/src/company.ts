@@ -364,13 +364,14 @@ async function seedMemory(db: Db, demo: boolean): Promise<void> {
   };
   for (const [key, question, answer] of FAQS) await memory(`faq:${key}`, 'faq', question.en, { question, answer });
   // A template the owner has not approved yet takes the latest wording on every install, so better emails reach the
-  // owner's review without any change by hand. An approved template, or one a department rewrote, is never touched.
+  // owner's review without any change by hand. An approved template, or one a department rewrote (its owner is then
+  // that department), is never touched.
   for (const [key, template] of Object.entries({ ...TEMPLATES, ...SALES_TEMPLATES })) {
     const body = { en: template.en, ar: template.ar };
     await memory(`template:${key}`, 'template', template.title, body, 'internal');
     await db.query(
       `update memory_items set title = $2, body = $3::jsonb, version = version + 1
-       where key = $1 and status = 'draft' and source = $4 and (title <> $2 or body <> $3::jsonb)`,
+       where key = $1 and status = 'draft' and owner = 'owner' and source = $4 and (title <> $2 or body <> $3::jsonb)`,
       [`template:${key}`, template.title, json(body), source],
     );
   }
