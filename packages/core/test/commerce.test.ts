@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { signedEvent } from '../src/commerce/store';
+import { signedEvent } from '../src/commerce/webhooks';
 import { listMockDeliveries } from '../src/connectors/mock';
 import { moneySummary } from '../src/finance/ledger';
 import { listOpenApprovals } from '../src/governance/approvals';

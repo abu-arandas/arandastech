@@ -1,5 +1,5 @@
 import type { ModelClient } from '../../src/agents/model';
-import { signedEvent } from '../../src/commerce/store';
+import { signedEvent } from '../../src/commerce/webhooks';
 import type { Fetch } from '../../src/connectors/live/base';
 import { createMockConnectors, type MockConnector } from '../../src/connectors/mock';
 import { DEMO_OWNER_ID } from '../../src/company';
