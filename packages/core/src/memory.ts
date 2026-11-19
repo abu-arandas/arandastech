@@ -119,3 +119,27 @@ export async function renderTemplate(
     });
   return { subject: fill(text.subject), body: fill(text.body) };
 }
+
+/**
+ * True when an email's subject and body are the approved template with only its blanks filled in, each on one line. A standing rule for
+ * templates sends nothing else, so no other wording can borrow a template's name to skip the owner's approval.
+ */
+export async function fitsTemplate(
+  db: Db,
+  key: string,
+  locale: string,
+  email: { subject: string; body: string },
+): Promise<boolean> {
+  const item = await approvedMemory(db, `template:${key}`);
+  if (!item || item.kind !== 'template') return false;
+  const text = (item.body as Record<string, { subject: string; body: string } | undefined>)[locale];
+  if (!text) return false;
+  const pattern = (source: string): RegExp =>
+    new RegExp(
+      `^${source
+        .split(/\{\{\w+\}\}/)
+        .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('[^\n]{0,300}?')}$`,
+    );
+  return pattern(text.subject).test(email.subject) && pattern(text.body).test(email.body);
+}

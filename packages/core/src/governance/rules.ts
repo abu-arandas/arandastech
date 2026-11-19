@@ -1,6 +1,7 @@
 import { type Db, json, maybeOne, one } from '../lib/db';
 import { forbidden, invalid, notFound } from '../lib/errors';
 import type { Actor } from '../lib/types';
+import { fitsTemplate } from '../memory';
 import { actionSpec, levelOf } from './actions';
 import { audit } from './audit';
 import { getPolicy } from './settings';
@@ -9,6 +10,8 @@ import { getPolicy } from './settings';
 export interface RuleConditions {
   /** The message must use this approved template. */
   template?: string;
+  /** The message must use one of these approved templates. */
+  templates?: string[];
   /** The recipient must be the buyer of the order the action names. */
   recipient?: 'order_buyer';
 }
@@ -121,6 +124,12 @@ export async function matchRule(
   );
   for (const rule of rules) {
     if (rule.conditions.template && rule.conditions.template !== action.payload.template) continue;
+    if (rule.conditions.templates) {
+      const template = String(action.payload.template ?? '');
+      if (!rule.conditions.templates.includes(template)) continue;
+      const email = { subject: String(action.payload.subject ?? ''), body: String(action.payload.body ?? '') };
+      if (!(await fitsTemplate(db, template, String(action.payload.locale ?? 'en'), email))) continue;
+    }
     if (rule.conditions.recipient === 'order_buyer') {
       const order = maybeOne(
         await db.query<{ buyer_email: string }>('select buyer_email from orders where id = $1', [

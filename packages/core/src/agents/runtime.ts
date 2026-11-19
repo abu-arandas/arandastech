@@ -439,6 +439,14 @@ export class AgentRuntime {
       const { queued: added } = await enqueue(this.db, kind, { day }, { key: `${kind}:${day}` });
       if (added) queued.push(kind);
     }
+    // The sales emails go out at 08:00 in Amman, whenever in the day the queue is first worked on.
+    const { queued: sales } = await enqueue(
+      this.db,
+      'sales.sequences',
+      { day },
+      { key: `sales.sequences:${day}`, runAt: new Date(`${day}T05:00:00Z`) },
+    );
+    if (sales) queued.push('sales.sequences');
     return queued;
   }
 }

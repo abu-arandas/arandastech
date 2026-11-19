@@ -7,6 +7,9 @@ pg.types.setTypeParser(20, (value) => {
   return n;
 });
 
+// A date without a time (an invoice's due date) comes back as written, "2026-11-26", never shifted by a time zone.
+pg.types.setTypeParser(1082, (value) => value);
+
 export type Row = Record<string, unknown>;
 
 /** A database handle. `tx` nests: inside a transaction it opens a savepoint. */

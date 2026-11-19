@@ -210,7 +210,11 @@ describe('manual mode: no AI key', () => {
   });
 
   it('the daily run writes the briefing in both languages and Security looks over the day', async () => {
-    expect(await t.platform.agents.scheduleDaily()).toEqual(['security.review', 'operations.daily_briefing']);
+    expect(await t.platform.agents.scheduleDaily()).toEqual([
+      'security.review',
+      'operations.daily_briefing',
+      'sales.sequences',
+    ]);
     expect(await t.platform.agents.scheduleDaily()).toEqual([]);
     await t.platform.agents.runDue();
     const agents = (await owner('GET', '/api/owner/agents')).body;

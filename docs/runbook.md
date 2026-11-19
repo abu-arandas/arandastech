@@ -166,6 +166,34 @@ To switch it off again without removing the key, set `ai.enabled` to false in th
 MCP server at `/api/mcp`. The first deploy makes one token per department in `ops.secrets` (`agent_token:sales` and so on);
 read them in the SQL editor with `select name, value from ops.secrets where starts_with(name, 'agent_token:');`.
 
+## The revenue engine
+
+The goal is in the policy sheet: `revenue.monthly_goal_minor` (3,000 US dollars a month to start). The owner app's
+**Sales** tab, and the top of **Today**, show the month in Amman time: what is collected (paid invoices and paid orders,
+the dinar at its peg), what is invoiced and not paid, the proposals waiting, the deals still needed at the usual deal
+size (`revenue.average_deal_minor` until five invoices are paid), and what those deals take in proposals, calls, replies
+and first emails. The funnel starts at 5% replies, 50% calls, 60% proposals and 30% wins, and is measured from the
+records once there are 20 contacted leads and 5 proposals in 90 days.
+
+| Step        | What happens                                                                                                                                                                                               |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prospects   | The owner adds businesses (Sales, Add prospects, or `POST /api/owner/prospects`). An agency gets the `outreach` sequence, a shop, café or restaurant `outreach_shop`.                                      |
+| Outreach    | Every morning at 08:00 in Amman, Sales writes the next email of each sequence from the approved templates (intro, follow-up after 4 to 5 days, last email a week later), at most `sales.daily_send_limit`. |
+| Reply       | An email from a lead stops their outreach. "No thanks" in English or Arabic marks them do-not-contact for good. Any other reply raises an alert and gets the booking link (`sales.booking_link`).          |
+| Call booked | A Google Calendar booking notice that names a lead moves them to "Call booked". The owner can move any lead by hand.                                                                                       |
+| Proposal    | The owner writes it in the app; Sales emails its secret link (`/en/p/<token>`). One reminder after 3 days. The client accepts by typing their name.                                                        |
+| Invoice     | Accepting raises the deposit invoice (`billing.deposit_bps`) and Sales emails it (`/en/i/<token>`, with `billing.payment_instructions`). Two reminders after the due date, a week apart.                   |
+| Paid        | The owner marks it paid (bank, CliQ, PayPal, cash). It is posted to the services books, the client is thanked, and check-ins follow after 2 weeks and 2 months. A Gumroad sale is recorded as paid.        |
+
+**Autopilot.** By default every sales email waits in Approvals. The Sales tab's autopilot switch makes one standing rule,
+"Sales autopilot", for the sales templates, up to the daily limit, for `rules.max_lifetime_days`; turn it on again to
+renew it. It sends only an email whose words are an approved template with its blanks filled in (`fitsTemplate`), so no
+other wording can use it. Answers to a lead's reply read outside content, so they always wait for the owner. An email
+that lapses in Approvals is proposed again the next morning; one the owner rejects stops that lead's sequence.
+
+**Heartbeat.** `.github/workflows/heartbeat.yml` calls `/api/cron/agents` every 30 minutes, so new mail is read and
+answered within half an hour. The daily jobs still run once a day.
+
 ## Connecting the real accounts
 
 The owner app's **Systems, Connections** lists each outside account with its steps and the addresses to copy into the

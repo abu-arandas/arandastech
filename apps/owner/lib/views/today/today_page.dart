@@ -6,8 +6,9 @@ import '../../models/money.dart';
 import '../../models/overview.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/page_list.dart';
+import '../sales/goal_card.dart';
 
-/// What needs the owner today, and the numbers of the last 30 days.
+/// The month against the revenue goal, what needs the owner today, and the numbers of the last 30 days.
 class TodayPage extends StatelessWidget {
   const TodayPage({super.key});
 
@@ -29,6 +30,8 @@ class TodayPage extends StatelessWidget {
       ];
       return PageList(
         children: [
+          const GoalCard(),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 12,
             runSpacing: 12,

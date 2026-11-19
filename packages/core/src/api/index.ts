@@ -75,7 +75,7 @@ export function createApi(platform: Platform, auth: AuthConfig): (request: ApiRe
       }
       const door =
         limited[`${request.method} ${request.path.replace(/\/$/, '')}`] ??
-        (request.method === 'GET' && request.path.startsWith('/api/public/orders/') ? 'lookup' : undefined);
+        (/^\/api\/public\/(orders|proposals|invoices)\//.test(request.path) ? 'lookup' : undefined);
       if (door) await limit(platform.db, door, callerKey(request.headers), platform.clock());
       const json = request.path.startsWith('/api/webhooks/') || request.method === 'GET' ? {} : parseJson(request.body);
       const body = await found.route.handler({ request, params: found.params, caller, json });

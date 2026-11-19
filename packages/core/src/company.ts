@@ -1,5 +1,6 @@
 import { type Db, json } from './lib/db';
 import type { Localized } from './lib/types';
+import { SALES_TEMPLATES } from './sales-templates';
 
 /**
  * What Zirr sells today, taken from the company's public website on 11 November 2026 and renamed with the Zirr rebrand
@@ -349,7 +350,7 @@ export async function seedCompany(db: Db, options: { demo: boolean; now: Date })
     );
   };
   for (const [key, question, answer] of FAQS) await memory(`faq:${key}`, 'faq', question.en, { question, answer });
-  for (const [key, template] of Object.entries(TEMPLATES))
+  for (const [key, template] of Object.entries({ ...TEMPLATES, ...SALES_TEMPLATES }))
     await memory(`template:${key}`, 'template', template.title, { en: template.en, ar: template.ar }, 'internal');
   await memory('brand:company', 'brand', 'Who Zirr is', {
     name: t('Zirr', 'زِرّ'),
