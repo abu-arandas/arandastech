@@ -54,8 +54,8 @@ const arSales = <String, String>{
   'Paid by': 'طريقة الدفع',
   'Ask Sales to send it': 'اطلب من المبيعات إرساله',
   'Record it': 'سجّله',
-  'One a line: name, email, company, country, and "shop" for a shop, café or restaurant.':
-      'واحد في كل سطر: الاسم، البريد، الشركة، الدولة، وكلمة "shop" للمحل أو المقهى أو المطعم.',
+  'One a line: name, email, company, country, "shop" or "agency", and for someone already emailed: how many emails and the last date (2026-11-18).':
+      'واحد في كل سطر: الاسم، البريد، الشركة، الدولة، وكلمة "shop" أو "agency"، ولمن راسلته من قبل: عدد الرسائل وتاريخ آخرها (2026-11-18).',
   'Add': 'أضف',
   'Added': 'أُضيف',
   'Skipped': 'تُرك',
