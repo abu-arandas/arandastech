@@ -281,10 +281,16 @@ const TEMPLATES = {
   },
 } as const;
 
+/** Puts in the company's offer, products, answers, templates and brand. Demo mode publishes them and adds test data. */
 export async function seedCompany(db: Db, options: { demo: boolean; now: Date }): Promise<void> {
-  const { demo, now } = options;
-  const source = 'Company website and GitHub profile, 11 November 2026';
+  await seedPackages(db, options.demo);
+  await seedProducts(db, options);
+  await seedMemory(db, options.demo);
+  if (options.demo) await seedDemo(db, options.now);
+}
 
+/** The service packages: approved in demo mode, drafts for the owner to approve on a live install. */
+async function seedPackages(db: Db, demo: boolean): Promise<void> {
   for (const p of PACKAGES) {
     await db.query(
       `insert into service_packages (id, name, outcome, audience, deliverables, delivery, price_kind, support_terms, to_confirm, status, sort)
@@ -304,7 +310,10 @@ export async function seedCompany(db: Db, options: { demo: boolean; now: Date })
       ],
     );
   }
+}
 
+/** The licensed products and their variants: published in demo mode, drafts on a live install. */
+async function seedProducts(db: Db, { demo, now }: { demo: boolean; now: Date }): Promise<void> {
   for (const product of PRODUCTS) {
     await db.query(
       `insert into products (id, slug, kind, name, summary, status, published_at) values ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7) on conflict do nothing`,
@@ -336,7 +345,11 @@ export async function seedCompany(db: Db, options: { demo: boolean; now: Date })
       );
     }
   }
+}
 
+/** Answers, email templates and the brand, as business memory the owner approves before anyone uses it. */
+async function seedMemory(db: Db, demo: boolean): Promise<void> {
+  const source = 'Company website and GitHub profile, 11 November 2026';
   const memory = async (
     key: string,
     kind: string,
@@ -361,9 +374,10 @@ export async function seedCompany(db: Db, options: { demo: boolean; now: Date })
     languages: ['en', 'ar'],
     time_zone: 'Asia/Amman',
   });
+}
 
-  if (!demo) return;
-
+/** Demo mode only: a demo owner, a mock supplier, a test product and the license-delivery standing rule. */
+async function seedDemo(db: Db, now: Date): Promise<void> {
   await db.query(
     `insert into staff_members (user_id, email, display_name, role) values ($1, 'owner@example.test', 'Demo owner', 'owner') on conflict do nothing`,
     [DEMO_OWNER_ID],
