@@ -106,20 +106,38 @@ export async function listOpenApprovals(db: Db, now: Date): Promise<OpenApproval
   return rows;
 }
 
-async function lapse(db: Db, request: ApprovalRequestRow): Promise<void> {
+async function lapse(db: Db, request: ApprovalRequestRow, note = 'No decision before the expiry time.'): Promise<void> {
   await db.query(`update approval_requests set status = 'expired' where id = $1`, [request.id]);
   await db.query(`update actions set status = 'expired', decided_at = now() where id = $1 and status = 'pending'`, [
     request.action_id,
   ]);
-  await db.query(
-    `insert into approval_decisions (request_id, decision, note) values ($1, 'expire', 'No decision before the expiry time.')`,
-    [request.id],
-  );
+  await db.query(`insert into approval_decisions (request_id, decision, note) values ($1, 'expire', $2)`, [
+    request.id,
+    note,
+  ]);
   await audit(db, {
     actor: { kind: 'system', id: null },
     type: 'approval.expired',
     subject: { type: 'action', id: request.action_id },
     data: { request_id: request.id },
+  });
+}
+
+/**
+ * Closes every email still waiting for the owner to one of these addresses, because the person asked not to be
+ * written to or the address bounced. The owner can no longer send it by approving it later.
+ */
+export async function withdrawEmailsTo(db: Db, addresses: string[], note: string): Promise<number> {
+  if (!addresses.length) return 0;
+  return db.tx(async (tx) => {
+    const waiting = await tx.query<ApprovalRequestRow>(
+      `select r.* from approval_requests r join actions a on a.id = r.action_id
+       where r.status = 'pending' and a.action_type = 'gmail.send_email' and lower(a.recipient) = any($1::text[])
+       for update of r`,
+      [addresses.map((a) => a.toLowerCase())],
+    );
+    for (const request of waiting) await lapse(tx, request, note);
+    return waiting.length;
   });
 }
 

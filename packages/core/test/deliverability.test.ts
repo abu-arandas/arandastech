@@ -26,12 +26,19 @@ beforeAll(async () => {
 });
 afterAll(async () => t.test.drop());
 
-async function prospect(email: string, contacted: boolean): Promise<Json> {
+async function prospect(email: string, sent: boolean): Promise<Json> {
   const [lead] = await t.platform.db.query<Json>(
     `insert into leads (name, email, message, source, kind, sequence, next_step_at, last_contact_at)
-     values ('Team', $1, 'Prospect', 'owner', 'prospect', 'outreach', $2, $3) returning *`,
-    [email, now, contacted ? now : null],
+     values ('Team', $1, 'Prospect', 'owner', 'prospect', 'outreach', $2, $2) returning *`,
+    [email, now],
   );
+  if (sent)
+    await t.platform.db.query(
+      `insert into actions (action_type, connector, level, status, payload, payload_hash, summary, recipient,
+         requested_by_kind, idempotency_key, executed_at)
+       values ('gmail.send_email', 'gmail', 2, 'executed', '{}', repeat('a', 64), 'Sent', $1, 'agent', $2, $3)`,
+      [email, `test-sent:${email}`, now],
+    );
   return lead!;
 }
 
@@ -58,7 +65,8 @@ describe('bounce notices', () => {
     const [after] = await t.platform.db.query<Json>('select * from leads where id = $1', [lead.id]);
     expect(after).toMatchObject({ do_not_contact: true, sequence: null, next_step_at: null });
     expect(after!.bounced_at).not.toBeNull();
-    // An address Sales never wrote to is left alone, so a forged notice cannot silence it.
+    // An address Sales never really sent to (an email still waiting counts as not sent) is left alone, so a forged
+    // notice cannot silence it.
     const [other] = await t.platform.db.query<Json>('select * from leads where id = $1', [untouched.id]);
     expect(other).toMatchObject({ do_not_contact: false, bounced_at: null });
     const [message] = await t.platform.db.query<Json>('select handled from messages where id = $1', [saved.id]);
@@ -70,7 +78,7 @@ describe('bounce notices', () => {
 describe('the bounce rate', () => {
   it('halves the daily limit once more than 5% of 20 or more recent addresses bounced', async () => {
     for (let i = 0; i < 20; i += 1) await prospect(`ok${i}@fine.example`, true);
-    // 1 bounced of 21 contacted: under 5%.
+    // 1 bounced of 21 sent to: under 5%.
     expect(await safeSendLimit(t.platform.db, 15, now)).toEqual({ limit: 15, halved: false });
     for (const i of [1, 2]) {
       await t.platform.db.query(`update leads set bounced_at = $2 where email = $1`, [`ok${i}@fine.example`, now]);
@@ -84,6 +92,13 @@ describe('the bounce rate', () => {
 describe('the one-click unsubscribe', () => {
   it('stops the lead from the mail app button, and ignores a link it does not know', async () => {
     const lead = await prospect('stop@me.example', true);
+    const { action: waiting } = await t.platform.gateway.propose({
+      type: 'gmail.send_email',
+      payload: { to: 'stop@me.example', subject: 'Hi', body: 'Hello', locale: 'en' },
+      requester: { kind: 'agent', id: 'sales' },
+      evidence: [],
+    });
+    expect(waiting.status).toBe('pending');
     const api = createApi(t.platform, { ownerToken: 'owner-test', ownerUserId: DEMO_OWNER_ID, agentTokens: {} });
     const response = await api({
       method: 'POST',
@@ -103,7 +118,11 @@ describe('the one-click unsubscribe', () => {
     expect(status.body).toEqual({ stopped: true });
     const [after] = await t.platform.db.query<Json>('select * from leads where id = $1', [lead.id]);
     expect(after).toMatchObject({ do_not_contact: true, sequence: null });
+    // The email still waiting in Approvals can no longer be sent.
+    const [withdrawn] = await t.platform.db.query<Json>('select status from actions where id = $1', [waiting.id]);
+    expect(withdrawn!.status).toBe('expired');
     expect(await optOut(t.platform.db, '00000000-0000-4000-8000-000000000000', now)).toBe(false);
+    expect(await optOut(t.platform.db, '-'.repeat(36), now)).toBe(false);
     expect(await optOut(t.platform.db, 'not-a-token', now)).toBe(false);
   });
 

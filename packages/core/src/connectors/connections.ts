@@ -77,7 +77,7 @@ export const CONNECTIONS: ConnectionSpec[] = [
         secret: false,
         optional: true,
         help: 'Optional. The date the token stops working, such as 2026-12-19, for a reminder a week before',
-        pattern: /^20\d\d-[01]\d-[0-3]\d$/,
+        pattern: /^20\d\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
       },
     ],
   },

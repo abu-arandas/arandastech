@@ -191,7 +191,11 @@ async function sundayReport(rt: AgentRuntime, run: Run, text: { en: string; ar: 
     idempotencyKey: `operations.sunday_report:${day}`,
     agentRunId: run.id,
   });
-  run.notes.push(`The Sunday report went to your mailbox (${action.status}).`);
+  run.notes.push(
+    action.status === 'executed'
+      ? 'The Sunday report went to your mailbox.'
+      : `The Sunday report was not sent: the email is ${action.status}.`,
+  );
 }
 
 async function moneyStatus(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
