@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { livePayments, paytabsCallback, whatsappWebhook } from '../connectors/registry';
 import { readConnection } from '../connectors/connections';
 import { createLead } from '../crm/crm';
+import { optOut } from '../crm/deliverability';
 import { handleGumroadPing } from '../crm/gumroad';
 import { AppError } from '../lib/errors';
 import type { Platform } from '../platform';
@@ -85,6 +86,11 @@ export function registerPublicRoutes(router: Router, platform: Platform): void {
     if (!status) throw new AppError('not_found', 'No order matches that number and email address.', 404);
     return status;
   });
+
+  // The one-click unsubscribe (RFC 8058): mail apps post here from their own button, and the page's button does too.
+  router.add('POST', '/api/public/unsubscribe/:token', 'public', async ({ params }) => ({
+    done: await optOut(db, params.token!, clock()),
+  }));
 
   router.add('POST', '/api/webhooks/payments', 'public', async ({ request }) =>
     store.handlePaymentWebhook(request.body, request.headers['x-signature']),

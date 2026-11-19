@@ -25,7 +25,7 @@ const NOTICE =
 
 /** The actions each department may propose. Least privilege: a department gets only what its job needs. */
 const MAY_PROPOSE: Record<string, string[]> = {
-  operations: ['gmail.create_draft'],
+  operations: ['gmail.create_draft', 'gmail.notify_owner'],
   engineering: [
     'github.create_issue',
     'github.merge_pull_request',

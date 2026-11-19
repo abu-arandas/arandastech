@@ -75,9 +75,11 @@ export function createApi(platform: Platform, auth: AuthConfig): (request: ApiRe
       }
       const door =
         limited[`${request.method} ${request.path.replace(/\/$/, '')}`] ??
-        (/^\/api\/public\/(orders|proposals|invoices)\//.test(request.path) ? 'lookup' : undefined);
+        (/^\/api\/public\/(orders|proposals|invoices|unsubscribe)\//.test(request.path) ? 'lookup' : undefined);
       if (door) await limit(platform.db, door, callerKey(request.headers), platform.clock());
-      const json = request.path.startsWith('/api/webhooks/') || request.method === 'GET' ? {} : parseJson(request.body);
+      // Webhooks and the one-click unsubscribe arrive as form posts, not JSON; their handlers read the raw body.
+      const raw = request.path.startsWith('/api/webhooks/') || request.path.startsWith('/api/public/unsubscribe/');
+      const json = raw || request.method === 'GET' ? {} : parseJson(request.body);
       const body = await found.route.handler({ request, params: found.params, caller, json });
       return { status: 200, body };
     } catch (error) {

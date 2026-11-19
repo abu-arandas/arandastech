@@ -35,6 +35,14 @@ const email = z.strictObject({
   template: z.string().max(80).optional(),
   lead_id: z.uuid().optional(),
   order_id: z.uuid().optional(),
+  /** The one-click unsubscribe address, sent as the List-Unsubscribe header. */
+  unsubscribe_url: z.url().max(300).optional(),
+});
+
+/** A note to the owner's own mailbox, such as the Sunday report. It goes nowhere else, so it needs no approval. */
+const ownerNote = z.strictObject({
+  subject: z.string().min(1).max(200),
+  body: z.string().min(1).max(20_000),
 });
 
 const chat = z.strictObject({
@@ -90,6 +98,17 @@ export const ACTION_SPECS = [
     risk: 'An email cannot be recalled once it is sent.',
     expected: (p) => `${p.to} receives the email exactly as shown.`,
     delegable: 'yes',
+  }),
+  define({
+    type: 'gmail.notify_owner',
+    connector: 'gmail',
+    level: 1,
+    schema: ownerNote,
+    summarize: (p) => `Email the owner's own mailbox: "${p.subject}"`,
+    reversible: true,
+    risk: 'None. It reaches only the owner, from his own mailbox.',
+    expected: () => "The note arrives in the owner's inbox.",
+    delegable: 'not_needed',
   }),
   define({
     type: 'whatsapp.send_message',

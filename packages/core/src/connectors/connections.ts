@@ -69,7 +69,17 @@ export const CONNECTIONS: ConnectionSpec[] = [
       'Give it access to your repositories with Issues and Pull requests set to Read and write, and Contents set to Read and write.',
       'Paste the token here and press Save.',
     ],
-    fields: [{ key: 'token', label: 'Fine-grained token', secret: true, help: 'Starts with github_pat_' }],
+    fields: [
+      { key: 'token', label: 'Fine-grained token', secret: true, help: 'Starts with github_pat_' },
+      {
+        key: 'expires_on',
+        label: 'Expires on',
+        secret: false,
+        optional: true,
+        help: 'Optional. The date the token stops working, such as 2026-12-19, for a reminder a week before',
+        pattern: /^20\d\d-[01]\d-[0-3]\d$/,
+      },
+    ],
   },
   {
     id: 'vercel',
@@ -80,6 +90,14 @@ export const CONNECTIONS: ConnectionSpec[] = [
     fields: [
       { key: 'token', label: 'Access token', secret: true, help: 'From vercel.com/account/settings/tokens' },
       { key: 'team_id', label: 'Team', secret: false, automatic: true, help: 'Found from the token.' },
+      {
+        key: 'expires_on',
+        label: 'Expires on',
+        secret: false,
+        optional: true,
+        help: 'Optional. The date the token stops working, such as 2026-12-19, for a reminder a week before',
+        pattern: /^20\d\d-[01]\d-[0-3]\d$/,
+      },
     ],
   },
   {
@@ -91,6 +109,14 @@ export const CONNECTIONS: ConnectionSpec[] = [
     fields: [
       { key: 'api_key', label: 'API key', secret: true, help: 'From publish.buffer.com/settings/api' },
       { key: 'channels', label: 'Channels', secret: false, automatic: true, help: 'Found from the key.' },
+      {
+        key: 'expires_on',
+        label: 'Expires on',
+        secret: false,
+        optional: true,
+        help: 'Optional. The date the token stops working, such as 2026-12-19, for a reminder a week before',
+        pattern: /^20\d\d-[01]\d-[0-3]\d$/,
+      },
     ],
   },
   {
@@ -238,6 +264,23 @@ export function checkTyped(spec: ConnectionSpec, raw: unknown): Record<string, s
     if (field.pattern && !field.pattern.test(value))
       throw invalid(`${field.label} does not look right: ${field.help}.`);
     out[key] = value;
+  }
+  return out;
+}
+
+/** The connections whose saved expiry date is at most [days] away, or past. */
+export async function expiringConnections(
+  db: Db,
+  now: Date,
+  days: number,
+): Promise<Array<{ id: string; expires_on: string }>> {
+  const out = [];
+  const soon = new Date(now.getTime() + days * 86_400_000).toISOString().slice(0, 10);
+  for (const spec of CONNECTIONS) {
+    if (!spec.fields.some((f) => f.key === 'expires_on')) continue;
+    const values = await readConnection(db, spec.id);
+    if (values.expires_on && values.expires_on <= soon && isComplete(spec, values))
+      out.push({ id: spec.id, expires_on: values.expires_on });
   }
   return out;
 }

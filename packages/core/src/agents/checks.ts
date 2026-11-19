@@ -1,3 +1,5 @@
+import { expiringConnections } from '../connectors/connections';
+import { bounceRate, MAX_BOUNCE_RATE } from '../crm/deliverability';
 import { pause } from '../governance/pause';
 import { getPolicy } from '../governance/settings';
 import { json } from '../lib/db';
@@ -165,9 +167,38 @@ async function securityReview(rt: AgentRuntime, input: Json, ctx: WorkflowContex
         by: 'security',
       });
     }
+    findings.push(...(await mailboxHealth(rt, now)));
     if (!findings.length) run.notes.push('Nothing unusual in the last day.');
     return { findings };
   });
+}
+
+/** Too many bounces, and keys about to stop working: each said once a day, a week before it matters. */
+async function mailboxHealth(rt: AgentRuntime, now: Date): Promise<string[]> {
+  const findings: string[] = [];
+  const bounces = await bounceRate(rt.db, now);
+  if (bounces.rate > MAX_BOUNCE_RATE) {
+    const share = Math.round(bounces.rate * 100);
+    findings.push(`${share}% of the addresses written to in two weeks bounced; the daily limit is halved.`);
+    await alertOnce(rt, {
+      kind: 'bounces_high',
+      severity: 'warning',
+      summary: `${bounces.bounced} of ${bounces.contacted} addresses Sales wrote to in two weeks bounced (${share}%). The daily limit is halved until it falls under 5%. Check where the prospect list came from.`,
+      detail: bounces,
+      by: 'security',
+    });
+  }
+  for (const key of await expiringConnections(rt.db, now, 7)) {
+    findings.push(`The ${key.id} key expires on ${key.expires_on}.`);
+    await alertOnce(rt, {
+      kind: `key_expiring:${key.id}`,
+      severity: 'warning',
+      summary: `The ${key.id} key expires on ${key.expires_on}. Make a new one and paste it in Systems, Connections, with its new date.`,
+      detail: key,
+      by: 'security',
+    });
+  }
+  return findings;
 }
 
 export function registerCheckWorkflows(rt: AgentRuntime): void {

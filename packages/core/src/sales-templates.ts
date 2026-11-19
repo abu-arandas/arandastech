@@ -219,6 +219,10 @@ export const SALES_LINES = {
     en: 'If this isn\'t relevant, reply "no thanks" and I won\'t write again.',
     ar: 'إن لم يكن هذا مناسباً، ردّ بكلمة «لا شكراً» ولن أراسلك مجدداً.',
   },
+  optOutLink: {
+    en: (link: string) => `If this isn't relevant, reply "no thanks" or open ${link} and I won't write again.`,
+    ar: (link: string) => `إن لم يكن هذا مناسباً، ردّ بكلمة «لا شكراً» أو افتح ${link} ولن أراسلك مجدداً.`,
+  },
 } as const;
 
 /** The templates a standing rule may send on its own: fixed wording filled in from the records. */
