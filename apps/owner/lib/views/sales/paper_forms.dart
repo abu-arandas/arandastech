@@ -181,7 +181,10 @@ class _ProspectsFormState extends State<_ProspectsForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('One a line: name, email, company, country, and "shop" for a shop, café or restaurant.'.tr),
+          Text(
+            'One a line: name, email, company, country, "shop" or "agency", and for someone already emailed: how many emails and the last date (2026-11-18).'
+                .tr,
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: _text,

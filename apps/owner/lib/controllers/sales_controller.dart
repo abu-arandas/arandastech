@@ -72,7 +72,8 @@ class SalesController extends GetxController implements PlatformReader {
   Future<bool> voidInvoice(Paper invoice) => _session.act((p) => p.sales.voidInvoice(invoice.id));
 }
 
-/// One prospect a line, the values split by commas or tabs: name, email, company, country, audience.
+/// One prospect a line, the values split by commas or tabs: name, email, company, country, audience,
+/// then for someone already written to: how many emails went out (1 to 3) and the date of the last one.
 List<Json> parseProspects(String text) => [
   for (final line in text.split('\n'))
     if (line.trim().isNotEmpty)
@@ -87,6 +88,8 @@ List<Json> parseProspects(String text) => [
           if (at(3).isNotEmpty) 'country': at(3),
           'audience': at(4).toLowerCase() == 'shop' ? 'shop' : 'agency',
           'locale': arabic ? 'ar' : 'en',
+          if (int.tryParse(at(5)) case final sent? when sent > 0) 'already_sent': sent,
+          if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(at(6))) 'last_sent_on': at(6),
         };
       }(),
 ];
