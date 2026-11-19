@@ -5,7 +5,8 @@ import { actionSpec, ACTION_SPECS } from '../governance/actions';
 import { audit } from '../governance/audit';
 import { pause, type PauseScope } from '../governance/pause';
 import { json } from '../lib/db';
-import { AppError, forbidden, invalid, notFound } from '../lib/errors';
+import { AppError, forbidden, notFound } from '../lib/errors';
+import { parseOrRefuse } from '../lib/validate';
 import type { Actor } from '../lib/types';
 import { listApprovedMemory, type MemoryKind, proposeMemory } from '../memory';
 import type { Platform } from '../platform';
@@ -533,18 +534,13 @@ export async function callTool(
   const tool = visibleTo(agent.id).find((candidate) => candidate.name === name);
   if (!tool) return { isError: true, data: { error: { code: 'unknown_tool', message: `Unknown tool: ${name}` } } };
   try {
-    const parsed = tool.schema.safeParse(args ?? {});
-    if (!parsed.success)
-      throw invalid(
-        'The arguments are not valid.',
-        parsed.error.issues.map((issue) => ({ field: issue.path.join('.'), message: issue.message })),
-      );
-    const result = await tool.run(parsed.data, { platform, agent, run });
+    const parsedArgs = parseOrRefuse(tool.schema, args ?? {}, 'The arguments are not valid.');
+    const result = await tool.run(parsedArgs, { platform, agent, run });
     await audit(platform.db, {
       actor: agent,
       type: 'agent.tool_called',
       subject: { type: 'tool', id: tool.name },
-      data: { arguments: Object.keys(parsed.data), agent_run_id: run?.agentRunId ?? null },
+      data: { arguments: Object.keys(parsedArgs as object), agent_run_id: run?.agentRunId ?? null },
     });
     return { isError: false, data: result };
   } catch (error) {

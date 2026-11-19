@@ -7,6 +7,7 @@ import { activePause } from '../governance/pause';
 import { getPolicy } from '../governance/settings';
 import { type Db, json, maybeOne, one } from '../lib/db';
 import { AppError, forbidden, invalid, notFound } from '../lib/errors';
+import { parseOrRefuse } from '../lib/validate';
 import { hmacSha256, randomToken, sameSignature } from '../lib/hash';
 import { formatMoney } from '../lib/money';
 import type { Actor, Clock, Localized } from '../lib/types';
@@ -15,6 +16,7 @@ import { renderTemplate } from '../memory';
 import {
   FULFILLMENT,
   moveOrder,
+  storePosting,
   type OrderItemRow,
   type OrderRow,
   type OrderStatus,
@@ -99,13 +101,7 @@ export class Store {
 
   /** Creates an order that waits for payment. The same idempotency key always returns the same order. */
   async createCheckout(raw: CheckoutInput): Promise<{ order: OrderRow; session: string; duplicate: boolean }> {
-    const parsed = checkoutInput.safeParse(raw);
-    if (!parsed.success)
-      throw invalid(
-        'The order is not complete.',
-        parsed.error.issues.map((issue) => ({ field: issue.path.join('.'), message: issue.message })),
-      );
-    const input = parsed.data;
+    const input = parseOrRefuse(checkoutInput, raw, 'The order is not complete.');
     const existing = maybeOne(
       await this.db.query<OrderRow>('select * from orders where idempotency_key = $1', [input.idempotencyKey]),
     );
@@ -114,13 +110,29 @@ export class Store {
     if (await activePause(this.db, [{ scope: 'orders' }]))
       throw new AppError('paused', 'The store is not taking orders right now.', 503);
 
+    const lines = await this.orderLines(input.items);
+    const first = checkOneOrder(lines, input.shippingAddress);
+    for (const line of lines) {
+      if (await activePause(this.db, [{ scope: 'product', target: line.variant.product_id }]))
+        throw new AppError('paused', `${line.variant.sku} is not on sale right now.`, 503);
+    }
+    const total = lines.reduce((sum, line) => sum + line.variant.price_minor * line.quantity, 0);
+    const session = `cs_${randomToken(12)}`;
+    const order = await this.db.tx((tx) =>
+      insertOrder(tx, input, { lines, currency: first.currency, total, session }, this.clock()),
+    );
+    return { order, session, duplicate: false };
+  }
+
+  /** Each item with its variant, when that variant is on sale, in stock, and (for a license) bought one at a time. */
+  private async orderLines(items: CheckoutItem[]): Promise<OrderLine[]> {
     const variants = await this.db.query<VariantRow>(
       `select v.id, v.product_id, v.sku, v.name, v.price_minor, v.currency, v.unit_cost_minor, v.support_days, v.license_kind, v.stock,
               p.name as product_name, p.kind, p.status as product_status, p.is_test, p.supplier_id, p.delivery_days
        from product_variants v join products p on p.id = v.product_id where v.sku = any($1::text[]) and v.active`,
-      [input.items.map((item) => item.sku)],
+      [items.map((item) => item.sku)],
     );
-    const lines = input.items.map((item) => {
+    return items.map((item) => {
       const variant = variants.find((v) => v.sku === item.sku);
       if (!variant || variant.product_status !== 'published' || (variant.is_test && !this.options.allowTestProducts))
         throw invalid(`${item.sku} is not available.`);
@@ -128,71 +140,6 @@ export class Store {
       if (variant.stock !== null && variant.stock < item.quantity) throw invalid(`${item.sku} is out of stock.`);
       return { variant, quantity: item.quantity };
     });
-    const first = lines[0]!.variant;
-    if (lines.some((line) => line.variant.currency !== first.currency))
-      throw invalid('All items in one order must be in the same currency.');
-    if (lines.some((line) => line.variant.kind !== first.kind))
-      throw invalid('Digital and physical products are ordered separately.');
-    if (first.kind === 'physical' && !input.shippingAddress)
-      throw invalid('A delivery address is needed for this order.');
-    for (const line of lines) {
-      if (await activePause(this.db, [{ scope: 'product', target: line.variant.product_id }]))
-        throw new AppError('paused', `${line.variant.sku} is not on sale right now.`, 503);
-    }
-    const total = lines.reduce((sum, line) => sum + line.variant.price_minor * line.quantity, 0);
-    const session = `cs_${randomToken(12)}`;
-    const now = this.clock();
-
-    const order = await this.db.tx(async (tx) => {
-      const created = one(
-        await tx.query<OrderRow>(
-          `insert into orders (idempotency_key, buyer_name, buyer_email, locale, shipping_address, currency, total_minor, checkout_session, created_at)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`,
-          [
-            input.idempotencyKey,
-            input.buyer.name,
-            input.buyer.email,
-            input.locale,
-            input.shippingAddress ?? null,
-            first.currency,
-            total,
-            session,
-            now,
-          ],
-        ),
-      );
-      for (const line of lines) {
-        const title: Localized = {
-          en: `${line.variant.product_name.en}: ${line.variant.name.en}`,
-          ar: `${line.variant.product_name.ar}: ${line.variant.name.ar}`,
-        };
-        await tx.query(
-          `insert into order_items (order_id, variant_id, title, kind, quantity, unit_price_minor, unit_cost_minor) values ($1, $2, $3::jsonb, $4, $5, $6, $7)`,
-          [
-            created.id,
-            line.variant.id,
-            json(title),
-            line.variant.kind,
-            line.quantity,
-            line.variant.price_minor,
-            line.variant.unit_cost_minor,
-          ],
-        );
-      }
-      await audit(tx, {
-        actor: SYSTEM,
-        type: 'order.created',
-        subject: { type: 'order', id: created.id },
-        data: {
-          number: created.number,
-          total_minor: total,
-          currency: first.currency,
-          skus: input.items.map((i) => i.sku),
-        },
-      });
-      return created;
-    });
-    return { order, session, duplicate: false };
   }
 
   // ---------------------------------------------------------------- Orders
@@ -341,42 +288,8 @@ export class Store {
        on conflict (provider, provider_ref) do nothing`,
       [order.id, payment_ref, amount_minor, currency, now, provider],
     );
-    const items = await tx.query<OrderItemRow>('select * from order_items where order_id = $1', [order.id]);
     const paid = await this.move(tx, order, 'paid', SYSTEM, { payment_ref, amount_minor, currency });
-    const postings: Posting[] = [
-      {
-        engine: 'commerce',
-        account: 'gross_revenue',
-        amountMinor: amount_minor,
-        currency,
-        refType: 'order',
-        refId: order.id,
-        memo: `Order ${order.number}`,
-      },
-      {
-        engine: 'commerce',
-        account: 'pending_revenue',
-        amountMinor: amount_minor,
-        currency,
-        refType: 'order',
-        refId: order.id,
-        memo: 'Taken by the provider, not yet cleared',
-      },
-    ];
-    const owed = items
-      .filter((item) => item.kind === 'physical')
-      .reduce((sum, item) => sum + item.unit_cost_minor * item.quantity, 0);
-    if (owed > 0)
-      postings.push({
-        engine: 'commerce',
-        account: 'supplier_obligations',
-        amountMinor: owed,
-        currency,
-        refType: 'order',
-        refId: order.id,
-        memo: 'Owed to the supplier for this order',
-      });
-    await post(tx, postings, now);
+    await bookCapture(tx, order, amount_minor, currency, now);
 
     if (amount_minor !== order.total_minor || currency !== order.currency) {
       await this.move(tx, paid, 'on_hold', SYSTEM, {
@@ -398,15 +311,7 @@ export class Store {
       await this.move(tx, paid, 'on_hold', SYSTEM, { reason: 'over_maximum_order_value' });
       return { result: 'held_for_review', fulfil: null };
     }
-    const products = await tx.query<{ product_id: string }>(
-      'select distinct v.product_id from order_items i join product_variants v on v.id = i.variant_id where i.order_id = $1',
-      [order.id],
-    );
-    const targets = [
-      { scope: 'fulfillment' as const },
-      ...products.map((row) => ({ scope: 'product' as const, target: row.product_id })),
-    ];
-    if (await activePause(tx, targets)) {
+    if (await fulfilmentPaused(tx, order.id)) {
       await this.move(tx, paid, 'on_hold', SYSTEM, { reason: 'fulfillment_paused' });
       return { result: 'held_paused', fulfil: null };
     }
@@ -726,4 +631,103 @@ export class Store {
     await this.db.query('update refunds set action_id = $2 where id = $1', [refund.id, action.id]);
     return { refundId: refund.id, action };
   }
+}
+
+type CheckoutItem = { sku: string; quantity: number };
+type OrderLine = { variant: VariantRow; quantity: number };
+
+/** One order holds one currency and one kind of product, and a physical one has somewhere to go. Returns its first variant. */
+function checkOneOrder(lines: OrderLine[], shippingAddress: string | undefined): VariantRow {
+  const first = lines[0]!.variant;
+  if (lines.some((line) => line.variant.currency !== first.currency))
+    throw invalid('All items in one order must be in the same currency.');
+  if (lines.some((line) => line.variant.kind !== first.kind))
+    throw invalid('Digital and physical products are ordered separately.');
+  if (first.kind === 'physical' && !shippingAddress) throw invalid('A delivery address is needed for this order.');
+  return first;
+}
+
+/** Writes the order and its items, waiting for payment, and records it in the audit log. */
+async function insertOrder(
+  tx: Db,
+  input: z.output<typeof checkoutInput>,
+  order: { lines: OrderLine[]; currency: string; total: number; session: string },
+  now: Date,
+): Promise<OrderRow> {
+  const created = one(
+    await tx.query<OrderRow>(
+      `insert into orders (idempotency_key, buyer_name, buyer_email, locale, shipping_address, currency, total_minor, checkout_session, created_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`,
+      [
+        input.idempotencyKey,
+        input.buyer.name,
+        input.buyer.email,
+        input.locale,
+        input.shippingAddress ?? null,
+        order.currency,
+        order.total,
+        order.session,
+        now,
+      ],
+    ),
+  );
+  for (const line of order.lines) {
+    const title: Localized = {
+      en: `${line.variant.product_name.en}: ${line.variant.name.en}`,
+      ar: `${line.variant.product_name.ar}: ${line.variant.name.ar}`,
+    };
+    await tx.query(
+      `insert into order_items (order_id, variant_id, title, kind, quantity, unit_price_minor, unit_cost_minor) values ($1, $2, $3::jsonb, $4, $5, $6, $7)`,
+      [
+        created.id,
+        line.variant.id,
+        json(title),
+        line.variant.kind,
+        line.quantity,
+        line.variant.price_minor,
+        line.variant.unit_cost_minor,
+      ],
+    );
+  }
+  await audit(tx, {
+    actor: SYSTEM,
+    type: 'order.created',
+    subject: { type: 'order', id: created.id },
+    data: {
+      number: created.number,
+      total_minor: order.total,
+      currency: order.currency,
+      skus: input.items.map((i) => i.sku),
+    },
+  });
+  return created;
+}
+
+/** A captured payment is revenue not yet cleared, and a physical order owes its supplier the cost of goods. */
+async function bookCapture(tx: Db, order: OrderRow, amountMinor: number, currency: string, now: Date): Promise<void> {
+  const ref = { type: 'order', id: order.id };
+  const items = await tx.query<OrderItemRow>('select * from order_items where order_id = $1', [order.id]);
+  const owed = items
+    .filter((item) => item.kind === 'physical')
+    .reduce((sum, item) => sum + item.unit_cost_minor * item.quantity, 0);
+  const postings: Posting[] = [
+    storePosting('gross_revenue', amountMinor, currency, ref, `Order ${order.number}`),
+    storePosting('pending_revenue', amountMinor, currency, ref, 'Taken by the provider, not yet cleared'),
+  ];
+  if (owed > 0)
+    postings.push(storePosting('supplier_obligations', owed, currency, ref, 'Owed to the supplier for this order'));
+  await post(tx, postings, now);
+}
+
+/** True while fulfilment, or any product in the order, is paused. */
+async function fulfilmentPaused(tx: Db, orderId: string): Promise<boolean> {
+  const products = await tx.query<{ product_id: string }>(
+    'select distinct v.product_id from order_items i join product_variants v on v.id = i.variant_id where i.order_id = $1',
+    [orderId],
+  );
+  const targets = [
+    { scope: 'fulfillment' as const },
+    ...products.map((row) => ({ scope: 'product' as const, target: row.product_id })),
+  ];
+  return (await activePause(tx, targets)) !== null;
 }
