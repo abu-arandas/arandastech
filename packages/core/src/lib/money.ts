@@ -1,13 +1,7 @@
 /** Decimal places of each currency in use. The dinar has three: 1 JOD is 1,000 fils. */
-export const CURRENCY_EXPONENT: Record<string, number> = { JOD: 3, USD: 2, EUR: 2 };
+const CURRENCY_EXPONENT: Record<string, number> = { JOD: 3, USD: 2, EUR: 2 };
 
-export interface Money {
-  /** Whole number of the currency's smallest unit. */
-  amount: number;
-  currency: string;
-}
-
-export function exponentOf(currency: string): number {
+function exponentOf(currency: string): number {
   const exponent = CURRENCY_EXPONENT[currency];
   if (exponent === undefined) throw new Error(`unknown currency ${currency}`);
   return exponent;

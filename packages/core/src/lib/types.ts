@@ -1,4 +1,4 @@
-export type ActorKind = 'person' | 'agent' | 'automation' | 'system';
+type ActorKind = 'person' | 'agent' | 'automation' | 'system';
 
 /** Who or what did something: a person, an agent run, an automation or the system itself. */
 export interface Actor {

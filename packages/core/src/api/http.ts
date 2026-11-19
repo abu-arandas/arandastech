@@ -24,7 +24,7 @@ export type Caller =
   | { kind: 'staff'; actor: Actor; isOwner: boolean }
   | { kind: 'agent'; actor: Actor; department: string };
 
-export interface RouteContext {
+interface RouteContext {
   request: ApiRequest;
   params: Record<string, string>;
   caller: Caller;

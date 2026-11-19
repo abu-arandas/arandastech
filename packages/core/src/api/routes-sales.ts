@@ -14,23 +14,20 @@ import {
   voidInvoice,
 } from '../crm/billing';
 import { listLeads } from '../crm/crm';
-import { addProspects, changeLead, revenueStatus } from '../crm/pipeline';
+import { addProspects, changeLead } from '../crm/pipeline';
+import { revenueStatus } from '../crm/revenue';
 import { createRule, listRules, revokeRule } from '../governance/rules';
 import { getPolicy } from '../governance/settings';
-import { forbidden, invalid } from '../lib/errors';
+import { invalid } from '../lib/errors';
 import type { Platform } from '../platform';
 import { SALES_TEMPLATE_KEYS } from '../sales-templates';
-import type { Caller, Router } from './http';
+import { staffOf } from './guards';
+import type { Router } from './http';
 
 /** The revenue engine's addresses: the goal, the pipeline, prospects, proposals, invoices and Sales' autopilot. */
 
-const staffOf = (caller: Caller) => {
-  if (caller.kind !== 'staff') throw forbidden('This is for the team only.');
-  return caller;
-};
-
 /** The standing rule that lets Sales send its template emails without asking each time. */
-export const AUTOPILOT_RULE = 'Sales autopilot';
+const AUTOPILOT_RULE = 'Sales autopilot';
 
 export function registerSalesRoutes(router: Router, platform: Platform): void {
   const { db, clock } = platform;

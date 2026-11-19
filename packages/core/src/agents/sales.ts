@@ -2,8 +2,9 @@ import { mayPropose } from '../api/mcp';
 import { invoicesToRemind, type InvoiceRow, markInvoiceSent, markProposalSent, type ProposalRow } from '../crm/billing';
 import type { LeadRow, MessageRow } from '../crm/crm';
 import { OPEN_STAGES, SEQUENCES, stopSequence, wantsNoMore } from '../crm/pipeline';
+import type { Stage } from '../crm/stages';
 import { getPolicy } from '../governance/settings';
-import { json, maybeOne } from '../lib/db';
+import { type Db, json, maybeOne } from '../lib/db';
 import { formatMoney } from '../lib/money';
 import type { Locale } from '../lib/types';
 import { renderTemplate } from '../memory';
@@ -101,14 +102,31 @@ async function sentToday(rt: AgentRuntime): Promise<number> {
 const WAITING = ['proposed', 'pending', 'approved', 'auto_approved', 'executing'];
 const REFUSED = ['rejected', 'blocked', 'failed'];
 
+interface SequenceResult {
+  proposed: Proposed[];
+  waiting: number;
+  stopped: number;
+  ended: number;
+  retried: number;
+  reminders: number;
+  held_by_limit: number;
+}
+
+/** What happened to one lead today. */
+type StepOutcome = 'waiting' | 'stopped' | 'ended' | 'held_by_limit' | 'skipped' | Proposed;
+
+/**
+ * Each morning: every lead whose next step is due gets its next email proposed, within the daily limit, and unpaid
+ * invoices get their reminders. Answers to clients come first, then follow-ups, then first emails.
+ */
 async function sequences(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   return rt.record('sales.sequences', ctx, input, async (run) => {
     const now = rt.platform.clock();
     // Lapsed approvals are closed first, so their emails can be asked for again today.
     await rt.platform.gateway.expireDue();
     let budget = (await getPolicy(rt.db, 'sales.daily_send_limit')) - (await sentToday(rt));
-    const result = {
-      proposed: [] as Proposed[],
+    const result: SequenceResult = {
+      proposed: [],
       waiting: 0,
       stopped: 0,
       ended: 0,
@@ -116,129 +134,156 @@ async function sequences(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
       reminders: 0,
       held_by_limit: 0,
     };
-    // Answers to clients first: check-ins, proposals and invoices, then the follow-ups, then the first emails.
-    const due = await rt.db.query<LeadRow>(
-      `select * from leads where next_step_at <= $1 and sequence is not null and not do_not_contact
-       order by case when sequence in ('check_in', 'proposal') then 0 when sequence_step > 0 then 1 else 2 end, next_step_at
-       limit 200`,
-      [now],
-    );
-    for (const lead of due) {
-      const spec = SEQUENCES[lead.sequence!];
-      if (!spec) {
-        await stopSequence(rt.db, lead.id);
+    for (const lead of await dueLeads(rt.db, now)) {
+      const last = await lastEmail(rt.db, lead);
+      if (last === 'waiting') {
+        result.waiting += 1;
         continue;
       }
-      if (lead.last_action_id) {
-        const last = maybeOne(
-          await rt.db.query<{ status: string }>('select status from actions where id = $1', [lead.last_action_id]),
-        );
-        if (last && WAITING.includes(last.status)) {
-          result.waiting += 1;
-          continue;
-        }
-        // The owner turned the last email down, or it could not go: the sequence stops rather than writing again.
-        if (last && REFUSED.includes(last.status)) {
-          await stopSequence(rt.db, lead.id);
-          result.stopped += 1;
-          continue;
-        }
-        // It lapsed before anyone looked: the same email is proposed again today.
-        if (last?.status === 'expired') {
-          await rt.db.query(
-            'update leads set sequence_step = greatest(0, sequence_step - 1), last_action_id = null where id = $1',
-            [lead.id],
-          );
-          lead.sequence_step = Math.max(0, lead.sequence_step - 1);
-          result.retried += 1;
-        }
-      }
-      const outreach = lead.sequence!.startsWith('outreach') || lead.sequence === 'inbound';
-      if (outreach && !OPEN_STAGES.includes(lead.stage)) {
+      if (last === 'stopped') {
         await stopSequence(rt.db, lead.id);
         result.stopped += 1;
         continue;
       }
-      if (lead.sequence_step >= spec.steps.length) {
-        const end = spec.end;
-        await rt.db.query(
-          `update leads set sequence = null, next_step_at = null,
-             stage = case when $2::text is not null and ($2 <> 'lost' or stage in ('new', 'contacted')) then $2 else stage end,
-             notes = case when $2 = 'lost' then trim(notes || E'\\nNo reply to the outreach.') else notes end
-           where id = $1`,
-          [lead.id, end],
-        );
-        result.ended += 1;
+      if (last === 'retry') {
+        await retryLastStep(rt.db, lead);
+        result.retried += 1;
+      }
+      const outcome = await nextStep(rt, run, lead, now, budget);
+      if (typeof outcome === 'string') {
+        if (outcome !== 'skipped') result[outcome] += 1;
         continue;
       }
-      if (budget <= 0) {
-        result.held_by_limit += 1;
-        continue;
-      }
-      const step = spec.steps[lead.sequence_step]!;
-      let values = leadValues(lead);
-      if (lead.sequence === 'proposal') {
-        const proposal = maybeOne(
-          await rt.db.query<ProposalRow>(
-            `select * from proposals where lead_id = $1 and status = 'sent' order by sent_at desc limit 1`,
-            [lead.id],
-          ),
-        );
-        if (!proposal) {
-          await stopSequence(rt.db, lead.id);
-          result.stopped += 1;
-          continue;
-        }
-        values = { ...values, ...proposalValues(rt, proposal) };
-      }
-      const text = await write(rt, run, step.template, lead.locale, values);
-      if (!text) continue;
-      const action = await proposeEmail(
-        rt,
-        run,
-        { to: lead.email, ...text, locale: lead.locale, template: step.template, lead_id: lead.id },
-        [
-          { kind: 'lead', id: lead.id },
-          { kind: 'memory', id: `template:${step.template}` },
-        ],
-        `sales.sequence:${lead.id}:${lead.sequence}:${lead.sequence_step}:${now.toISOString().slice(0, 10)}`,
-        // A website lead's name was typed by an outsider, so its emails always wait for the owner.
-        lead.kind !== 'prospect' && lead.sequence !== 'check_in',
-      );
-      await rt.db.query(
-        `update leads set sequence_step = sequence_step + 1, last_action_id = $2, last_contact_at = $3,
-           next_step_at = $4, stage = case when stage = 'new' then 'contacted' else stage end where id = $1`,
-        [lead.id, action.action_id, now, new Date(now.getTime() + Math.max(1, step.waitDays) * DAY)],
-      );
-      result.proposed.push(action);
+      result.proposed.push(outcome);
       budget -= 1;
     }
-    for (const invoice of await invoicesToRemind(rt.db, now)) {
-      const text = await write(rt, run, 'invoice-reminder', invoice.locale, invoiceValues(rt, invoice));
-      if (!text) break;
-      const action = await proposeEmail(
-        rt,
-        run,
-        {
-          to: invoice.buyer_email!,
-          ...text,
-          locale: invoice.locale,
-          template: 'invoice-reminder',
-          lead_id: invoice.lead_id ?? undefined,
-        },
-        [{ kind: 'invoice', id: invoice.id }],
-        `sales.invoice_reminder:${invoice.id}:${invoice.reminders_sent}`,
-      );
-      await rt.db.query('update invoices set reminders_sent = reminders_sent + 1 where id = $1', [invoice.id]);
-      result.proposed.push(action);
-      result.reminders += 1;
-    }
+    await remindInvoices(rt, run, now, result);
     if (result.held_by_limit)
       run.notes.push(
         `${result.held_by_limit} emails wait for tomorrow: the daily limit in the policy sheet is reached.`,
       );
     return result;
   });
+}
+
+function dueLeads(db: Db, now: Date): Promise<LeadRow[]> {
+  return db.query<LeadRow>(
+    `select * from leads where next_step_at <= $1 and sequence is not null and not do_not_contact
+     order by case when sequence in ('check_in', 'proposal') then 0 when sequence_step > 0 then 1 else 2 end, next_step_at
+     limit 200`,
+    [now],
+  );
+}
+
+/**
+ * Where the lead's last email stands: still with the owner (waiting), turned down or failed (stopped: Sales never
+ * writes again after a no), lapsed before anyone looked (retry: the same email is asked for again), or done (go).
+ */
+async function lastEmail(db: Db, lead: LeadRow): Promise<'waiting' | 'stopped' | 'retry' | 'go'> {
+  if (!lead.last_action_id) return 'go';
+  const last = maybeOne(
+    await db.query<{ status: string }>('select status from actions where id = $1', [lead.last_action_id]),
+  );
+  if (!last) return 'go';
+  if (WAITING.includes(last.status)) return 'waiting';
+  if (REFUSED.includes(last.status)) return 'stopped';
+  return last.status === 'expired' ? 'retry' : 'go';
+}
+
+async function retryLastStep(db: Db, lead: LeadRow): Promise<void> {
+  await db.query(
+    'update leads set sequence_step = greatest(0, sequence_step - 1), last_action_id = null where id = $1',
+    [lead.id],
+  );
+  lead.sequence_step = Math.max(0, lead.sequence_step - 1);
+}
+
+/** Proposes the lead's next email, or says why there is none today. */
+async function nextStep(rt: AgentRuntime, run: Run, lead: LeadRow, now: Date, budget: number): Promise<StepOutcome> {
+  const spec = SEQUENCES[lead.sequence!];
+  const outreach = lead.sequence!.startsWith('outreach') || lead.sequence === 'inbound';
+  if (!spec || (outreach && !OPEN_STAGES.includes(lead.stage))) {
+    await stopSequence(rt.db, lead.id);
+    return 'stopped';
+  }
+  if (lead.sequence_step >= spec.steps.length) {
+    await endSequence(rt.db, lead, spec.end);
+    return 'ended';
+  }
+  if (budget <= 0) return 'held_by_limit';
+  const values = await stepValues(rt, lead);
+  if (!values) {
+    await stopSequence(rt.db, lead.id);
+    return 'stopped';
+  }
+  const step = spec.steps[lead.sequence_step]!;
+  const text = await write(rt, run, step.template, lead.locale, values);
+  if (!text) return 'skipped';
+  const action = await proposeEmail(
+    rt,
+    run,
+    { to: lead.email, ...text, locale: lead.locale, template: step.template, lead_id: lead.id },
+    [
+      { kind: 'lead', id: lead.id },
+      { kind: 'memory', id: `template:${step.template}` },
+    ],
+    `sales.sequence:${lead.id}:${lead.sequence}:${lead.sequence_step}:${now.toISOString().slice(0, 10)}`,
+    // A website lead's name was typed by an outsider, so its emails always wait for the owner.
+    lead.kind !== 'prospect' && lead.sequence !== 'check_in',
+  );
+  await rt.db.query(
+    `update leads set sequence_step = sequence_step + 1, last_action_id = $2, last_contact_at = $3,
+       next_step_at = $4, stage = case when stage = 'new' then 'contacted' else stage end where id = $1`,
+    [lead.id, action.action_id, now, new Date(now.getTime() + Math.max(1, step.waitDays) * DAY)],
+  );
+  return action;
+}
+
+/** The sequence is over: the lead moves to its end stage (an outreach with no reply is lost). */
+async function endSequence(db: Db, lead: LeadRow, end: Stage | null): Promise<void> {
+  await db.query(
+    `update leads set sequence = null, next_step_at = null,
+       stage = case when $2::text is not null and ($2 <> 'lost' or stage in ('new', 'contacted')) then $2 else stage end,
+       notes = case when $2 = 'lost' then trim(notes || E'\\nNo reply to the outreach.') else notes end
+     where id = $1`,
+    [lead.id, end],
+  );
+}
+
+/** The values for the lead's next email; a proposal reminder also needs the proposal, and stops without one. */
+async function stepValues(rt: AgentRuntime, lead: LeadRow): Promise<Record<string, string> | null> {
+  const values = leadValues(lead);
+  if (lead.sequence !== 'proposal') return values;
+  const proposal = maybeOne(
+    await rt.db.query<ProposalRow>(
+      `select * from proposals where lead_id = $1 and status = 'sent' order by sent_at desc limit 1`,
+      [lead.id],
+    ),
+  );
+  return proposal ? { ...values, ...proposalValues(rt, proposal) } : null;
+}
+
+async function remindInvoices(rt: AgentRuntime, run: Run, now: Date, result: SequenceResult): Promise<void> {
+  for (const invoice of await invoicesToRemind(rt.db, now)) {
+    const text = await write(rt, run, 'invoice-reminder', invoice.locale, invoiceValues(rt, invoice));
+    if (!text) return;
+    const action = await proposeEmail(
+      rt,
+      run,
+      {
+        to: invoice.buyer_email!,
+        ...text,
+        locale: invoice.locale,
+        template: 'invoice-reminder',
+        lead_id: invoice.lead_id ?? undefined,
+      },
+      [{ kind: 'invoice', id: invoice.id }],
+      `sales.invoice_reminder:${invoice.id}:${invoice.reminders_sent}`,
+    );
+    await rt.db.query('update invoices set reminders_sent = reminders_sent + 1 where id = $1', [invoice.id]);
+    result.proposed.push(action);
+    result.reminders += 1;
+  }
 }
 
 // ---------------------------------------------------------------- Proposals, invoices and receipts

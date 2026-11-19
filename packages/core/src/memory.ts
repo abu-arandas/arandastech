@@ -82,7 +82,7 @@ export async function approveMemory(db: Db, key: string, by: Actor, isOwner: boo
 }
 
 /** Only approved items may be used in anything a customer reads. */
-export async function approvedMemory(db: Db, key: string): Promise<MemoryItem | null> {
+async function approvedMemory(db: Db, key: string): Promise<MemoryItem | null> {
   return maybeOne(
     await db.query<MemoryItem>(`select * from memory_items where key = $1 and status = 'approved'`, [key]),
   );

@@ -4,7 +4,7 @@ import type { Level } from '../lib/types';
 import type { PauseTarget } from './pause';
 
 /** Whether a standing rule may ever cover an action (blueprint 2.3). */
-export type Delegable = 'not_needed' | 'yes' | 'later' | 'never';
+type Delegable = 'not_needed' | 'yes' | 'later' | 'never';
 
 /** One named, typed operation that can leave the platform. The level belongs to the action, not to whoever asks for it. */
 export interface ActionSpec<P = Record<string, unknown>> {

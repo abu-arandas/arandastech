@@ -30,7 +30,7 @@ export interface Proposed {
   summary: string;
 }
 
-export async function propose(
+async function propose(
   rt: AgentRuntime,
   run: Run,
   type: string,

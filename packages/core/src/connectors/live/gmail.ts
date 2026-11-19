@@ -1,7 +1,7 @@
 import { type Fetch, LiveConnector, request, unknownAction } from './base';
 
 const GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me';
-export const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/gmail.modify';
+const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/gmail.modify';
 
 export interface GmailCredentials {
   client_id: string;
@@ -196,7 +196,7 @@ interface GmailPayload {
 }
 
 /** The address inside a From header such as `Sara <sara@example.com>`. */
-export function addressOf(from: string): string {
+function addressOf(from: string): string {
   const inside = /<([^>]+)>/.exec(from);
   return (inside?.[1] ?? from).trim().toLowerCase();
 }

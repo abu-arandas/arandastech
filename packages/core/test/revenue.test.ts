@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApi, type ApiResponse } from '../src/api/index';
 import { DEMO_OWNER_ID } from '../src/company';
 import { recordInbound } from '../src/crm/crm';
-import { toUsdCents, wantsNoMore } from '../src/crm/pipeline';
+import { wantsNoMore } from '../src/crm/pipeline';
+import { toUsdCents } from '../src/crm/revenue';
 import { setPolicy } from '../src/governance/settings';
 import { fitsTemplate } from '../src/memory';
 import { createTestPlatform, OWNER, type TestPlatform } from './helpers/platform';
@@ -271,6 +272,18 @@ describe('the revenue engine', () => {
 
     const off = await api.owner('POST', '/api/owner/sales/autopilot', { on: false });
     expect(off.body.autopilot).toBeNull();
+  });
+
+  it('the daily tick closes an autopilot past its date, so the owner app never shows it as on', async () => {
+    const on = await api.owner('POST', '/api/owner/sales/autopilot', { on: true });
+    expect(on.body.autopilot.status).toBe('active');
+    t.clock.advance(366 * 24);
+    await t.platform.agents.scheduleDaily();
+    expect((await api.owner('GET', '/api/owner/revenue')).body.autopilot).toBeNull();
+    const rows = await t.test.db.query<{ status: string }>('select status from standing_rules where id = $1', [
+      on.body.autopilot.id,
+    ]);
+    expect(rows[0]!.status).toBe('expired');
   });
 
   it('converts the dinar to dollars at the peg', () => {

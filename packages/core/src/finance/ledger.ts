@@ -2,7 +2,7 @@ import type { Db } from '../lib/db';
 import { assertMinor, shareOf } from '../lib/money';
 import { getPolicy } from '../governance/settings';
 
-export type Engine = 'commerce' | 'services' | 'company';
+type Engine = 'commerce' | 'services' | 'company';
 export type Account =
   | 'gross_revenue'
   | 'pending_revenue'
@@ -55,7 +55,7 @@ const ZERO: Totals = {
   operating_costs: 0,
 };
 
-export type SpendStatus = 'not_safe_to_spend' | 'limited_reinvestment_available' | 'safe_to_consider_upgrade';
+type SpendStatus = 'not_safe_to_spend' | 'limited_reinvestment_available' | 'safe_to_consider_upgrade';
 
 export interface MoneySummary {
   currency: string;

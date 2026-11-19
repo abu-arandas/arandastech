@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { audit } from '../governance/audit';
 import { type Db, json, maybeOne, one } from '../lib/db';
 import { invalid, notFound } from '../lib/errors';
+import { parseOrRefuse } from '../lib/validate';
 import type { Actor, Locale } from '../lib/types';
 import { SYSTEM } from '../lib/types';
 import { noteBooking, openLeadFrom } from './pipeline';
@@ -70,8 +71,6 @@ export interface LeadRow {
   created_at: Date;
   updated_at: Date;
 }
-
-export { STAGES, type Stage } from './stages';
 
 export interface MessageRow {
   id: string;
@@ -193,13 +192,7 @@ async function routeToSales(
 
 /** A lead from the website form (blueprint 5.1 step 5). A repeated submission within ten minutes finds the same lead. */
 export async function createLead(db: Db, raw: LeadInput, now: Date): Promise<{ lead: LeadRow; duplicate: boolean }> {
-  const parsed = leadInput.safeParse(raw);
-  if (!parsed.success)
-    throw invalid(
-      'The form is not complete.',
-      parsed.error.issues.map((issue) => ({ field: issue.path.join('.'), message: issue.message })),
-    );
-  const input = parsed.data;
+  const input = parseOrRefuse(leadInput, raw, 'The form is not complete.');
   const existing = maybeOne(
     await db.query<LeadRow>(
       `select * from leads where lower(email) = lower($1) and message = $2 and created_at > $3 order by created_at desc limit 1`,

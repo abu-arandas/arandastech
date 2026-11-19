@@ -16,7 +16,7 @@ import { DEPARTMENT_IDS } from './workflows';
  */
 
 /** The work the command center can hand out without a model, and what each one touches. */
-export const TASK_KINDS = {
+const TASK_KINDS = {
   'marketing.draft_posts': {
     department: 'marketing',
     connector: 'Buffer, drafts only',
@@ -56,7 +56,7 @@ export const TASK_KINDS = {
 type Kind = keyof typeof TASK_KINDS;
 const KINDS = Object.keys(TASK_KINDS) as Kind[];
 
-export interface PlannedTask {
+interface PlannedTask {
   kind: Kind | 'open';
   department: string;
   title: string;
