@@ -411,6 +411,12 @@ describe('with an AI model', () => {
     );
     expect(lead!.score).toBe(71);
     expect(lead!.score_reasons[0]).toBe('Rules 60, assistant 82, average 71.');
+    // Scoring the leads again by the rules keeps the assistant's part.
+    await t.platform.agents.runWorkflow('sales.qualify_leads', { count: 1 }, { trigger: 'manual' });
+    const [again] = await t.test.db.query<Json>(
+      `select score, score_reasons from leads where email = 'rami@agency.example'`,
+    );
+    expect(again).toEqual(lead);
   });
 
   it('falls back to manual mode when the model fails or answers in the wrong shape, and says so', async () => {

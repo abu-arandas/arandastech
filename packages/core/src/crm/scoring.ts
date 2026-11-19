@@ -69,6 +69,9 @@ export function scoreLead(
 const notABuyer = (lead: Pick<LeadRow, 'message' | 'email'>): boolean =>
   SELLING_TO_US.test(lead.message) || JOB_SEEKER.test(lead.message) || THROWAWAY_MAIL.test(lead.email);
 
+const SUMMARY = /^Rules \d+, assistant (\d+), average \d+\.$/;
+const ASSISTANT = 'Assistant: ';
+
 /**
  * A model's score checked by the rules: the two are averaged, so a message written to please a model cannot push a lead
  * past the rules on its own, and a lead the rules call spam or a job application keeps the rules' score.
@@ -81,8 +84,21 @@ export function combineScores(rules: Score, model: Score | null, lead: Pick<Lead
     reasons: [
       `Rules ${rules.score}, assistant ${model.score}, average ${score}.`,
       ...rules.reasons,
-      ...model.reasons.map((reason) => `Assistant: ${reason}`),
+      ...model.reasons.map((reason) => `${ASSISTANT}${reason}`),
     ],
+  };
+}
+
+/**
+ * The assistant's score kept in a lead's stored reasons, so scoring the lead again by the rules keeps the assistant's
+ * part instead of losing it.
+ */
+export function assistantScore(reasons: string[]): Score | null {
+  const found = SUMMARY.exec(reasons[0] ?? '');
+  if (!found) return null;
+  return {
+    score: Number(found[1]),
+    reasons: reasons.filter((reason) => reason.startsWith(ASSISTANT)).map((reason) => reason.slice(ASSISTANT.length)),
   };
 }
 

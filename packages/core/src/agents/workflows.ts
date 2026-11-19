@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { mayPropose } from '../api/mcp';
 import { listLeads, type LeadRow, type MessageRow, updateLead } from '../crm/crm';
 import { startSequence } from '../crm/pipeline';
-import { combineScores, QUALIFIED, scoreLead } from '../crm/scoring';
+import { assistantScore, combineScores, QUALIFIED, scoreLead } from '../crm/scoring';
 import { getPolicy } from '../governance/settings';
 import { json, maybeOne } from '../lib/db';
 import type { Locale, Localized } from '../lib/types';
@@ -185,7 +185,10 @@ async function qualifyLeads(rt: AgentRuntime, input: Json, ctx: WorkflowContext)
     );
     const scored = [];
     for (const lead of leads) {
-      const { score, reasons } = scoreLead(lead, flagged.has(lead.id));
+      // The rules again, with the assistant's part of the last score kept, so a model-assisted score is not lost.
+      const isFlagged = flagged.has(lead.id);
+      const rules = scoreLead(lead, isFlagged);
+      const { score, reasons } = isFlagged ? rules : combineScores(rules, assistantScore(lead.score_reasons), lead);
       await updateLead(rt.db, lead.id, { score, scoreReasons: reasons }, { kind: 'agent', id: 'sales' });
       if (score >= QUALIFIED && lead.stage === 'new')
         await updateLead(rt.db, lead.id, { stage: 'qualified' }, { kind: 'agent', id: 'sales' });
