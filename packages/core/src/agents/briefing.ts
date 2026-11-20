@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ledgerCurrencies, moneySummary } from '../finance/ledger';
 import { revenueStatus } from '../crm/revenue';
+import { testLine, testResults } from '../crm/ab-tests';
 import { listOpenApprovals } from '../governance/approvals';
 import { formatMoney } from '../lib/money';
 import type { Locale } from '../lib/types';
@@ -97,6 +98,7 @@ async function businessFigures(rt: AgentRuntime) {
       ai_spent_today: `${(mode.spent_today_micros / 1_000_000).toFixed(2)} USD`,
     },
     sales: await salesFigures(rt, now),
+    email_tests: await testResults(rt.db),
     money: await moneyFigures(rt),
   };
 }
@@ -126,6 +128,7 @@ export function briefingText(f: Figures, locale: Locale): string {
           `- صندوق الرسائل: ${f.inbox.unhandled} بلا معالجة، و${f.inbox.flagged} رسالة حاولت إعطاء أوامر خلال آخر يوم.`,
           `- تنبيهات مفتوحة: ${f.alerts_open}. إجراءات فشلت خلال آخر يوم: ${f.actions.failed}. إجراءات يوقفها الإيقاف المؤقت: ${f.actions.held}.`,
           ...money,
+          ...f.email_tests.map((test) => testLine(test, 'ar')),
           `- الأقسام: ${f.agents.runs} تشغيلاً خلال آخر يوم، فشل منها ${f.agents.failed}. ${f.agents.mode === 'ai' ? 'تعمل بالذكاء الاصطناعي' : 'تعمل يدوياً بلا ذكاء اصطناعي'}، وتكلفة اليوم ${f.agents.ai_spent_today}.`,
         ]
       : [
@@ -138,6 +141,7 @@ export function briefingText(f: Figures, locale: Locale): string {
           `- Inbox: ${f.inbox.unhandled} not handled, ${f.inbox.flagged} that tried to give instructions in the last day.`,
           `- Open alerts: ${f.alerts_open}. Actions that failed in the last day: ${f.actions.failed}. Held by a pause: ${f.actions.held}.`,
           ...money,
+          ...f.email_tests.map((test) => testLine(test, 'en')),
           `- Departments: ${f.agents.runs} runs in the last day, ${f.agents.failed} failed. ${f.agents.mode === 'ai' ? 'Working with AI' : 'Working in manual mode, without AI'}; spent today ${f.agents.ai_spent_today}.`,
         ];
   return lines.join('\n');

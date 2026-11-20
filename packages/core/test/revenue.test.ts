@@ -49,6 +49,8 @@ describe('the revenue engine', () => {
     t = await createTestPlatform();
     api = apiFor(t);
     await setPolicy(t.test.db, 'sales.booking_link', 'https://calendar.app.google/zirr-test', OWNER);
+    // Version B of the first emails waits for the owner here, so every lead gets version A (ab-tests.test.ts covers B).
+    await t.test.db.query(`update memory_items set status = 'draft' where key like 'template:%.b'`);
   });
   afterAll(async () => t.test.drop());
 

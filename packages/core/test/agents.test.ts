@@ -728,9 +728,13 @@ describe('the fixed rules', () => {
             open_disputes: 0,
           },
         ],
+        email_tests: [
+          { template: 'shop-intro', a: { sends: 12, replies: 1 }, b: { sends: 11, replies: 2 }, winner: null },
+        ],
       } as never,
       'en',
     );
+    expect(text).toContain('- Test shop-intro running (replies: A 1/12, B 2/11); decided at 40 emails each.');
     expect(text).not.toContain('Money in');
     expect(text).toContain('Working in manual mode');
     expect(text).toContain(

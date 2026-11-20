@@ -56,6 +56,7 @@ const arSales = <String, String>{
   'Record it': 'سجّله',
   'One a line: name, email, company, country, "shop" or "agency", and for someone already emailed: how many emails and the last date (2026-11-18).':
       'واحد في كل سطر: الاسم، البريد، الشركة، الدولة، وكلمة "shop" أو "agency"، ولمن راسلته من قبل: عدد الرسائل وتاريخ آخرها (2026-11-18).',
+  'Or paste the weekly research file whole, with its header line.': 'أو الصق ملف البحث الأسبوعي كاملاً مع سطر العناوين.',
   'Add': 'أضف',
   'Added': 'أُضيف',
   'Skipped': 'تُرك',

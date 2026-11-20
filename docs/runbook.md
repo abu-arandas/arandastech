@@ -215,6 +215,22 @@ Security raises an alert once a day.
 **The Sunday report.** On Sundays in Amman, with Gmail live, the morning briefing also goes to the owner's own mailbox
 (`gmail.notify_owner`, Level 1: it can reach no one else), in English and Arabic with a link to the owner app.
 
+**A/B tests.** A template can have a version B, named with `.b` after its key (`prospect-intro.b`, `shop-intro.b`).
+While the owner has approved both, half the leads get version B, by their id (`packages/core/src/crm/ab-tests.ts`). A
+reply counts for the last email the lead got before replying. Once each version has gone to 40 people, the one with the
+higher reply rate (A on a tie) is kept in `template_tests` and sent from then on; the briefing shows each test's replies. A version B left as a
+draft changes nothing. The autopilot covers both versions, but only from the next time it is switched on.
+
+**The weekly research file.** Sales, Add prospects, takes the file pasted whole: a CSV or tab-separated sheet whose first
+line names the columns (`name,email,company,country,audience,locale,website,notes`; values with commas in double
+quotes, lines starting with `#` skipped). Without that header line, the order is name, email, company, country,
+audience. Addresses already in the pipeline or that asked not to be written to are skipped and listed.
+
+**Search pages.** The site has a guide per question a buyer searches for (`/en/guides`, `/ar/guides`, words in
+`apps/web/lib/guides-content.ts`), a compare page, a sitemap (`/sitemap.xml`, linked from `robots.txt`) with each page's
+Arabic or English twin, and schema.org data for the products and their prices. Add a guide by adding an entry there:
+its test checks the Arabic, the description length and the links. Submit the sitemap once in Google Search Console.
+
 **Heartbeat.** `.github/workflows/heartbeat.yml` calls `/api/cron/agents` every 30 minutes, so new mail is read and
 answered within half an hour. The daily jobs still run once a day.
 

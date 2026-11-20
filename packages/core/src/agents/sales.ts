@@ -2,6 +2,7 @@ import { mayPropose } from '../api/mcp';
 import { safeSendLimit } from '../crm/deliverability';
 import { invoicesToRemind, type InvoiceRow, markInvoiceSent, markProposalSent, type ProposalRow } from '../crm/billing';
 import type { LeadRow, MessageRow } from '../crm/crm';
+import { chooseTemplate, decideTests, testLine } from '../crm/ab-tests';
 import { OPEN_STAGES, SEQUENCES, stopSequence, wantsNoMore } from '../crm/pipeline';
 import type { Stage } from '../crm/stages';
 import { getPolicy } from '../governance/settings';
@@ -154,6 +155,8 @@ async function sequences(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
       run.notes.push(
         `More than 5% of recent addresses bounced, so today's limit is halved to ${allowed.limit}. Check the prospect list.`,
       );
+    for (const test of await decideTests(rt.db, now))
+      run.notes.push(`A/B test decided. ${testLine(test, 'en').slice(2)}`);
     let budget = allowed.limit - (await sentToday(rt));
     const result: SequenceResult = {
       proposed: [],
@@ -248,7 +251,8 @@ async function nextStep(rt: AgentRuntime, run: Run, lead: LeadRow, now: Date, bu
     return 'stopped';
   }
   const step = spec.steps[lead.sequence_step]!;
-  const text = await write(rt, run, step.template, lead.locale, values);
+  const template = await chooseTemplate(rt.db, step.template, lead.id);
+  const text = await write(rt, run, template, lead.locale, values);
   if (!text) return 'skipped';
   const action = await proposeEmail(
     rt,
@@ -257,13 +261,13 @@ async function nextStep(rt: AgentRuntime, run: Run, lead: LeadRow, now: Date, bu
       to: lead.email,
       ...text,
       locale: lead.locale,
-      template: step.template,
+      template,
       lead_id: lead.id,
       unsubscribe_url: optOutLinks(rt, lead)?.oneClick,
     },
     [
       { kind: 'lead', id: lead.id },
-      { kind: 'memory', id: `template:${step.template}` },
+      { kind: 'memory', id: `template:${template}` },
     ],
     `sales.sequence:${lead.id}:${lead.sequence}:${lead.sequence_step}:${now.toISOString().slice(0, 10)}`,
     // A website lead's name was typed by an outsider, so its emails always wait for the owner.
