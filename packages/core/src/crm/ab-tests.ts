@@ -4,9 +4,9 @@ import type { Actor } from '../lib/types';
 
 /**
  * A/B tests of the sales emails. A template can have a version B, named with ".b" after its key (prospect-intro.b).
- * While the owner has approved both and no winner is kept, Sales sends them in turn. A reply counts for the last email
- * the lead was sent before replying. Once each version has gone to MIN_SENDS people, the one with more replies (version
- * A on a tie) is kept in template_tests and every later email uses it. Nothing here writes or sends an email.
+ * While the owner has approved both and no winner is kept, half the leads get version B. A reply counts for the last
+ * email the lead was sent before replying. Once each version has gone to MIN_SENDS people, the one with the higher reply
+ * rate (version A on a tie) is kept in template_tests and every later email uses it. Nothing here writes or sends an email.
  */
 
 const SALES: Actor = { kind: 'agent', id: 'sales' };
@@ -22,30 +22,32 @@ async function approved(db: Db, template: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-async function winnerOf(db: Db, template: string): Promise<string | null> {
+async function decided(db: Db, template: string): Promise<TestResult | null> {
   const row = maybeOne(
-    await db.query<{ winner: string }>('select winner from template_tests where template = $1', [template]),
+    await db.query<{ winner: string; a_sends: number; a_replies: number; b_sends: number; b_replies: number }>(
+      'select * from template_tests where template = $1',
+      [template],
+    ),
   );
-  return row?.winner ?? null;
+  if (!row) return null;
+  return {
+    template,
+    a: { sends: row.a_sends, replies: row.a_replies },
+    b: { sends: row.b_sends, replies: row.b_replies },
+    winner: row.winner,
+  };
 }
 
-/** The emails proposed with this template that were not turned down: what "in turn" counts. */
-async function proposedCount(db: Db, template: string): Promise<number> {
-  const [row] = await db.query<{ n: number }>(
-    `select count(*)::int as n from actions where action_type = 'gmail.send_email' and payload ->> 'template' = $1
-       and status not in ('rejected', 'blocked', 'failed', 'expired')`,
-    [template],
-  );
-  return row?.n ?? 0;
-}
-
-/** The template a sequence step sends today: the kept winner, else the version with fewer emails so far (A first). */
-export async function chooseTemplate(db: Db, template: string): Promise<string> {
-  const winner = await winnerOf(db, template);
-  if (winner) return winner;
+/**
+ * The version this lead gets: the kept winner, else half the leads get version B, by the last digit of their id. A lead
+ * always gets the same version, and two runs at the same time can never tip the split, since nothing is counted.
+ */
+export async function chooseTemplate(db: Db, template: string, leadId: string): Promise<string> {
+  const test = await decided(db, template);
+  if (test) return test.winner!;
   const b = versionB(template);
   if (!(await approved(db, b))) return template;
-  return (await proposedCount(db, b)) < (await proposedCount(db, template)) ? b : template;
+  return parseInt(leadId.slice(-1), 16) % 2 === 1 ? b : template;
 }
 
 export interface TestResult {
@@ -82,39 +84,50 @@ export async function testResults(db: Db): Promise<TestResult[]> {
   const results: TestResult[] = [];
   for (const { key } of rows) {
     const template = key.slice('template:'.length, -VERSION_B.length);
-    results.push({
-      template,
-      a: await score(db, template),
-      b: await score(db, versionB(template)),
-      winner: await winnerOf(db, template),
-    });
+    // A decided test keeps the counts it was decided on, so the briefing never shows a winner its numbers contradict.
+    results.push(
+      (await decided(db, template)) ?? {
+        template,
+        a: await score(db, template),
+        b: await score(db, versionB(template)),
+        winner: null,
+      },
+    );
   }
   return results;
 }
 
 const rate = (s: { sends: number; replies: number }): number => (s.sends ? s.replies / s.sends : 0);
 
-/** Keeps the winner of each test whose versions have both gone to MIN_SENDS people. Returns the tests it decided. */
+/**
+ * Keeps the winner of each test whose versions have both gone to MIN_SENDS people: the higher reply rate (replies per
+ * email sent, since the two versions rarely reach exactly the same number), version A on a tie. Returns the tests it
+ * decided.
+ */
 export async function decideTests(db: Db, now: Date): Promise<TestResult[]> {
-  const decided: TestResult[] = [];
+  const done: TestResult[] = [];
   for (const test of await testResults(db)) {
     if (test.winner || test.a.sends < MIN_SENDS || test.b.sends < MIN_SENDS) continue;
     const winner = rate(test.b) > rate(test.a) ? versionB(test.template) : test.template;
-    const saved = await db.query(
-      `insert into template_tests (template, winner, a_sends, a_replies, b_sends, b_replies, decided_at)
-       values ($1, $2, $3, $4, $5, $6, $7) on conflict (template) do nothing returning template`,
-      [test.template, winner, test.a.sends, test.a.replies, test.b.sends, test.b.replies, now],
-    );
-    if (!saved.length) continue;
-    await audit(db, {
-      actor: SALES,
-      type: 'sales.ab_test_decided',
-      subject: { type: 'memory', id: `template:${test.template}` },
-      data: { winner, a: test.a, b: test.b },
+    // The winner and its audit line are saved together, or neither is.
+    const saved = await db.tx(async (tx) => {
+      const rows = await tx.query(
+        `insert into template_tests (template, winner, a_sends, a_replies, b_sends, b_replies, decided_at)
+         values ($1, $2, $3, $4, $5, $6, $7) on conflict (template) do nothing returning template`,
+        [test.template, winner, test.a.sends, test.a.replies, test.b.sends, test.b.replies, now],
+      );
+      if (rows.length)
+        await audit(tx, {
+          actor: SALES,
+          type: 'sales.ab_test_decided',
+          subject: { type: 'memory', id: `template:${test.template}` },
+          data: { winner, a: test.a, b: test.b },
+        });
+      return rows.length > 0;
     });
-    decided.push({ ...test, winner });
+    if (saved) done.push({ ...test, winner });
   }
-  return decided;
+  return done;
 }
 
 /** One line per test for the briefing, in English or Arabic: replies out of emails sent for each version. */

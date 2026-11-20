@@ -17,9 +17,12 @@ test('every guide has a unique address made of plain words', () => {
   for (const slug of slugs) assert.match(slug, /^[a-z0-9]+(-[a-z0-9]+)*$/);
 });
 
-test('every guide text has English and Arabic, and the table header may be blank in both', () => {
+test('every guide text has English and Arabic', () => {
   for (const guide of GUIDES) {
-    for (const text of texts({ ...guide, table: guide.table?.rows })) {
+    // The table's corner cell is the one text left blank, in both languages.
+    const [corner, ...head] = guide.table?.head ?? [];
+    if (corner) assert.deepEqual(corner, { en: '', ar: '' }, `${guide.slug}: the corner cell is blank`);
+    for (const text of texts({ ...guide, table: [head, guide.table?.rows] })) {
       assert.ok(text.en.trim(), `${guide.slug} has a text with no English`);
       assert.ok(text.ar.trim(), `${guide.slug} has no Arabic for "${text.en}"`);
     }

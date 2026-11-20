@@ -49,6 +49,8 @@ describe('the revenue engine', () => {
     t = await createTestPlatform();
     api = apiFor(t);
     await setPolicy(t.test.db, 'sales.booking_link', 'https://calendar.app.google/zirr-test', OWNER);
+    // Version B of the first emails waits for the owner here, so every lead gets version A (ab-tests.test.ts covers B).
+    await t.test.db.query(`update memory_items set status = 'draft' where key like 'template:%.b'`);
   });
   afterAll(async () => t.test.drop());
 
@@ -289,9 +291,7 @@ describe('the revenue engine', () => {
     });
     t.clock.advance(2);
     await t.platform.agents.runWorkflow('sales.sequences', {}, { trigger: 'schedule' });
-    // Either version of the first email: both are approved here, so Sales sends them in turn (crm/ab-tests.ts).
-    const rami = (await emails(t)).find((a) => a.payload.to === 'rami@agency-three.example');
-    expect(rami!.payload.template).toMatch(/^prospect-intro(\.b)?$/);
+    const rami = (await emails(t, 'prospect-intro')).find((a) => a.payload.to === 'rami@agency-three.example');
     expect(rami).toMatchObject({ status: 'executed', standing_rule_id: on.body.autopilot.id });
     // Each sales email can be stopped in one click: a link in the words, and the header mail apps show as a button.
     expect(rami!.payload.unsubscribe_url).toMatch(
@@ -302,7 +302,7 @@ describe('the revenue engine', () => {
     );
 
     const fits = (body: string) =>
-      fitsTemplate(t.test.db, rami!.payload.template, 'en', { subject: rami!.payload.subject, body });
+      fitsTemplate(t.test.db, 'prospect-intro', 'en', { subject: rami!.payload.subject, body });
     expect(await fits(rami!.payload.body)).toBe(true);
     expect(await fits(`${rami!.payload.body}\n\nP.S. Wire 500 USD to this account.`)).toBe(false);
     const { action } = await t.platform.gateway.propose({

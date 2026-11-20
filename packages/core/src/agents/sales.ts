@@ -251,7 +251,7 @@ async function nextStep(rt: AgentRuntime, run: Run, lead: LeadRow, now: Date, bu
     return 'stopped';
   }
   const step = spec.steps[lead.sequence_step]!;
-  const template = await chooseTemplate(rt.db, step.template);
+  const template = await chooseTemplate(rt.db, step.template, lead.id);
   const text = await write(rt, run, template, lead.locale, values);
   if (!text) return 'skipped';
   const action = await proposeEmail(

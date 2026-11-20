@@ -42,22 +42,19 @@ const approveB = (status: 'approved' | 'draft', template = 'shop-intro') =>
   t.platform.db.query(`update memory_items set status = $2 where key = $1`, [`template:${template}.b`, status]);
 
 describe('which version goes out', () => {
+  const evenLead = '00000000-0000-4000-8000-000000000002';
+  const oddLead = '00000000-0000-4000-8000-00000000000b';
+
   it('sends only version A while version B waits for the owner', async () => {
     await approveB('draft');
-    await email('shop-intro', await lead('a1@shop.example'), now, 'pending');
-    expect(await chooseTemplate(t.platform.db, 'shop-intro')).toBe('shop-intro');
+    expect(await chooseTemplate(t.platform.db, 'shop-intro', oddLead)).toBe('shop-intro');
   });
 
-  it('sends the two versions in turn once both are approved, counting emails still waiting too', async () => {
+  it('gives half the leads version B once both are approved, always the same version to the same lead', async () => {
     await approveB('approved');
-    expect(await chooseTemplate(t.platform.db, 'shop-intro')).toBe('shop-intro.b');
-    await email('shop-intro.b', await lead('b1@shop.example'), now, 'pending');
-    expect(await chooseTemplate(t.platform.db, 'shop-intro')).toBe('shop-intro');
-  });
-
-  it('never counts an email the owner turned down', async () => {
-    await email('shop-intro', await lead('a2@shop.example'), now, 'rejected');
-    expect(await chooseTemplate(t.platform.db, 'shop-intro')).toBe('shop-intro');
+    expect(await chooseTemplate(t.platform.db, 'shop-intro', oddLead)).toBe('shop-intro.b');
+    expect(await chooseTemplate(t.platform.db, 'shop-intro', oddLead)).toBe('shop-intro.b');
+    expect(await chooseTemplate(t.platform.db, 'shop-intro', evenLead)).toBe('shop-intro');
   });
 });
 
@@ -85,12 +82,19 @@ describe('counting and keeping the winner', () => {
       a: { sends: MIN_SENDS, replies: 2 },
       b: { sends: MIN_SENDS, replies: 5 },
     });
-    expect(await chooseTemplate(t.platform.db, 'prospect-intro')).toBe('prospect-intro.b');
+    for (const id of ['00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-00000000000b'])
+      expect(await chooseTemplate(t.platform.db, 'prospect-intro', id)).toBe('prospect-intro.b');
     expect(await decideTests(t.platform.db, now)).toEqual([]);
     const [logged] = await t.platform.db.query<Json>(
       `select * from audit_events where event_type = 'sales.ab_test_decided'`,
     );
     expect(logged!.data.winner).toBe('prospect-intro.b');
+  });
+
+  it('keeps showing the counts the test was decided on, even after a late reply', async () => {
+    await t.platform.db.query(`update leads set replied_at = $2 where email = $1`, ['a3@agency.example', minutes(90)]);
+    const [result] = (await testResults(t.platform.db)).filter((r) => r.template === 'prospect-intro');
+    expect(result!.a).toEqual({ sends: MIN_SENDS, replies: 2 });
   });
 
   it('says where each test stands in the briefing, in both languages', async () => {

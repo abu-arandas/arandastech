@@ -61,8 +61,8 @@ export const SALES_TEMPLATES: Record<string, SalesTemplate> = {
     },
   },
 
-  // Version B of the first email, for the A/B test (crm/ab-tests.ts): Sales sends it to every other prospect once the
-  // owner approves it, and keeps whichever version gets more replies.
+  // Version B of the first email, for the A/B test (crm/ab-tests.ts): once the owner approves it, half the prospects get
+  // it, and Sales keeps whichever version gets the higher reply rate.
   'prospect-intro.b': {
     title: 'Outreach 1, version B: a small first job at a fixed $150 (A/B test)',
     en: {

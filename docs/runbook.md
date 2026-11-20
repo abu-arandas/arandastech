@@ -216,9 +216,9 @@ Security raises an alert once a day.
 (`gmail.notify_owner`, Level 1: it can reach no one else), in English and Arabic with a link to the owner app.
 
 **A/B tests.** A template can have a version B, named with `.b` after its key (`prospect-intro.b`, `shop-intro.b`).
-While the owner has approved both, Sales sends them in turn (`packages/core/src/crm/ab-tests.ts`). A reply counts for
-the last email the lead got before replying. Once each version has gone to 40 people, the one with more replies (A on a
-tie) is kept in `template_tests` and sent from then on; the briefing shows each test's replies. A version B left as a
+While the owner has approved both, half the leads get version B, by their id (`packages/core/src/crm/ab-tests.ts`). A
+reply counts for the last email the lead got before replying. Once each version has gone to 40 people, the one with the
+higher reply rate (A on a tie) is kept in `template_tests` and sent from then on; the briefing shows each test's replies. A version B left as a
 draft changes nothing. The autopilot covers both versions, but only from the next time it is switched on.
 
 **The weekly research file.** Sales, Add prospects, takes the file pasted whole: a CSV or tab-separated sheet whose first
