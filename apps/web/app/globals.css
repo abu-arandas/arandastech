@@ -771,3 +771,47 @@ footer.site nav a {
 .legal .muted {
   color: var(--muted);
 }
+
+/* Guides: reading text, a comparison table that scrolls sideways on a phone, and cards that are links. */
+.guide {
+  max-width: 72ch;
+}
+.guide h2 {
+  font-size: 1.15rem;
+  margin-block: 1.8em 0.4em;
+}
+.guide ul {
+  padding-inline-start: 1.2em;
+}
+.guide-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+a.guide-card {
+  color: inherit;
+  text-decoration: none;
+}
+.table-scroll {
+  overflow-x: auto;
+  margin-block: 1.5em;
+}
+table.compare {
+  border-collapse: collapse;
+  min-width: 560px;
+  width: 100%;
+}
+table.compare th,
+table.compare td {
+  border-block-end: 1px solid var(--line);
+  padding: 10px 12px;
+  text-align: start;
+  vertical-align: top;
+}
+table.compare thead th {
+  border-block-end-color: var(--line-strong);
+}
+table.compare tbody th {
+  color: var(--muted);
+  font-weight: 500;
+}

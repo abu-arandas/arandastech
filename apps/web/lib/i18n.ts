@@ -102,6 +102,14 @@ export const TEXT = {
   privacy: { en: 'Privacy', ar: 'الخصوصية' },
   terms: { en: 'Terms', ar: 'الشروط' },
   lastUpdated: { en: 'Last updated', ar: 'آخر تحديث' },
+  guides: { en: 'Guides', ar: 'أدلة' },
+  guidesTitle: { en: 'Guides to our products', ar: 'أدلة منتجاتنا' },
+  guidesIntro: {
+    en: 'Short answers to what shop owners and agencies ask us, with the facts and the prices.',
+    ar: 'إجابات قصيرة عمّا يسألنا عنه أصحاب المحلات والوكالات، مع الحقائق والأسعار.',
+  },
+  guidesAll: { en: 'All guides', ar: 'كل الأدلة' },
+  guideNext: { en: 'Where to go next', ar: 'ماذا بعد' },
   smile: { en: 'Made in Amman, one button at a time.', ar: 'صُنع في عمّان، زِرّاً بعد زِرّ.' },
   // Proposals and invoices a client opens from an email.
   proposal: { en: 'Proposal', ar: 'عرض السعر' },
@@ -158,9 +166,12 @@ export const pick = (text: { en: string; ar: string } | undefined, locale: Local
   text ? text[locale] || text.en : '';
 
 const EXPONENT: Record<string, number> = { JOD: 3, USD: 2, EUR: 2 };
-/** "59.00 USD" or "5.000 JOD", from whole minor units. */
-export function money(minor: number, currency: string): string {
+/** "59.00" or "5.000", from whole minor units. */
+export function amount(minor: number, currency: string): string {
   const e = EXPONENT[currency] ?? 2;
   const digits = String(Math.abs(minor)).padStart(e + 1, '0');
-  return `${minor < 0 ? '-' : ''}${digits.slice(0, -e)}.${digits.slice(-e)} ${currency}`;
+  return `${minor < 0 ? '-' : ''}${digits.slice(0, -e)}.${digits.slice(-e)}`;
 }
+
+/** "59.00 USD" or "5.000 JOD", from whole minor units. */
+export const money = (minor: number, currency: string): string => `${amount(minor, currency)} ${currency}`;

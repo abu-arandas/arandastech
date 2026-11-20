@@ -1,5 +1,7 @@
 import { call } from '@/lib/platform';
-import { type Locale, money, pick, t } from '@/lib/i18n';
+import { amount, isLocale, type Locale, money, pick, t } from '@/lib/i18n';
+import { jsonLd, pageMetadata } from '@/lib/seo';
+import { GUIDES, say } from '@/lib/guides';
 import { Rise, stagger } from '@/app/_components/text';
 
 type L = { en: string; ar: string };
@@ -23,6 +25,12 @@ interface Product {
   summary: L;
   is_test: boolean;
   variants: Variant[];
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  return pageMetadata(locale, '', `${t('brand', locale)} · ${t('tagline', locale)}`, t('intro', locale));
 }
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
@@ -93,6 +101,50 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           </div>
         </section>
       ))}
+
+      <div className="section-head" data-reveal="">
+        <p className="eyebrow">{t('guides', locale)}</p>
+        <h2 id="guides">{t('guidesTitle', locale)}</h2>
+      </div>
+      <div className="grid">
+        {GUIDES.slice(0, 6).map((guide, i) => (
+          <a
+            className="card guide-card"
+            key={guide.slug}
+            href={`/${locale}/guides/${guide.slug}`}
+            data-reveal=""
+            style={stagger(i)}
+          >
+            <h3>{say(guide.title, locale)}</h3>
+          </a>
+        ))}
+      </div>
+      <p data-reveal="">
+        <a href={`/${locale}/guides`}>{t('guidesAll', locale)}</a>
+      </p>
+      <ProductData products={catalog.data.products} locale={locale} />
     </>
   );
+}
+
+/** The products on sale as schema.org records, so search engines can show their prices. Test products are left out. */
+function ProductData({ products, locale }: { products: Product[]; locale: Locale }) {
+  const data = products
+    .filter((product) => !product.is_test && product.variants.length > 0)
+    .map((product) => ({
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: pick(product.name, locale),
+      description: pick(product.summary, locale),
+      brand: { '@type': 'Brand', name: 'Zirr' },
+      offers: product.variants.map((v) => ({
+        '@type': 'Offer',
+        name: pick(v.name, locale),
+        price: amount(v.price_minor, v.currency),
+        priceCurrency: v.currency,
+        availability: 'https://schema.org/InStock',
+      })),
+    }));
+  if (!data.length) return null;
+  return <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(data)} />;
 }

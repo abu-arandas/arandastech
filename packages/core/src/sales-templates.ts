@@ -61,6 +61,20 @@ export const SALES_TEMPLATES: Record<string, SalesTemplate> = {
     },
   },
 
+  // Version B of the first email, for the A/B test (crm/ab-tests.ts): Sales sends it to every other prospect once the
+  // owner approves it, and keeps whichever version gets more replies.
+  'prospect-intro.b': {
+    title: 'Outreach 1, version B: a small first job at a fixed $150 (A/B test)',
+    en: {
+      subject: 'A small Flutter job to try us, {{company}}',
+      body: `Hi {{first_name}},\n\nA simple way to try outside help at {{company}}: give me one small Flutter task, such as a screen, a bug list or an Arabic right-to-left fix, and I'll do it for a fixed $150. If you like the work, you know who to call when a bigger project comes.\n\nI'm {{sender}}, a Flutter and Supabase developer in Amman, and I work under your name: your NDA, your repository, your client. My own product, Zirr Retail, shows the standard:\n{{showcase}}\n\nIs there a small task on your list right now? A one-line reply is plenty.\n\n${SIGN_EN}\n\n{{opt_out}}`,
+    },
+    ar: {
+      subject: 'مهمة Flutter صغيرة لتجربتنا، {{company}}',
+      body: `مرحباً {{first_name}}،\n\nطريقة بسيطة لتجربة مطوّر من خارج فريق {{company}}: أعطوني مهمة Flutter صغيرة، مثل شاشة واحدة أو قائمة أخطاء أو إصلاح اتجاه العربية، وأنجزها بسعر ثابت 150 دولاراً. وإن أعجبكم العمل، تعرفون من تطلبون حين يأتي مشروع أكبر.\n\nأنا {{sender}}، مطوّر Flutter وSupabase في عمّان، وأعمل باسمكم: اتفاقية السرية الخاصة بكم، ومستودعكم، وعميلكم. منتجي زِرّ للتجزئة يُظهر مستوى العمل:\n{{showcase}}\n\nهل لديكم مهمة صغيرة على القائمة الآن؟ يكفيني ردّ بسطر واحد.\n\n${SIGN_AR}\n\n{{opt_out}}`,
+    },
+  },
+
   // ---------------------------------------------------------------- Outreach to shops, cafés and restaurants ("outreach_shop")
   'shop-intro': {
     title: 'Shop outreach 1: point of sale and online shop',
@@ -71,6 +85,18 @@ export const SALES_TEMPLATES: Record<string, SalesTemplate> = {
     ar: {
       subject: 'نظام كاشير ومتجر إلكتروني لـ {{company}}',
       body: `مرحباً {{first_name}}،\n\nأنا {{sender}} من زِرّ في عمّان. نصنع نظام كاشير ومتجراً إلكترونياً بقائمة مخزون واحدة، يطبعان الفواتير بالعربي والإنجليزي، ويستمر البيع حتى لو انقطع الإنترنت. وفي الأردن يرسلان فواتير «جوفوترا» الإلكترونية عنكم.\n\nنجهّزه بمنتجاتكم، وتجرّبونه مجاناً 14 يوماً قبل أن تدفعوا شيئاً:\n{{showcase}}\n\nهل تستحق التجربة المجانية نظرة من {{company}}؟ يكفيني ردّ بسطر واحد.\n\n${SIGN_AR}\n\n{{opt_out}}`,
+    },
+  },
+  // Version B of the shop's first email (A/B test): the price and WhatsApp up front, for owners who decide quickly.
+  'shop-intro.b': {
+    title: 'Shop outreach 1, version B: price and WhatsApp up front (A/B test)',
+    en: {
+      subject: '14 days free, then 299 JOD once: a till for {{company}}',
+      body: `Hi {{first_name}},\n\nI'm {{sender}} from Zirr in Amman. Our till prints receipts in Arabic and English, keeps selling when the internet drops, and runs the tables and the kitchen if you serve food.\n\nWe install it on your PC with your own products and train your staff. You use it free for 14 days; if you keep it, it is 299 JOD once, with no monthly fee:\n{{showcase}}\n\nReply here, or message us on WhatsApp at +962 79 156 8798, and we will set up the trial this week.\n\n${SIGN_EN}\n\n{{opt_out}}`,
+    },
+    ar: {
+      subject: '14 يوماً مجاناً ثم 299 ديناراً مرة واحدة: نظام كاشير لـ {{company}}',
+      body: `مرحباً {{first_name}}،\n\nأنا {{sender}} من زِرّ في عمّان. نظام الكاشير لدينا يطبع الفواتير بالعربي والإنجليزي، ويستمر في البيع حتى لو انقطع الإنترنت، ويدير الطاولات والمطبخ إن كنتم تقدّمون الطعام.\n\nنركّبه على جهازكم بمنتجاتكم وندرّب موظفيكم. تستخدمونه مجاناً 14 يوماً، وإن احتفظتم به فسعره 299 ديناراً مرة واحدة دون رسوم شهرية:\n{{showcase}}\n\nردّوا هنا، أو راسلونا على واتساب على الرقم ‎+962 79 156 8798‎، وسنجهّز التجربة هذا الأسبوع.\n\n${SIGN_AR}\n\n{{opt_out}}`,
     },
   },
   'shop-follow-up': {

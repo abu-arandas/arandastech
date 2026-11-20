@@ -185,6 +185,8 @@ class _ProspectsFormState extends State<_ProspectsForm> {
             'One a line: name, email, company, country, "shop" or "agency", and for someone already emailed: how many emails and the last date (2026-11-18).'
                 .tr,
           ),
+          const SizedBox(height: 4),
+          Text('Or paste the weekly research file whole, with its header line.'.tr),
           const SizedBox(height: 8),
           TextField(
             controller: _text,

@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import { notFound } from 'next/navigation';
 import { isLocale, t } from '@/lib/i18n';
 import { Motion } from '@/app/_components/motion';
+import { siteUrl } from '@/lib/platform';
 import '../globals.css';
 
 /** Rubik, the house font for Arabic and English (SIL Open Font License 1.1), served from this site. */
@@ -33,7 +34,11 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  return { title: `${t('brand', locale)} · ${t('tagline', locale)}`, description: t('intro', locale) };
+  return {
+    metadataBase: new URL(siteUrl()),
+    title: `${t('brand', locale)} · ${t('tagline', locale)}`,
+    description: t('intro', locale),
+  };
 }
 
 export default async function LocaleLayout({
@@ -77,6 +82,7 @@ export default async function LocaleLayout({
               © {new Date().getFullYear()} {t('brand', locale)}
             </span>
             <nav>
+              <a href={`/${locale}/guides`}>{t('guides', locale)}</a>
               <a href={`/${locale}/privacy`}>{t('privacy', locale)}</a>
               <a href={`/${locale}/terms`}>{t('terms', locale)}</a>
             </nav>

@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../models/deal.dart';
 import '../models/json.dart';
+import '../models/prospect_list.dart';
 import '../models/revenue.dart';
 import '../services/platform.dart';
 import 'session_controller.dart';
@@ -47,7 +48,7 @@ class SalesController extends GetxController implements PlatformReader {
 
   Future<bool> changeLead(PipelineLead lead, Json change) => _session.act((p) => p.sales.changeLead(lead.id, change));
 
-  /// Reads one prospect a line: name, email, company, country, and "shop" for a shop, café or restaurant.
+  /// Adds the prospects in [text]: the weekly research file pasted whole, or one prospect a line (see parseProspects).
   Future<bool> addProspects(String text) async {
     final prospects = parseProspects(text);
     if (prospects.isEmpty) {
@@ -71,25 +72,3 @@ class SalesController extends GetxController implements PlatformReader {
 
   Future<bool> voidInvoice(Paper invoice) => _session.act((p) => p.sales.voidInvoice(invoice.id));
 }
-
-/// One prospect a line, the values split by commas or tabs: name, email, company, country, audience,
-/// then for someone already written to: how many emails went out (1 to 3) and the date of the last one.
-List<Json> parseProspects(String text) => [
-  for (final line in text.split('\n'))
-    if (line.trim().isNotEmpty)
-      () {
-        final parts = line.split(RegExp(r'[,\t]')).map((p) => p.trim()).toList();
-        String at(int i) => i < parts.length ? parts[i] : '';
-        final arabic = RegExp('[\u0600-\u06FF]').hasMatch(line);
-        return <String, Object?>{
-          'name': at(0),
-          'email': at(1),
-          'company': at(2).isEmpty ? at(0) : at(2),
-          if (at(3).isNotEmpty) 'country': at(3),
-          'audience': at(4).toLowerCase() == 'shop' ? 'shop' : 'agency',
-          'locale': arabic ? 'ar' : 'en',
-          if (int.tryParse(at(5)) case final sent? when sent > 0) 'already_sent': sent,
-          if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(at(6))) 'last_sent_on': at(6),
-        };
-      }(),
-];

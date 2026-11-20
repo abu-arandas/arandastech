@@ -1,8 +1,15 @@
 import { redirect } from 'next/navigation';
 import { call } from '@/lib/platform';
 import { isLocale, type Locale, t } from '@/lib/i18n';
+import { pageMetadata } from '@/lib/seo';
 import { Celebrate } from '@/app/_components/motion';
 import { Done } from '@/app/_components/text';
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  return pageMetadata(locale, '/contact', t('contact', locale), t('intro', locale));
+}
 
 async function send(formData: FormData): Promise<void> {
   'use server';
