@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../config/brand.dart';
 import '../../config/breakpoints.dart';
 import '../../controllers/session_controller.dart';
+import '../../widgets/busy_button.dart';
 import '../../widgets/fun.dart';
 import '../../widgets/language_button.dart';
 import '../../widgets/motion.dart';
@@ -81,8 +82,9 @@ class _PhoneShell extends StatelessWidget {
         ),
         actions: [
           const PauseIconButton(),
-          IconButton(tooltip: 'Refresh'.tr, onPressed: session.reload, icon: const Icon(Icons.refresh)),
-          const LanguageButton(),
+          BusyIconButton(tooltip: 'Refresh'.tr, onPressed: session.reload, icon: Icons.refresh),
+          // The short language switch keeps four icons on the narrowest phones without crowding the brand.
+          const LanguageButton(compact: true),
           IconButton(tooltip: 'Sign out'.tr, onPressed: session.signOut, icon: const Icon(Icons.logout)),
         ],
       ),
@@ -132,7 +134,7 @@ class _AreaView extends StatelessWidget {
           if (area != Area.today)
             GridContainer(
               child: Padding(
-                padding: const EdgeInsets.only(top: 16),
+                padding: EdgeInsets.only(top: context.isMobile ? 8 : 16),
                 child: PageHeading(area.label, eyebrow: 'Owner app', detail: area.detail),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../config/breakpoints.dart';
 import '../config/theme.dart';
 import 'motion.dart';
 import 'stitch_line.dart';
@@ -34,23 +35,32 @@ class PageHeading extends StatelessWidget {
   final String? detail;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.only(top: 16, bottom: 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (eyebrow != null) ...[Eyebrow(eyebrow!), const SizedBox(height: 8)],
-        Text(title.tr, style: Theme.of(context).textTheme.headlineMedium),
-        if (detail != null) ...[
-          const SizedBox(height: 6),
-          Text(detail!.tr, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+  Widget build(BuildContext context) {
+    // Phones have little height to spare, so the heading drops its eyebrow and gets a size smaller there.
+    final phone = context.isMobile;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(top: phone ? 4 : 16, bottom: phone ? 8 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (eyebrow != null && !phone) ...[Eyebrow(eyebrow!), const SizedBox(height: 8)],
+          Text(title.tr, style: phone ? Theme.of(context).textTheme.headlineSmall : Theme.of(context).textTheme.headlineMedium),
+          if (detail != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              detail!.tr,
+              style: (phone ? Theme.of(context).textTheme.bodyMedium : Theme.of(context).textTheme.bodyLarge)?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          SizedBox(height: phone ? 8 : 12),
+          const SewIn(child: StitchLine()),
         ],
-        const SizedBox(height: 12),
-        const SewIn(child: StitchLine()),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 /// A heading inside a screen: an optional icon in a soft denim tile, the title, and an optional line under it. Both

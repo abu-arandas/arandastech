@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../controllers/session_controller.dart';
+import '../../widgets/busy_button.dart';
 
 /// The pause switch as a small card, for the foot of the sidebar: what it does, and the one button.
 class PauseCard extends StatelessWidget {
@@ -51,12 +52,8 @@ class PauseButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = Get.find<SessionController>();
     return paused
-        ? FilledButton.icon(onPressed: () => session.setPaused(value: false), icon: const Icon(Icons.play_arrow_rounded), label: Text('Resume'.tr))
-        : FilledButton.tonalIcon(
-            onPressed: () => session.setPaused(value: true),
-            icon: const Icon(Icons.pause_circle_outline),
-            label: Text('Pause everything'.tr),
-          );
+        ? BusyButton(onPressed: () => session.setPaused(value: false), icon: Icons.play_arrow_rounded, label: 'Resume'.tr)
+        : BusyButton(kind: ButtonKind.tonal, onPressed: () => session.setPaused(value: true), icon: Icons.pause_circle_outline, label: 'Pause everything'.tr);
   }
 }
 
@@ -69,10 +66,10 @@ class PauseIconButton extends StatelessWidget {
     final session = Get.find<SessionController>();
     return Obx(() {
       final paused = session.paused;
-      return IconButton(
+      return BusyIconButton(
         tooltip: paused ? 'Resume'.tr : 'Pause everything'.tr,
         onPressed: () => session.setPaused(value: !paused),
-        icon: Icon(paused ? Icons.play_circle_outline : Icons.pause_circle_outline),
+        icon: paused ? Icons.play_circle_outline : Icons.pause_circle_outline,
       );
     });
   }

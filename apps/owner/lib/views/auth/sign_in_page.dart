@@ -113,7 +113,8 @@ class _SignInPageState extends State<SignInPage> {
             Obx(
               () => FilledButton(
                 onPressed: session.busy.value ? null : () => session.signIn(_token.text, remember: _remember),
-                child: Text('Connect'.tr),
+                // A small spinner while the platform answers, so the press is seen.
+                child: session.busy.value ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)) : Text('Connect'.tr),
               ),
             ),
           ],

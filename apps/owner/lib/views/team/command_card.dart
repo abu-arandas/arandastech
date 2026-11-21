@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../controllers/team_controller.dart';
 import '../../models/command.dart';
 import '../../models/money.dart';
+import '../../widgets/busy_button.dart';
 import 'team_words.dart';
 
 /// One instruction: the plan before the go-ahead, then each task's outcome.
@@ -67,13 +68,9 @@ class CommandCard extends StatelessWidget {
               if (command.expectedCostMicros > 0)
                 Text('${'Most this can cost in AI'.tr}: ${dollars(command.expectedCostMicros)}', textDirection: TextDirection.ltr),
               const SizedBox(height: 8),
-              FilledButton(
-                key: const Key('go-ahead'),
-                onPressed: command.plannedTasks.isEmpty ? null : () => controller.start(command),
-                child: Text('Go ahead'.tr),
-              ),
+              BusyButton(key: const Key('go-ahead'), onPressed: command.plannedTasks.isEmpty ? null : () => controller.start(command), label: 'Go ahead'.tr),
             ] else if (status == 'running')
-              TextButton.icon(onPressed: () => controller.refreshCommand(command), icon: const Icon(Icons.refresh), label: Text('Refresh'.tr)),
+              BusyButton(kind: ButtonKind.text, onPressed: () => controller.refreshCommand(command), icon: Icons.refresh, label: 'Refresh'.tr),
           ],
         ),
       ),

@@ -6,6 +6,7 @@ import '../../controllers/session_controller.dart';
 import '../../models/json.dart';
 import '../../models/money.dart';
 import '../../models/order.dart';
+import '../../widgets/busy_button.dart';
 import '../../widgets/page_list.dart';
 import '../../widgets/section_title.dart';
 
@@ -91,7 +92,7 @@ class StoreTab extends StatelessWidget {
                     Wrap(
                       spacing: 8,
                       children: [
-                        if (order.onHold) FilledButton.tonal(onPressed: () => controller.releaseOrder(order), child: Text('Release'.tr)),
+                        if (order.onHold) BusyButton(kind: ButtonKind.tonal, onPressed: () => controller.releaseOrder(order), label: 'Release'.tr),
                         if (order.refundable) TextButton(onPressed: () => _refund(context, controller, order), child: Text('Prepare a refund'.tr)),
                       ],
                     ),
@@ -130,7 +131,7 @@ class StoreTab extends StatelessWidget {
                         spacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          FilledButton.tonal(onPressed: () => controller.publishProduct(product), child: Text('Put on sale'.tr)),
+                          BusyButton(kind: ButtonKind.tonal, onPressed: () => controller.publishProduct(product), label: 'Put on sale'.tr),
                           Text('You confirm it in Approvals.'.tr, style: theme.textTheme.bodySmall),
                         ],
                       ),

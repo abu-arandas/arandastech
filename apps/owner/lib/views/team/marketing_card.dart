@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../controllers/team_controller.dart';
 import '../../models/marketing.dart';
+import '../../widgets/busy_button.dart';
 import '../../widgets/section_title.dart';
 
 /// Marketing's weekly posts: the autopilot switch, the post wordings to approve, and the posts it planned lately.
@@ -97,7 +98,7 @@ class _TemplateTile extends StatelessWidget {
         ],
       ),
       isThreeLine: true,
-      trailing: post.approved ? Text('Approved'.tr) : FilledButton.tonal(onPressed: () => controller.approvePost(post), child: Text('Approve'.tr)),
+      trailing: post.approved ? Text('Approved'.tr) : BusyButton(kind: ButtonKind.tonal, onPressed: () => controller.approvePost(post), label: 'Approve'.tr),
     );
   }
 }

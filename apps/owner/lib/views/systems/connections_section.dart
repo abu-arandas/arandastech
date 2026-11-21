@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/theme.dart';
 import '../../controllers/systems_controller.dart';
 import '../../models/connection.dart';
+import '../../widgets/busy_button.dart';
 import '../../widgets/section_title.dart';
 
 /// The outside accounts (blueprint 9.1): each one is a stand-in until the owner saves its keys here, and live after.
@@ -165,20 +166,23 @@ class _ConnectionCardState extends State<_ConnectionCard> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                FilledButton(key: Key('connection-$id-save'), onPressed: () => _save(controller), child: Text('Save'.tr)),
+                BusyButton(key: Key('connection-$id-save'), onPressed: () => _save(controller), label: 'Save'.tr),
                 if (connection.googleClientSaved)
-                  FilledButton.tonalIcon(
+                  BusyButton(
                     key: const Key('connection-gmail-sign-in'),
+                    kind: ButtonKind.tonal,
                     onPressed: () => _signIn(controller),
-                    icon: const Icon(Icons.login),
-                    label: Text('Sign in with Google'.tr),
+                    icon: Icons.login,
+                    label: 'Sign in with Google'.tr,
                   ),
-                if (connection.live) OutlinedButton(onPressed: () => controller.checkConnection(connection), child: Text('Check'.tr)),
+                if (connection.live) BusyButton(kind: ButtonKind.outlined, onPressed: () => controller.checkConnection(connection), label: 'Check'.tr),
                 if (connection.anySaved)
-                  TextButton(
+                  BusyButton(
                     key: Key('connection-$id-disconnect'),
+                    kind: ButtonKind.text,
                     onPressed: () => controller.disconnect(connection),
-                    child: Text('Disconnect'.tr, style: TextStyle(color: scheme.error)),
+                    label: 'Disconnect'.tr,
+                    colour: scheme.error,
                   ),
               ],
             ),

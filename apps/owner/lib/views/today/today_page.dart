@@ -28,7 +28,9 @@ class _Lead extends StatelessWidget {
       delay: Motion.stagger * 2,
       child: NeedsYouCard(overview: overview, fill: context.isDesktop),
     );
-    if (!context.isDesktop) return Column(children: [needs, const SizedBox(height: 16), goal]);
+    if (!context.isDesktop) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [needs, const SizedBox(height: 16), goal]);
+    }
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,

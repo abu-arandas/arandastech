@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../controllers/sales_controller.dart';
 import '../../models/deal.dart';
 import '../../models/json.dart';
+import '../../widgets/busy_button.dart';
 
 /// The small forms of Sales: a proposal, an invoice or a sale made elsewhere, and a list of prospects.
 
@@ -151,7 +152,7 @@ class _PaperFormState extends State<_PaperForm> {
     ),
     actions: [
       TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('Cancel'.tr)),
-      FilledButton(onPressed: _save, child: Text((widget.proposal || !_sale ? 'Ask Sales to send it' : 'Record it').tr)),
+      BusyButton(onPressed: _save, label: (widget.proposal || !_sale ? 'Ask Sales to send it' : 'Record it').tr),
     ],
   );
 }
@@ -199,11 +200,11 @@ class _ProspectsFormState extends State<_ProspectsForm> {
     ),
     actions: [
       TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('Cancel'.tr)),
-      FilledButton(
+      BusyButton(
         onPressed: () async {
           if (await Get.find<SalesController>().addProspects(_text.text) && context.mounted) Navigator.of(context).pop();
         },
-        child: Text('Add'.tr),
+        label: 'Add'.tr,
       ),
     ],
   );

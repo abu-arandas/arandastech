@@ -7,6 +7,7 @@ import '../../config/brand.dart';
 import '../../config/theme.dart';
 import '../../controllers/approvals_controller.dart';
 import '../../controllers/session_controller.dart';
+import '../../widgets/busy_button.dart';
 import '../../widgets/fun.dart';
 import '../../widgets/language_button.dart';
 import '../../widgets/motion.dart';
@@ -67,12 +68,12 @@ class SideBar extends StatelessWidget {
                   children: [
                     const LanguageButton(),
                     const Spacer(),
-                    IconButton(tooltip: 'Refresh'.tr, onPressed: session.reload, icon: const Icon(Icons.refresh)),
+                    BusyIconButton(tooltip: 'Refresh'.tr, onPressed: session.reload, icon: Icons.refresh),
                     IconButton(tooltip: 'Sign out'.tr, onPressed: session.signOut, icon: const Icon(Icons.logout)),
                   ],
                 )
               else ...[
-                IconButton(tooltip: 'Refresh'.tr, onPressed: session.reload, icon: const Icon(Icons.refresh)),
+                BusyIconButton(tooltip: 'Refresh'.tr, onPressed: session.reload, icon: Icons.refresh),
                 const LanguageButton(compact: true),
                 IconButton(tooltip: 'Sign out'.tr, onPressed: session.signOut, icon: const Icon(Icons.logout)),
               ],
