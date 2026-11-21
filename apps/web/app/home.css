@@ -696,8 +696,11 @@ a.guide-card {
     height: 56px;
     inset-inline-end: 0;
   }
+  /* The pause button stays on phones too, a little smaller, beside the moving line. */
   .ticker .ticker-toggle {
-    display: none;
+    width: 32px;
+    height: 32px;
+    inset-inline-end: 8px;
   }
 }
 
