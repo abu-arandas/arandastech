@@ -151,6 +151,16 @@ describe('weekly posts', () => {
     expect((await owner('POST', '/api/owner/marketing/autopilot', { on: false })).body.autopilot).toBeNull();
   });
 
+  it('a post the owner turned down frees its day, and the next run plans that day again', async () => {
+    t.clock.advance(7 * DAY);
+    const [first] = (await run()).posts;
+    expect(first!.status).toBe('pending');
+    await t.test.db.query(`update actions set status = 'rejected' where id = $1`, [first!.action_id]);
+    const [again] = (await run()).posts;
+    expect(again!.action_id).not.toBe(first!.action_id);
+    expect(again!.status).toBe('pending');
+  });
+
   it('two quick taps on the switch leave one rule, and turning it off leaves none', async () => {
     await Promise.all([
       owner('POST', '/api/owner/marketing/autopilot', { on: true }),

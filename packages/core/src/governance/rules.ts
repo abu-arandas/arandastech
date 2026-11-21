@@ -158,7 +158,7 @@ export async function matchRule(
   return null;
 }
 
-/** The action's words are its approved template's, blanks aside: an email's subject and body, or a post's text. */
+/** The action's words are its approved template's, blanks aside: an email's subject and body, a chat's body, or a post's text. */
 async function fitsApprovedWording(
   db: Db,
   action: { type: string; payload: Record<string, unknown> },
@@ -166,6 +166,8 @@ async function fitsApprovedWording(
 ): Promise<boolean> {
   const locale = String(action.payload.locale ?? 'en');
   if (action.type.startsWith('buffer.')) return fitsPost(db, template, locale, String(action.payload.text ?? ''));
+  if (action.type.startsWith('whatsapp.'))
+    return fitsTemplate(db, template, locale, { body: String(action.payload.body ?? '') });
   const email = { subject: String(action.payload.subject ?? ''), body: String(action.payload.body ?? '') };
   return fitsTemplate(db, template, locale, email);
 }

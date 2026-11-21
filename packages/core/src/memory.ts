@@ -128,7 +128,7 @@ export async function fitsTemplate(
   db: Db,
   key: string,
   locale: string,
-  email: { subject: string; body: string },
+  email: { subject?: string; body: string },
 ): Promise<boolean> {
   const item = await approvedMemory(db, `template:${key}`);
   if (!item || item.kind !== 'template') return false;
@@ -136,7 +136,9 @@ export async function fitsTemplate(
   const texts = item.body as Record<string, { subject: string; body: string } | undefined>;
   const text = texts[locale] ?? texts.en;
   if (!text) return false;
-  return blanksOnly(text.subject).test(email.subject) && blanksOnly(text.body).test(email.body);
+  // A chat message has no subject line, only the body to match.
+  const subjectFits = email.subject === undefined || blanksOnly(text.subject).test(email.subject);
+  return subjectFits && blanksOnly(text.body).test(email.body);
 }
 
 /** True when a social post is the approved post template with only its blanks filled in, like `fitsTemplate`. */

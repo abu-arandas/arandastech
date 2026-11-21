@@ -70,11 +70,11 @@ export const POST_TEMPLATES: Record<string, PostTemplate> = {
     ar: 'زِرّ للتجزئة متجر ولوحة إدارة ونقطة بيع بـ Flutter وSupabase في كود واحد، بالعربي والإنجليزي بالكامل. تشتري الوكالات ترخيصه لتبدأ متجر عميلها من كود يعمل بدل صفحة فارغة.\n{{link}}',
   },
   'post-compare': {
-    title: 'Post: which Zirr fits your shop',
+    title: 'Post: which way to start with Zirr',
     channel: 'linkedin',
     path: '/guides/compare',
-    en: 'Zirr Retail, Zirr POS or Zirr Boutique? One page compares them side by side, so you can see which one fits a shop, a café or a fashion boutique.\n{{link}}',
-    ar: 'زِرّ للتجزئة أم زِرّ كاشير أم زِرّ بوتيك؟ صفحة واحدة تقارن بينها جنباً إلى جنب، لترى أيها يناسب المحل أو المقهى أو بوتيك الأزياء.\n{{link}}',
+    en: 'Zirr Retail, Zirr POS or an app built for you? One page compares the three side by side: who each one is for, what you get and how it works offline.\n{{link}}',
+    ar: 'زِرّ للتجزئة أم زِرّ كاشير أم تطبيق نبنيه لك؟ صفحة واحدة تقارن بين الثلاثة جنباً إلى جنب: لمن يناسب كل منها، وماذا تحصل، وكيف يعمل دون اتصال.\n{{link}}',
   },
 };
 

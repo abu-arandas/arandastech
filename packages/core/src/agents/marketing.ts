@@ -18,6 +18,8 @@ import type { Proposed } from './workflows';
 const DAY = 86_400_000;
 /** The days after Sunday the posts go out, in the order they are used: Monday, Wednesday, Friday, then the rest. */
 const POST_DAYS = [1, 3, 5, 2, 4, 6, 0];
+/** Posts that were turned down or never went out: they neither fill a day nor count as a template's last use. */
+const NOT_GOING_OUT = "('rejected', 'expired', 'blocked', 'failed')";
 /** 10:00 in Amman, which is UTC+3 all year. */
 const POST_HOUR_UTC = 7;
 
@@ -46,6 +48,7 @@ async function lastUses(db: Db): Promise<Map<string, { at: Date; locale: Locale 
     `select distinct on (payload ->> 'template') payload ->> 'template' as template, payload ->> 'locale' as locale,
        created_at as at
      from actions where action_type = 'buffer.schedule_post' and payload ? 'template'
+       and status not in ${NOT_GOING_OUT}
      order by payload ->> 'template', created_at desc`,
   );
   return new Map(rows.map((row) => [row.template, { at: row.at, locale: row.locale }]));
@@ -117,11 +120,20 @@ export function postTimes(now: Date, count: number): Date[] {
     .sort((a, b) => a.getTime() - b.getTime());
 }
 
+/** How many posts were already planned for this exact time, including turned-down ones. */
+async function attemptsAt(db: Db, at: Date): Promise<number> {
+  const [row] = await db.query<{ n: number }>(
+    `select count(*)::int as n from actions where action_type = 'buffer.schedule_post' and payload ->> 'scheduled_for' = $1`,
+    [at.toISOString()],
+  );
+  return row?.n ?? 0;
+}
+
 /** A post is already waiting to go out (or waiting for the owner), so the coming days are planned. */
 async function plannedAhead(db: Db, now: Date): Promise<boolean> {
   const rows = await db.query(
     `select 1 from actions where action_type = 'buffer.schedule_post' and payload ? 'template'
-       and status not in ('rejected', 'expired', 'blocked', 'failed') and (payload ->> 'scheduled_for')::timestamptz > $1
+       and status not in ${NOT_GOING_OUT} and (payload ->> 'scheduled_for')::timestamptz > $1
      limit 1`,
     [now],
   );
@@ -146,7 +158,8 @@ async function schedulePost(
     },
     requester: { kind: 'agent', id: run.department },
     evidence: [{ kind: 'memory', id: `template:${p.post.key}` }],
-    idempotencyKey: `marketing.weekly_posts:${p.at.toISOString()}`,
+    // A post the owner turned down frees its time, so a later run may plan that time again under a new key.
+    idempotencyKey: `marketing.weekly_posts:${p.at.toISOString()}:${await attemptsAt(rt.db, p.at)}`,
     agentRunId: run.id,
     taskId: run.taskId,
   });
