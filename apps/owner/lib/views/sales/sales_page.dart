@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../config/breakpoints.dart';
 import '../../controllers/sales_controller.dart';
 import '../../models/deal.dart';
 import '../../widgets/motion.dart';
@@ -55,14 +56,38 @@ class SalesPage extends StatelessWidget {
               SectionTitle('${entry.value.tr} (${sales.inStage(entry.key).length})'),
               for (final (i, lead) in sales.inStage(entry.key).take(30).indexed) Appear(delay: Motion.stagger * i, child: _LeadTile(lead)),
             ],
-          if (sales.leads.isEmpty) const EmptyLine('No leads yet. Add prospects, and Sales writes to them each morning.'),
-          if (sales.plans.isNotEmpty) ...[const SectionTitle('Plans'), for (final plan in sales.plans) PlanTile(plan)],
-          const SectionTitle('Proposals'),
-          if (sales.proposals.isEmpty) const EmptyLine('No proposals yet.'),
-          for (final p in sales.proposals) _PaperTile(p, kind: 'proposal'),
-          const SectionTitle('Invoices'),
-          if (sales.invoices.isEmpty) const EmptyLine('No invoices yet.'),
-          for (final i in sales.invoices) _PaperTile(i, kind: 'invoice'),
+          if (sales.leads.isEmpty) ...[
+            const SizedBox(height: 16),
+            const EmptyLine('No leads yet. Add prospects, and Sales writes to them each morning.', icon: Icons.person_search_outlined),
+          ],
+          if (sales.plans.isNotEmpty) ...[const SectionTitle('Plans', icon: Icons.event_repeat), for (final plan in sales.plans) PlanTile(plan)],
+          // Proposals and invoices side by side on wide screens.
+          GridRow(
+            children: [
+              GridCol(
+                lg: 6,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionTitle('Proposals', icon: Icons.description_outlined),
+                    if (sales.proposals.isEmpty) const EmptyLine('No proposals yet.'),
+                    for (final p in sales.proposals) _PaperTile(p, kind: 'proposal'),
+                  ],
+                ),
+              ),
+              GridCol(
+                lg: 6,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionTitle('Invoices', icon: Icons.receipt_long_outlined),
+                    if (sales.invoices.isEmpty) const EmptyLine('No invoices yet.'),
+                    for (final i in sales.invoices) _PaperTile(i, kind: 'invoice'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

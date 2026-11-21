@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../config/breakpoints.dart';
 import '../../controllers/business_controller.dart';
 import '../../models/lead.dart';
 import '../../widgets/motion.dart';
@@ -48,52 +49,66 @@ class CustomersTab extends StatelessWidget {
     final controller = Get.find<BusinessController>();
     return Obx(() {
       final scheme = Theme.of(context).colorScheme;
+      final leads = <Widget>[
+        const SectionTitle('Lead pipeline', icon: Icons.filter_alt_outlined),
+        if (controller.leads.isEmpty) const EmptyLine('No leads yet.', icon: Icons.person_search_outlined),
+        for (final (i, lead) in controller.leads.indexed)
+          Appear(
+            delay: Motion.stagger * i,
+            child: Card(
+              child: ListTile(
+                title: Text(lead.name),
+                subtitle: Text([lead.email, (stages[lead.stage] ?? lead.stage).tr, ?lead.packageId].join(' · ')),
+                trailing: lead.score == null
+                    ? null
+                    : CircleAvatar(backgroundColor: lead.score! >= 60 ? scheme.primaryContainer : scheme.surfaceContainerHighest, child: Text('${lead.score}')),
+                onTap: () => _open(context, lead),
+              ),
+            ),
+          ),
+      ];
+      final messages = <Widget>[
+        const SectionTitle('Messages', icon: Icons.forum_outlined),
+        if (controller.messages.isEmpty) const EmptyLine('No messages yet.', icon: Icons.mark_email_read_outlined),
+        for (final m in controller.messages)
+          Card(
+            child: ListTile(
+              leading: Icon(switch (m.channel) {
+                'whatsapp' => Icons.chat_outlined,
+                'form' => Icons.assignment_outlined,
+                _ => Icons.mail_outline,
+              }),
+              title: Text(m.subject ?? m.fromAddress ?? ''),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(m.body ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
+                  if (m.flagged)
+                    Text(
+                      'Tries to give the bots instructions. Only a draft is allowed.'.tr,
+                      style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600),
+                    ),
+                ],
+              ),
+              trailing: m.handled ? const Icon(Icons.done) : null,
+            ),
+          ),
+      ];
+      // Side by side on wide screens, one under the other on phones.
       return PageList(
         children: [
-          const SectionTitle('Lead pipeline'),
-          if (controller.leads.isEmpty) const EmptyLine('No leads yet.'),
-          for (final (i, lead) in controller.leads.indexed)
-            Appear(
-              delay: Motion.stagger * i,
-              child: Card(
-                child: ListTile(
-                  title: Text(lead.name),
-                  subtitle: Text([lead.email, (stages[lead.stage] ?? lead.stage).tr, ?lead.packageId].join(' · ')),
-                  trailing: lead.score == null
-                      ? null
-                      : CircleAvatar(
-                          backgroundColor: lead.score! >= 60 ? scheme.primaryContainer : scheme.surfaceContainerHighest,
-                          child: Text('${lead.score}'),
-                        ),
-                  onTap: () => _open(context, lead),
-                ),
+          GridRow(
+            children: [
+              GridCol(
+                lg: 6,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: leads),
               ),
-            ),
-          const SectionTitle('Messages'),
-          if (controller.messages.isEmpty) const EmptyLine('No messages yet.'),
-          for (final m in controller.messages)
-            Card(
-              child: ListTile(
-                leading: Icon(switch (m.channel) {
-                  'whatsapp' => Icons.chat_outlined,
-                  'form' => Icons.assignment_outlined,
-                  _ => Icons.mail_outline,
-                }),
-                title: Text(m.subject ?? m.fromAddress ?? ''),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(m.body ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
-                    if (m.flagged)
-                      Text(
-                        'Tries to give the bots instructions. Only a draft is allowed.'.tr,
-                        style: TextStyle(color: scheme.error, fontWeight: FontWeight.w600),
-                      ),
-                  ],
-                ),
-                trailing: m.handled ? const Icon(Icons.done) : null,
+              GridCol(
+                lg: 6,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: messages),
               ),
-            ),
+            ],
+          ),
         ],
       );
     });

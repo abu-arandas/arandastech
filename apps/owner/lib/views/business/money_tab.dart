@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../config/breakpoints.dart';
 import '../../controllers/session_controller.dart';
 import '../../models/money.dart';
 import '../../models/overview.dart';
@@ -33,34 +34,42 @@ class MoneyTab extends StatelessWidget {
       final scheme = Theme.of(context).colorScheme;
       return PageList(
         children: [
-          for (final s in session.overview.value?.money ?? const <MoneySummary>[])
-            Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(s.currency, style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 4),
-                    Text(
-                      (_status[s.status] ?? s.status).tr,
-                      style: TextStyle(fontWeight: FontWeight.w600, color: s.status == 'not_safe_to_spend' ? scheme.error : scheme.primary),
-                    ),
-                    const Divider(height: 24),
-                    // Pending money is shown apart from the waterfall: it is not the company's yet.
-                    _Line(label: 'Pending'.tr, minor: s.pendingRevenue, currency: s.currency, muted: true),
-                    for (final (key, label) in _lines)
-                      _Line(
-                        label: label.tr,
-                        minor: s.waterfall[key] ?? 0,
-                        currency: s.currency,
-                        strong: key == 'available_cash' || key == 'confirmed_net_profit',
+          // One card per currency, side by side on wide screens.
+          GridRow(
+            children: [
+              for (final s in session.overview.value?.money ?? const <MoneySummary>[])
+                GridCol(
+                  lg: 6,
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(s.currency, style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 4),
+                          Text(
+                            (_status[s.status] ?? s.status).tr,
+                            style: TextStyle(fontWeight: FontWeight.w600, color: s.status == 'not_safe_to_spend' ? scheme.error : scheme.primary),
+                          ),
+                          const Divider(height: 24),
+                          // Pending money is shown apart from the waterfall: it is not the company's yet.
+                          _Line(label: 'Pending'.tr, minor: s.pendingRevenue, currency: s.currency, muted: true),
+                          for (final (key, label) in _lines)
+                            _Line(
+                              label: label.tr,
+                              minor: s.waterfall[key] ?? 0,
+                              currency: s.currency,
+                              strong: key == 'available_cash' || key == 'confirmed_net_profit',
+                            ),
+                        ],
                       ),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+            ],
+          ),
         ],
       );
     });

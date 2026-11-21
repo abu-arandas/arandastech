@@ -133,7 +133,7 @@ class _AreaView extends StatelessWidget {
             GridContainer(
               child: Padding(
                 padding: const EdgeInsets.only(top: 16),
-                child: PageHeading(area.label, eyebrow: 'Owner app'),
+                child: PageHeading(area.label, eyebrow: 'Owner app', detail: area.detail),
               ),
             ),
           Expanded(child: area.page),

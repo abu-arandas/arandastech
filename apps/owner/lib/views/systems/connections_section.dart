@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../config/theme.dart';
 import '../../controllers/systems_controller.dart';
 import '../../models/connection.dart';
 import '../../widgets/section_title.dart';
@@ -19,7 +20,11 @@ class ConnectionsSection extends StatelessWidget {
       () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle('Connections', detail: 'Each account works for real once its keys are saved. Keys are never shown again, not even here.'),
+          const SectionTitle(
+            'Connections',
+            icon: Icons.hub_outlined,
+            detail: 'Each account works for real once its keys are saved. Keys are never shown again, not even here.',
+          ),
           for (final connection in controller.connections) _ConnectionCard(key: ValueKey('connection-${connection.id}'), connection: connection),
         ],
       ),
@@ -76,16 +81,41 @@ class _ConnectionCardState extends State<_ConnectionCard> {
       final failed = health?.ok == false || (health == null && connection.lastError != null);
       return Card(
         child: ExpansionTile(
-          leading: Icon(
-            failed ? Icons.error_outline : (connection.live ? Icons.check_circle : Icons.radio_button_unchecked),
-            color: failed ? scheme.error : (connection.live ? scheme.primary : scheme.onSurfaceVariant),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: ShapeDecoration(
+              color: (failed ? scheme.error : (connection.live ? scheme.primary : scheme.onSurfaceVariant)).withValues(alpha: 0.1),
+              shape: AppTheme.shape(12),
+            ),
+            child: Icon(
+              failed ? Icons.error_outline : (connection.live ? Icons.link : Icons.link_off),
+              size: 20,
+              color: failed ? scheme.error : (connection.live ? scheme.primary : scheme.onSurfaceVariant),
+            ),
           ),
-          title: Text(connection.name),
-          subtitle: Text(
-            [if (connection.live) 'Live'.tr else 'Not connected, works as a stand-in'.tr, ?note].join(' · '),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          title: Row(
+            children: [
+              Flexible(
+                child: Text(connection.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(width: 10),
+              // A small pill that says at a glance whether this account is live.
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: ShapeDecoration(
+                  color: connection.live ? scheme.primary.withValues(alpha: 0.12) : scheme.onSurfaceVariant.withValues(alpha: 0.1),
+                  shape: const StadiumBorder(),
+                ),
+                child: Text(
+                  connection.live ? 'Live'.tr : 'Stand-in'.tr,
+                  style: Theme.of(context).textTheme.labelSmall
+                      ?.copyWith(color: connection.live ? scheme.primary : scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ),
+          subtitle: Text(note ?? (connection.live ? 'Working for real.'.tr : 'Open to add its keys.'.tr), maxLines: 2, overflow: TextOverflow.ellipsis),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -127,7 +157,6 @@ class _ConnectionCardState extends State<_ConnectionCard> {
                     labelText: field.label,
                     helperText: field.help,
                     hintText: field.set ? 'Saved. Type a new one to replace it.'.tr : null,
-                    border: const OutlineInputBorder(),
                   ),
                 ),
               ),

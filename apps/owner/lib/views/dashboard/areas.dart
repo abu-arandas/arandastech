@@ -9,16 +9,19 @@ import '../today/today_page.dart';
 
 /// The owner's six areas (blueprint 8.2), in the order the menu shows them. Each label is an English key.
 enum Area {
-  today('Today', Icons.today_outlined, Icons.today),
-  sales('Sales', Icons.trending_up, Icons.trending_up),
-  approvals('Approvals', Icons.fact_check_outlined, Icons.fact_check),
-  team('Team', Icons.groups_outlined, Icons.groups),
-  business('Business', Icons.storefront_outlined, Icons.storefront),
-  systems('Systems', Icons.tune_outlined, Icons.tune);
+  today('Today', Icons.today_outlined, Icons.today, ''),
+  sales('Sales', Icons.trending_up, Icons.trending_up, 'The monthly goal, every deal by stage, proposals and invoices.'),
+  approvals('Approvals', Icons.fact_check_outlined, Icons.fact_check, 'Nothing leaves the company until you say yes here.'),
+  team('Team', Icons.groups_outlined, Icons.groups, 'Tell the departments what you want, and see how they are doing.'),
+  business('Business', Icons.storefront_outlined, Icons.storefront, 'Customers, the shop and the books in one place.'),
+  systems('Systems', Icons.tune_outlined, Icons.tune, 'Alerts, outside accounts, the rules the team follows, and the log.');
 
-  const Area(this.label, this.icon, this.selectedIcon);
+  const Area(this.label, this.icon, this.selectedIcon, this.detail);
 
   final String label;
+
+  /// One line under the area's heading on what it is for, as an English key.
+  final String detail;
   final IconData icon;
   final IconData selectedIcon;
 

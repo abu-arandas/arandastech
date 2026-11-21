@@ -34,7 +34,7 @@ class MarketingCard extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionTitle('Weekly posts', detail: 'Each Sunday Marketing plans Monday, Wednesday and Friday.'),
+          const SectionTitle('Weekly posts', icon: Icons.campaign_outlined, detail: 'Each Sunday Marketing plans Monday, Wednesday and Friday.'),
           Card(
             child: SwitchListTile(
               value: m.autopilot,

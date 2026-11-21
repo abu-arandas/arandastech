@@ -21,8 +21,8 @@ class HealthTab extends StatelessWidget {
       final open = controller.alerts.where((a) => a.status != 'resolved').toList();
       return PageList(
         children: [
-          const SectionTitle('Alerts'),
-          if (open.isEmpty) const EmptyLine('No open alerts.'),
+          const SectionTitle('Alerts', icon: Icons.notifications_none),
+          if (open.isEmpty) const EmptyLine('No open alerts.', icon: Icons.verified_outlined),
           for (final alert in open)
             Card(
               color: alert.critical ? scheme.errorContainer : null,
