@@ -1,6 +1,6 @@
-import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/area_tabs.dart';
 import 'activity_tab.dart';
 import 'health_tab.dart';
 import 'settings_tab.dart';
@@ -11,18 +11,12 @@ class SystemsPage extends StatelessWidget {
   const SystemsPage({super.key});
 
   @override
-  Widget build(BuildContext context) => DefaultTabController(
+  Widget build(BuildContext context) => const DefaultTabController(
     length: 3,
     child: Column(
       children: [
-        TabBar(
-          tabs: [
-            Tab(text: 'Health'.tr),
-            Tab(text: 'Settings'.tr),
-            Tab(text: 'Activity'.tr),
-          ],
-        ),
-        const Expanded(child: TabBarView(children: [HealthTab(), SettingsTab(), ActivityTab()])),
+        AreaTabs(['Health', 'Settings', 'Activity']),
+        Expanded(child: TabBarView(children: [HealthTab(), SettingsTab(), ActivityTab()])),
       ],
     ),
   );

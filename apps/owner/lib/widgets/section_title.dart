@@ -32,12 +32,12 @@ class PageHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.only(top: 8, bottom: 12),
+    padding: const EdgeInsets.only(top: 16, bottom: 16),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (eyebrow != null) ...[Eyebrow(eyebrow!), const SizedBox(height: 6)],
-        Text(title.tr, style: Theme.of(context).textTheme.headlineSmall),
+        if (eyebrow != null) ...[Eyebrow(eyebrow!), const SizedBox(height: 8)],
+        Text(title.tr, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 12),
         const SewIn(child: StitchLine()),
       ],

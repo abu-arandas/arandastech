@@ -40,13 +40,14 @@ class AppTheme {
     );
 
     final base = ThemeData(colorScheme: scheme, useMaterial3: true, fontFamily: Brand.fontFamily);
-    TextStyle title(TextStyle s) => s.copyWith(fontWeight: FontWeight.w500, letterSpacing: -0.2);
+    // Titles semibold and a touch tight, as on the website; body text stays regular.
+    TextStyle title(TextStyle s) => s.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.4);
     final text = base.textTheme.copyWith(
       headlineLarge: title(base.textTheme.headlineLarge!),
       headlineMedium: title(base.textTheme.headlineMedium!).copyWith(fontFeatures: figures),
       headlineSmall: title(base.textTheme.headlineSmall!),
       titleLarge: title(base.textTheme.titleLarge!),
-      titleMedium: base.textTheme.titleMedium!.copyWith(fontWeight: FontWeight.w500),
+      titleMedium: base.textTheme.titleMedium!.copyWith(fontWeight: FontWeight.w600),
       bodyLarge: base.textTheme.bodyLarge!.copyWith(height: 1.5),
       bodyMedium: base.textTheme.bodyMedium!.copyWith(height: 1.45),
       labelLarge: base.textTheme.labelLarge!.copyWith(fontWeight: FontWeight.w500),
@@ -104,12 +105,14 @@ class AppTheme {
         ),
       ),
       textButtonTheme: const TextButtonThemeData(style: buttonStyle),
+      // Cards: a hairline edge and a soft ink shadow under it, corners that flow.
       cardTheme: CardThemeData(
         color: card,
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
+        elevation: 1,
+        shadowColor: Brand.ink.withValues(alpha: dark ? 0.8 : 0.22),
         margin: const EdgeInsets.symmetric(vertical: 4),
-        shape: shape(16, side: BorderSide(color: scheme.outlineVariant)),
+        shape: shape(20, side: BorderSide(color: scheme.outlineVariant)),
       ),
       listTileTheme: ListTileThemeData(shape: shape(12)),
       dialogTheme: DialogThemeData(backgroundColor: card, surfaceTintColor: Colors.transparent, shape: shape(22)),
@@ -140,11 +143,21 @@ class AppTheme {
         indicatorShape: const StadiumBorder(),
         labelTextStyle: const WidgetStatePropertyAll(TextStyle(fontFamily: Brand.fontFamily, fontSize: 12, fontWeight: FontWeight.w500)),
       ),
+      // Tabs are pills: the chosen one sits in a denim wash, the rest are quiet words. No underline, no divider.
       tabBarTheme: TabBarThemeData(
-        indicatorColor: scheme.secondary,
-        labelStyle: const TextStyle(fontFamily: Brand.fontFamily, fontWeight: FontWeight.w500),
+        indicator: ShapeDecoration(
+          color: primary.withValues(alpha: dark ? 0.18 : 0.1),
+          shape: const StadiumBorder(),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: primary,
+        unselectedLabelColor: scheme.onSurfaceVariant,
+        labelStyle: const TextStyle(fontFamily: Brand.fontFamily, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(fontFamily: Brand.fontFamily, fontWeight: FontWeight.w400),
-        dividerColor: scheme.outlineVariant,
+        dividerColor: Colors.transparent,
+        dividerHeight: 0,
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        splashFactory: NoSplash.splashFactory,
       ),
     );
   }

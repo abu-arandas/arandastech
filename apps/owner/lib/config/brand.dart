@@ -31,6 +31,11 @@ class Brand {
   /// Indigo ink for text, and for the tint of shadows.
   static const ink = Color(0xFF18202E);
 
+  /// The app's frame (the sidebar and the sign-in panel): ink in the light theme, a deeper night in the dark, so the
+  /// frame always reads darker than the page. It uses the dark theme inside, whatever the app's theme.
+  static const shell = Color(0xFF18202E);
+  static const shellDark = Color(0xFF080C14);
+
   /// One font for Arabic and Latin text, bundled in assets/fonts and declared in pubspec.yaml.
   static const fontFamily = 'Rubik';
 

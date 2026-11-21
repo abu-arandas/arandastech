@@ -1,6 +1,6 @@
-import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/area_tabs.dart';
 import 'customers_tab.dart';
 import 'money_tab.dart';
 import 'store_tab.dart';
@@ -10,18 +10,12 @@ class BusinessPage extends StatelessWidget {
   const BusinessPage({super.key});
 
   @override
-  Widget build(BuildContext context) => DefaultTabController(
+  Widget build(BuildContext context) => const DefaultTabController(
     length: 3,
     child: Column(
       children: [
-        TabBar(
-          tabs: [
-            Tab(text: 'Customers'.tr),
-            Tab(text: 'Store'.tr),
-            Tab(text: 'Money'.tr),
-          ],
-        ),
-        const Expanded(child: TabBarView(children: [CustomersTab(), StoreTab(), MoneyTab()])),
+        AreaTabs(['Customers', 'Store', 'Money']),
+        Expanded(child: TabBarView(children: [CustomersTab(), StoreTab(), MoneyTab()])),
       ],
     ),
   );
