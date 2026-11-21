@@ -30,25 +30,30 @@ export async function switchAutopilot(
   on: boolean,
 ): Promise<StandingRule | null> {
   const { db, clock } = platform;
-  const current = await activeAutopilot(db, autopilot);
-  if (current) await revokeRule(db, current.id, staff.actor, staff.isOwner);
-  if (!on) return null;
-  const now = clock();
-  const days = await getPolicy(db, 'rules.max_lifetime_days');
-  return createRule(
-    db,
-    {
-      name: autopilot.name,
-      actionType: autopilot.actionType,
-      conditions: { templates: autopilot.templates },
-      spendLimitPerActionMinor: 0,
-      spendLimitPerPeriodMinor: 0,
-      recipientLimitPerPeriod: await autopilot.limit(db),
-      period: autopilot.period,
-      expiresAt: new Date(now.getTime() + days * 86_400_000),
-    },
-    staff.actor,
-    staff.isOwner,
-    now,
-  );
+  return db.tx(async (tx) => {
+    // One switch at a time per autopilot, so two quick taps cannot leave two rules running.
+    await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`autopilot:${autopilot.name}`]);
+    for (const rule of await listRules(tx))
+      if (rule.name === autopilot.name && rule.status === 'active')
+        await revokeRule(tx, rule.id, staff.actor, staff.isOwner);
+    if (!on) return null;
+    const now = clock();
+    const days = await getPolicy(tx, 'rules.max_lifetime_days');
+    return createRule(
+      tx,
+      {
+        name: autopilot.name,
+        actionType: autopilot.actionType,
+        conditions: { templates: autopilot.templates },
+        spendLimitPerActionMinor: 0,
+        spendLimitPerPeriodMinor: 0,
+        recipientLimitPerPeriod: await autopilot.limit(tx),
+        period: autopilot.period,
+        expiresAt: new Date(now.getTime() + days * 86_400_000),
+      },
+      staff.actor,
+      staff.isOwner,
+      now,
+    );
+  });
 }

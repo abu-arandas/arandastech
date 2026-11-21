@@ -1,4 +1,5 @@
 import { mayPropose } from '../api/mcp';
+import { BufferConnector } from '../connectors/live/buffer';
 import { getPolicy } from '../governance/settings';
 import type { Db } from '../lib/db';
 import type { Locale } from '../lib/types';
@@ -78,11 +79,15 @@ async function weeklyPosts(rt: AgentRuntime, input: Json, ctx: WorkflowContext):
     if (await plannedAhead(rt.db, now))
       return { posts: [], note: 'The posts for the coming days are already planned.' };
     const used = await lastUses(rt.db);
+    // A Buffer key may hold only a Facebook page or only a LinkedIn page: posts for the other one are left out.
+    const buffer = rt.platform.connectors.buffer;
+    const reachable = (post: ApprovedPost) => !(buffer instanceof BufferConnector) || buffer.hasChannel(post.channel);
     const week = (await approvedPosts(rt.db))
+      .filter(reachable)
       .sort((a, b) => (used.get(a.key)?.at.getTime() ?? 0) - (used.get(b.key)?.at.getTime() ?? 0))
       .slice(0, count);
     if (!week.length) {
-      run.notes.push('No post template is approved yet. Approve them in Systems, Settings, Business memory.');
+      run.notes.push('No approved post template fits the connected Buffer pages. Approve them in Team, Weekly posts.');
       return { posts: [] };
     }
     const trialDays = String(await getPolicy(rt.db, 'billing.trial_days'));

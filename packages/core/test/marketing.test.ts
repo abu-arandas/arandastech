@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { postTimes } from '../src/agents/marketing';
 import { createApi, type ApiResponse } from '../src/api/index';
+import { BufferConnector } from '../src/connectors/live/buffer';
 import { DEMO_OWNER_ID } from '../src/company';
 import { setPolicy } from '../src/governance/settings';
 import { createTestPlatform, OWNER, type TestPlatform } from './helpers/platform';
@@ -120,5 +121,36 @@ describe('weekly posts', () => {
     t.clock.advance(7 * DAY);
     expect((await run()).posts).toHaveLength(1);
     expect((await owner('POST', '/api/owner/marketing/autopilot', { on: false })).body.autopilot).toBeNull();
+  });
+
+  it('two quick taps on the switch leave one rule, and turning it off leaves none', async () => {
+    await Promise.all([
+      owner('POST', '/api/owner/marketing/autopilot', { on: true }),
+      owner('POST', '/api/owner/marketing/autopilot', { on: true }),
+    ]);
+    const active = () =>
+      t.test.db.query(`select id from standing_rules where name = 'Marketing autopilot' and status = 'active'`);
+    expect(await active()).toHaveLength(1);
+    await owner('POST', '/api/owner/marketing/autopilot', { on: false });
+    expect(await active()).toHaveLength(0);
+  });
+
+  it('with a Buffer key that has only a LinkedIn page, only LinkedIn posts are planned', async () => {
+    const mock = t.platform.connectors.buffer!;
+    t.platform.connectors.buffer = new BufferConnector(
+      { api_key: 'test', channels: { linkedin: 'li-1' } },
+      t.platform.fetch,
+    );
+    try {
+      await setPolicy(t.test.db, 'marketing.posts_per_week', 3, OWNER);
+      t.clock.advance(7 * DAY);
+      const week = await run();
+      const planned = await t.test.db.query<Json>(`select payload from actions where id = any($1::uuid[])`, [
+        week.posts.map((p) => p.action_id),
+      ]);
+      expect(planned.map((p) => p.payload.channel)).toEqual(['linkedin']);
+    } finally {
+      t.platform.connectors.buffer = mock;
+    }
   });
 });
