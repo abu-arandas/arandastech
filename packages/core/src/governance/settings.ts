@@ -173,6 +173,20 @@ export const POLICY_DEFAULTS = {
     description:
       'How a client pays an invoice: bank transfer details (IBAN), a PayPal link or CliQ alias. Shown on every invoice page. Empty: the page asks the client to reply for the details.',
   },
+  'billing.trial_days': {
+    value: 14 as number,
+    description: 'Days a shop uses Zirr free before its plan starts. The trial page and the shop emails promise this.',
+  },
+  'billing.trial_plan_price': {
+    value: { JOD: 299_000 } as PerCurrency,
+    description:
+      "What a shop pays when its trial ends, in the currency's smallest unit (JOD has 1000 fils: 299000 is 299 JOD). Only the first currency is used.",
+  },
+  'billing.trial_plan_every': {
+    value: 'once' as string,
+    description:
+      'How often a shop pays after its trial: once (one invoice), month or year. Marking a trial lead "Won" starts this plan.',
+  },
   'engineering.repository': {
     value: 'abu-arandas/arandastech' as string,
     description: 'The GitHub repository the Engineering department files issues in.',
@@ -187,6 +201,8 @@ export type PolicyKey = keyof typeof POLICY_DEFAULTS;
 
 /** Settings that hold a web address: empty, or a link that starts with https://. */
 const LINK_KEYS = new Set<string>(['sales.booking_link', 'sales.showcase_link']);
+/** Settings that take one of a few words. */
+const CHOICES: Record<string, string[]> = { 'billing.trial_plan_every': ['once', 'month', 'year'] };
 export type PolicyValue<K extends PolicyKey> = (typeof POLICY_DEFAULTS)[K]['value'];
 
 /** Writes any default that is not in the database yet. Existing values are left alone. */
@@ -233,6 +249,8 @@ export async function setPolicy<K extends PolicyKey>(db: Db, key: K, value: Poli
   }
   if (LINK_KEYS.has(key) && typeof value === 'string' && value !== '' && !/^https:\/\/[^\s]+$/.test(value))
     throw invalid(`policy setting ${key} is a link that starts with https://`);
+  if (CHOICES[key] && !CHOICES[key].includes(String(value)))
+    throw invalid(`policy setting ${key} is one of: ${CHOICES[key].join(', ')}`);
   if (typeof value === 'string' && value.length > 2000)
     throw invalid(`policy setting ${key} is at most 2000 characters`);
   await db.tx(async (tx) => {

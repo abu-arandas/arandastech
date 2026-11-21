@@ -9,6 +9,7 @@ import { AppError, invalid, notFound } from '../lib/errors';
 import { shareOf, toMinor } from '../lib/money';
 import type { Actor, Locale } from '../lib/types';
 import type { LeadRow } from './crm';
+import { planInvoicePaid } from './plan-dates';
 import { startSequence, stopSequence } from './pipeline';
 
 /**
@@ -61,6 +62,8 @@ export interface InvoiceRow {
   paid_at: Date | null;
   paid_via: string | null;
   reminders_sent: number;
+  plan_id: string | null;
+  hold_notice_at: Date | null;
   created_at: Date;
   sent_at: Date | null;
 }
@@ -309,11 +312,13 @@ export async function listProposals(db: Db): Promise<ProposalRow[]> {
 
 // ---------------------------------------------------------------- Invoices
 
-async function insertInvoice(
+/** Writes a new invoice with the next number. It is a draft until Sales emails it. */
+export async function insertInvoice(
   db: Db,
   i: {
     leadId: string | null;
     proposalId: string | null;
+    planId?: string;
     title: string;
     items: Item[];
     currency: string;
@@ -327,9 +332,9 @@ async function insertInvoice(
   return one(
     await db.query<InvoiceRow>(
       `insert into invoices (number, lead_id, proposal_id, title, items, total_minor, currency, buyer_name, buyer_email,
-         locale, due_on, public_token, created_at)
+         locale, due_on, public_token, created_at, plan_id)
        values ('INV-' || to_char($12::timestamptz, 'YYYY') || '-' || lpad(nextval('invoice_number_seq')::text, 4, '0'),
-         $1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12) returning *`,
+         $1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning *`,
       [
         i.leadId,
         i.proposalId,
@@ -343,6 +348,7 @@ async function insertInvoice(
         day(i.now, i.dueDays),
         token(),
         i.now,
+        i.planId ?? null,
       ],
     ),
   );
@@ -438,8 +444,11 @@ export async function markInvoicePaid(
     );
     if (invoice.lead_id) {
       await tx.query(`update leads set stage = 'paid' where id = $1 and stage <> 'retained'`, [invoice.lead_id]);
-      await startSequence(tx, invoice.lead_id, 'check_in', now);
+      // A plan's client gets the check-ins after the first payment, not again every month.
+      if (!(invoice.plan_id && (await paidBefore(tx, invoice))))
+        await startSequence(tx, invoice.lead_id, 'check_in', now);
     }
+    if (invoice.plan_id) await planInvoicePaid(tx, invoice.plan_id, now);
     if (options.thank !== false && invoice.buyer_email)
       await enqueue(
         tx,
@@ -455,6 +464,14 @@ export async function markInvoicePaid(
     });
     return paid!;
   });
+}
+
+async function paidBefore(db: Db, invoice: InvoiceRow): Promise<boolean> {
+  const rows = await db.query(`select 1 from invoices where plan_id = $1 and status = 'paid' and id <> $2 limit 1`, [
+    invoice.plan_id,
+    invoice.id,
+  ]);
+  return rows.length > 0;
 }
 
 export async function voidInvoice(db: Db, invoiceId: string, by: Actor): Promise<InvoiceRow> {

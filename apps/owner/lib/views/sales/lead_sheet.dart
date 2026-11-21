@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../controllers/sales_controller.dart';
 import '../../models/deal.dart';
 import 'paper_forms.dart';
+import 'plans.dart';
 import 'sales_page.dart';
 
 /// One lead: where they are, their note, and the next moves: a stage, a proposal, an invoice, or no more emails.
@@ -60,6 +61,15 @@ class _LeadSheet extends StatelessWidget {
                   icon: const Icon(Icons.receipt_long),
                   label: Text('Send an invoice'.tr),
                 ),
+                if (sales.openPlanOf(lead) == null)
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      close();
+                      showPlanForm(context, lead);
+                    },
+                    icon: const Icon(Icons.autorenew),
+                    label: Text('Start a plan'.tr),
+                  ),
                 if (lead.sequence != null)
                   TextButton(
                     onPressed: () async {

@@ -34,7 +34,7 @@ const retailLinks = [
   { href: LINKS.video, label: label.video },
 ];
 const posLinks = [
-  { href: '/contact?package=zirr-pos-installation', label: label.posTrial },
+  { href: '/trial', label: label.posTrial },
   { href: LINKS.pos, label: label.tryPos },
   { href: LINKS.whatsapp, label: label.whatsapp },
 ];
@@ -483,7 +483,7 @@ export const GUIDES: Guide[] = [
     },
     links: [
       { href: LINKS.retailBuy, label: label.buyRetail },
-      { href: '/contact?package=zirr-pos-installation', label: label.posTrial },
+      { href: '/trial', label: label.posTrial },
       { href: '/contact?package=project', label: label.quote },
     ],
   },

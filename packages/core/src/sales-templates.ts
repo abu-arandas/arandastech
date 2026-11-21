@@ -7,7 +7,8 @@
  * - `sender`: `sales.sender_name`, `showcase`: `sales.showcase_link`,
  * - `booking_line`: the booking link sentence (`sales.booking_link`), or a request for two times when it is not set,
  * - `opt_out`: the sentence that lets a prospect stop the emails,
- * - `number`, `title`, `total`, `link`, `due`, `valid_until`: the proposal or the invoice.
+ * - `number`, `title`, `total`, `link`, `due`, `valid_until`: the proposal or the invoice,
+ * - `trial_days`: `billing.trial_days`, the free days the trial page promises.
  */
 
 interface Text {
@@ -203,6 +204,31 @@ export const SALES_TEMPLATES: Record<string, SalesTemplate> = {
     ar: {
       subject: 'وصلنا الدفع: {{number}}',
       body: `مرحباً {{name}}،\n\nشكراً لك. وصلنا دفعك بقيمة {{total}} للفاتورة {{number}}.\n\n${SIGN_AR}`,
+    },
+  },
+
+  'plan-on-hold': {
+    title: 'Plan on hold: an invoice is two weeks late',
+    en: {
+      subject: 'Your Zirr plan is on hold: invoice {{number}}',
+      body: `Hello {{name}},\n\nInvoice {{number}} ({{total}}) was due on {{due}} and we haven't received it yet, so we have put your plan on hold. Updates and support wait until it is paid, and nothing is lost.\n\nThe invoice and how to pay: {{link}}\n\nIf something is wrong, or you need more time, just reply and we will sort it out together. If you have already paid, thank you, and please ignore this email.\n\n${SIGN_EN}`,
+    },
+    ar: {
+      subject: 'خطتكم في زِرّ متوقفة مؤقتاً: الفاتورة {{number}}',
+      body: `مرحباً {{name}}،\n\nالفاتورة {{number}} ({{total}}) كانت مستحقة في {{due}} ولم تصلنا بعد، لذلك أوقفنا خطتكم مؤقتاً. التحديثات والدعم تنتظر حتى الدفع، ولا يضيع أي شيء.\n\nالفاتورة وطريقة الدفع: {{link}}\n\nإن كان هناك خطأ، أو تحتاجون وقتاً أطول، ردّوا على هذه الرسالة وسنجد حلاً معاً. وإن كنتم قد دفعتم، فشكراً لكم، وتجاهلوا هذه الرسالة.\n\n${SIGN_AR}`,
+    },
+  },
+
+  // ---------------------------------------------------------------- The free trial page
+  'trial-welcome': {
+    title: 'Answer to a shop that asked for the free trial',
+    en: {
+      subject: 'Your {{trial_days}}-day Zirr trial: next step',
+      body: `Hello {{first_name}},\n\nThank you for asking for the free trial for {{company}}. Here is how it works: we set up the till with your own products, show your staff how to use it, and you sell on it as normal for {{trial_days}} days. You pay nothing during the trial, and if it doesn't help, we take it away.\n\nThe first step is a short setup call:\n{{booking_line}}\n\nOr message us on WhatsApp at +962 79 156 8798.\n\n${SIGN_EN}`,
+    },
+    ar: {
+      subject: 'تجربتكم المجانية لزِرّ ({{trial_days}} يوماً): الخطوة التالية',
+      body: `مرحباً {{first_name}}،\n\nشكراً لطلبكم التجربة المجانية لـ {{company}}. هكذا تعمل: نجهّز الكاشير بمنتجاتكم، ونشرح لموظفيكم استخدامه، وتبيعون عليه كالمعتاد مدة {{trial_days}} يوماً. لا تدفعون شيئاً خلال التجربة، وإن لم يفدكم نزيله.\n\nالخطوة الأولى مكالمة قصيرة للتجهيز:\n{{booking_line}}\n\nأو راسلونا على واتساب على الرقم ‎+962 79 156 8798‎.\n\n${SIGN_AR}`,
     },
   },
 
