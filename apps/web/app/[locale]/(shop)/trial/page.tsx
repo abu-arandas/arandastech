@@ -27,7 +27,7 @@ const withDays = (text: string, days: number): string => text.replaceAll('{days}
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  return pageMetadata(locale, '/trial', withDays(t('trialTitle', locale), 14), t('trialIntro', locale));
+  return pageMetadata(locale, '/trial', withDays(t('trialTitle', locale), await trialDays()), t('trialIntro', locale));
 }
 
 async function send(formData: FormData): Promise<void> {

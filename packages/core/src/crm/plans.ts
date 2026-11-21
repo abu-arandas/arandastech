@@ -157,19 +157,23 @@ export async function cancelPlan(db: Db, planId: string, by: Actor, now: Date): 
 
 /** The owner lifts a hold without waiting for the payment, for example after agreeing a later date with the client. */
 export async function resumePlan(db: Db, planId: string, by: Actor, now: Date): Promise<PlanRow> {
-  const plan = await planById(db, planId);
-  if (plan.status !== 'on_hold') throw invalid('only a plan on hold can be resumed');
-  const today = dayOf(now);
-  const next =
-    plan.every === 'once'
-      ? null
-      : firstInvoiceDayFrom(plan.next_invoice_on ?? today, plan.every, plan.anchor_day, today);
-  await db.query(`update plans set status = 'active', on_hold_at = null, next_invoice_on = $2 where id = $1`, [
-    plan.id,
-    next,
-  ]);
-  await audit(db, { actor: by, type: 'plan.resumed', subject: { type: 'plan', id: plan.id } });
-  return planById(db, plan.id);
+  await db.tx(async (tx) => {
+    // Locked, so a payment arriving at the same moment cannot end the plan and then see it reopened.
+    const plan = maybeOne(await tx.query<PlanRow>(`${SELECT} where id = $1 for update`, [planId]));
+    if (!plan) throw notFound('plan');
+    if (plan.status !== 'on_hold') throw invalid('only a plan on hold can be resumed');
+    const today = dayOf(now);
+    const next =
+      plan.every === 'once'
+        ? null
+        : firstInvoiceDayFrom(plan.next_invoice_on ?? today, plan.every, plan.anchor_day, today);
+    await tx.query(`update plans set status = 'active', on_hold_at = null, next_invoice_on = $2 where id = $1`, [
+      plan.id,
+      next,
+    ]);
+    await audit(tx, { actor: by, type: 'plan.resumed', subject: { type: 'plan', id: plan.id } });
+  });
+  return planById(db, planId);
 }
 
 export async function listPlans(db: Db): Promise<PlanRow[]> {
@@ -262,9 +266,15 @@ export async function holdLatePlans(db: Db, now: Date): Promise<InvoiceRow[]> {
      order by i.due_on limit 20`,
     [dayOf(now), HOLD_AFTER_DAYS],
   );
+  const held: InvoiceRow[] = [];
   for (const invoice of late)
     await db.tx(async (tx) => {
-      await tx.query('update invoices set hold_notice_at = $2 where id = $1', [invoice.id, now]);
+      // Only the run that marks the invoice first holds the plan, alerts the owner and writes the note.
+      const marked = await tx.query(
+        'update invoices set hold_notice_at = $2 where id = $1 and hold_notice_at is null returning id',
+        [invoice.id, now],
+      );
+      if (!marked.length) return;
       await tx.query(
         `update plans set status = 'on_hold', on_hold_at = coalesce(on_hold_at, $2) where id = $1 and status = 'active'`,
         [invoice.plan_id, now],
@@ -276,6 +286,7 @@ export async function holdLatePlans(db: Db, now: Date): Promise<InvoiceRow[]> {
           json({ invoice_id: invoice.id, plan_id: invoice.plan_id }),
         ],
       );
+      held.push(invoice);
     });
-  return late;
+  return held;
 }
