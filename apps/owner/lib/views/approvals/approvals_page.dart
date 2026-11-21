@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../controllers/approvals_controller.dart';
 import '../../models/approval.dart';
 import '../../models/money.dart';
+import '../../widgets/busy_button.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/page_list.dart';
 
@@ -163,12 +164,12 @@ class _RequestCard extends StatelessWidget {
             Wrap(
               spacing: 8,
               children: [
-                FilledButton(
-                  onPressed: () => request.level == 3 ? _confirm(context, controller) : controller.decide(request, 'approve'),
-                  child: Text('Approve'.tr),
+                BusyButton(
+                  onPressed: () async => request.level == 3 ? _confirm(context, controller) : controller.decide(request, 'approve'),
+                  label: 'Approve'.tr,
                 ),
-                OutlinedButton(onPressed: () => controller.decide(request, 'reject'), child: Text('Reject'.tr)),
-                TextButton(onPressed: () => controller.decide(request, 'postpone'), child: Text('Postpone'.tr)),
+                BusyButton(kind: ButtonKind.outlined, onPressed: () => controller.decide(request, 'reject'), label: 'Reject'.tr),
+                BusyButton(kind: ButtonKind.text, onPressed: () => controller.decide(request, 'postpone'), label: 'Postpone'.tr),
               ],
             ),
           ],

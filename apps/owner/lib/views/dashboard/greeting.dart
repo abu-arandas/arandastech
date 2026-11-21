@@ -39,7 +39,7 @@ class _GreetingState extends State<Greeting> {
         // Denim in both themes, as on the website's closing panel, with a soft light from the top.
         gradient: const RadialGradient(center: AlignmentDirectional(-0.6, -1.4), radius: 1.6, colors: [Color(0xFF3A5E9F), Brand.denim]),
         shape: AppTheme.shape(28),
-        shadows: [BoxShadow(color: Brand.denim.withValues(alpha: 0.28), blurRadius: 30, offset: const Offset(0, 14))],
+        shadows: [BoxShadow(color: Brand.denim.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Stack(
         children: [

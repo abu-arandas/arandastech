@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../controllers/systems_controller.dart';
+import '../../widgets/busy_button.dart';
 import '../../widgets/page_list.dart';
 import '../../widgets/section_title.dart';
 import 'connections_section.dart';
@@ -37,8 +38,8 @@ class HealthTab extends StatelessWidget {
                       spacing: 8,
                       children: [
                         if (alert.status == 'open')
-                          TextButton(onPressed: () => controller.resolveAlert(alert, acknowledgeOnly: true), child: Text('Mark as seen'.tr)),
-                        FilledButton.tonal(onPressed: () => controller.resolveAlert(alert), child: Text('Resolve'.tr)),
+                          BusyButton(kind: ButtonKind.text, onPressed: () => controller.resolveAlert(alert, acknowledgeOnly: true), label: 'Mark as seen'.tr),
+                        BusyButton(kind: ButtonKind.tonal, onPressed: () => controller.resolveAlert(alert), label: 'Resolve'.tr),
                       ],
                     ),
                   ],

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../controllers/sales_controller.dart';
 import '../../models/deal.dart';
+import '../../widgets/busy_button.dart';
 
 /// Plans: what a client pays every month or year, or once after a free trial. Sales raises each invoice on its day.
 
@@ -123,7 +124,7 @@ class _PlanFormState extends State<_PlanForm> {
     ),
     actions: [
       TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('Cancel'.tr)),
-      FilledButton(onPressed: _save, child: Text('Start the plan'.tr)),
+      BusyButton(onPressed: _save, label: 'Start the plan'.tr),
     ],
   );
 }

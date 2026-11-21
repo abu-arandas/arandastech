@@ -9,6 +9,7 @@ import '../../controllers/team_controller.dart';
 import '../../models/json.dart';
 import '../../models/money.dart';
 import '../../models/team.dart';
+import '../../widgets/busy_button.dart';
 import '../../widgets/motion.dart';
 import '../../widgets/page_list.dart';
 import '../../widgets/section_title.dart';
@@ -77,11 +78,12 @@ class _TeamPageState extends State<TeamPage> {
           const SizedBox(height: 8),
           Align(
             alignment: AlignmentDirectional.centerEnd,
-            child: FilledButton.tonalIcon(
+            child: BusyButton(
               key: const Key('plan'),
+              kind: ButtonKind.tonal,
               onPressed: () => _plan(controller),
-              icon: const Icon(Icons.checklist),
-              label: Text('Make a plan'.tr),
+              icon: Icons.checklist,
+              label: 'Make a plan'.tr,
             ),
           ),
           for (final (i, command) in controller.commands.take(5).indexed)
@@ -112,7 +114,7 @@ class _StatusPanel extends StatelessWidget {
   const _StatusPanel({required this.team, required this.onRun});
 
   final TeamState team;
-  final VoidCallback onRun;
+  final Future<void> Function() onRun;
 
   @override
   Widget build(BuildContext context) {
@@ -155,11 +157,17 @@ class _StatusPanel extends StatelessWidget {
               ],
             ),
           ),
-          FilledButton.icon(
+          BusyButton(
             onPressed: onRun,
-            style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Brand.shell),
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: Text('Run due work now'.tr),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Brand.shell,
+              // Stays readable on the ink panel while it waits.
+              disabledBackgroundColor: Colors.white.withValues(alpha: 0.85),
+              disabledForegroundColor: Brand.shell.withValues(alpha: 0.7),
+            ),
+            icon: Icons.play_arrow_rounded,
+            label: 'Run due work now'.tr,
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../controllers/systems_controller.dart';
 import '../../models/settings.dart';
+import '../../widgets/busy_button.dart';
 import '../../widgets/page_list.dart';
 import '../../widgets/section_title.dart';
 
@@ -86,7 +87,7 @@ class SettingsTab extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               title: Text(rule.name),
               subtitle: Text('${rule.actionType} · ${rule.status} · ${'Ends'.tr} ${rule.expiresAt}'),
-              trailing: rule.active ? TextButton(onPressed: () => controller.revokeRule(rule), child: Text('Revoke'.tr)) : null,
+              trailing: rule.active ? BusyButton(kind: ButtonKind.text, onPressed: () => controller.revokeRule(rule), label: 'Revoke'.tr) : null,
             ),
           const SectionTitle('Business memory', icon: Icons.psychology_outlined, detail: 'Only approved items reach customers.'),
           for (final item in controller.memory)
@@ -95,7 +96,7 @@ class SettingsTab extends StatelessWidget {
               title: Text(item.title ?? item.key),
               subtitle: Text('${item.kind} · ${item.source ?? ''} · v${item.version}'),
               trailing: item.status == 'draft'
-                  ? FilledButton.tonal(onPressed: () => controller.approveMemory(item), child: Text('Approve'.tr))
+                  ? BusyButton(kind: ButtonKind.tonal, onPressed: () => controller.approveMemory(item), label: 'Approve'.tr)
                   : Text((item.status == 'approved' ? 'Approved' : 'Retired').tr),
             ),
         ],

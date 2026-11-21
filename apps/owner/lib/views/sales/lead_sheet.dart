@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../controllers/sales_controller.dart';
 import '../../models/deal.dart';
+import '../../widgets/busy_button.dart';
 import 'paper_forms.dart';
 import 'plans.dart';
 import 'sales_page.dart';
@@ -71,18 +72,20 @@ class _LeadSheet extends StatelessWidget {
                     label: Text('Start a plan'.tr),
                   ),
                 if (lead.sequence != null)
-                  TextButton(
+                  BusyButton(
+                    kind: ButtonKind.text,
                     onPressed: () async {
                       if (await sales.changeLead(lead, {'follow_up': false}) && context.mounted) close();
                     },
-                    child: Text('Stop the follow-ups'.tr),
+                    label: 'Stop the follow-ups'.tr,
                   ),
                 if (!lead.doNotContact)
-                  TextButton(
+                  BusyButton(
+                    kind: ButtonKind.text,
                     onPressed: () async {
                       if (await sales.changeLead(lead, {'do_not_contact': true, 'stage': 'lost'}) && context.mounted) close();
                     },
-                    child: Text('Never email again'.tr),
+                    label: 'Never email again'.tr,
                   ),
               ],
             ),
