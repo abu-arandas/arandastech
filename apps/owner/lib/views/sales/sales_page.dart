@@ -56,10 +56,7 @@ class SalesPage extends StatelessWidget {
               for (final (i, lead) in sales.inStage(entry.key).take(30).indexed) Appear(delay: Motion.stagger * i, child: _LeadTile(lead)),
             ],
           if (sales.leads.isEmpty) const EmptyLine('No leads yet. Add prospects, and Sales writes to them each morning.'),
-          if (sales.plans.isNotEmpty) ...[
-            const SectionTitle('Plans'),
-            for (final plan in sales.plans) PlanTile(plan),
-          ],
+          if (sales.plans.isNotEmpty) ...[const SectionTitle('Plans'), for (final plan in sales.plans) PlanTile(plan)],
           const SectionTitle('Proposals'),
           if (sales.proposals.isEmpty) const EmptyLine('No proposals yet.'),
           for (final p in sales.proposals) _PaperTile(p, kind: 'proposal'),

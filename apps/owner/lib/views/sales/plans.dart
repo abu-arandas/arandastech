@@ -8,13 +8,7 @@ import '../../models/deal.dart';
 
 const _howOften = {'once': 'Once', 'month': 'Every month', 'year': 'Every year'};
 
-const _status = {
-  'trial': 'Free trial',
-  'active': 'Active',
-  'on_hold': 'On hold: an invoice is late',
-  'ended': 'Ended',
-  'cancelled': 'Cancelled',
-};
+const _status = {'trial': 'Free trial', 'active': 'Active', 'on_hold': 'On hold: an invoice is late', 'ended': 'Ended', 'cancelled': 'Cancelled'};
 
 /// One plan: who pays, how much and how often, and when the next invoice goes. Open plans can be cancelled or resumed.
 class PlanTile extends StatelessWidget {
@@ -46,8 +40,7 @@ class PlanTile extends StatelessWidget {
 }
 
 /// Starts a plan for a lead: the amount, how often, and how many free days come first.
-Future<void> showPlanForm(BuildContext context, PipelineLead lead) =>
-    showDialog<void>(context: context, builder: (context) => _PlanForm(lead));
+Future<void> showPlanForm(BuildContext context, PipelineLead lead) => showDialog<void>(context: context, builder: (context) => _PlanForm(lead));
 
 class _PlanForm extends StatefulWidget {
   const _PlanForm(this.lead);
@@ -102,7 +95,9 @@ class _PlanFormState extends State<_PlanForm> {
               const SizedBox(width: 12),
               DropdownButton<String>(
                 value: _currency,
-                items: [for (final c in ['JOD', 'USD', 'EUR']) DropdownMenuItem(value: c, child: Text(c))],
+                items: [
+                  for (final c in ['JOD', 'USD', 'EUR']) DropdownMenuItem(value: c, child: Text(c)),
+                ],
                 onChanged: (c) => setState(() => _currency = c ?? 'JOD'),
               ),
             ],
@@ -116,7 +111,9 @@ class _PlanFormState extends State<_PlanForm> {
           DropdownButtonFormField<int>(
             initialValue: _trialDays,
             decoration: InputDecoration(labelText: 'Free days first'.tr),
-            items: [for (final d in [0, 7, 14, 30]) DropdownMenuItem(value: d, child: Text(d == 0 ? 'None: bill today'.tr : '$d'))],
+            items: [
+              for (final d in [0, 7, 14, 30]) DropdownMenuItem(value: d, child: Text(d == 0 ? 'None: bill today'.tr : '$d')),
+            ],
             onChanged: (d) => setState(() => _trialDays = d ?? 0),
           ),
           const SizedBox(height: 8),
