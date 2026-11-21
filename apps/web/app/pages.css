@@ -1,0 +1,98 @@
+/* The inner pages: a page title with room around it, and the forms (contact, free trial) beside their words in a
+   white panel. Calm motion only: things fade in, nothing tilts or flies. */
+main.wrap:not(:has(> .home)) {
+  padding-block: clamp(48px, 7vw, 88px) clamp(72px, 9vw, 112px);
+}
+main .lead {
+  font-size: 1.12rem;
+}
+.split {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 480px);
+  align-items: start;
+  gap: clamp(32px, 6vw, 80px);
+}
+.split-copy h1 {
+  max-width: 16ch;
+}
+.panel {
+  position: sticky;
+  inset-block-start: 96px;
+  padding: clamp(24px, 3.5vw, 36px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--soft);
+  box-shadow: var(--shadow-lift);
+}
+.panel form {
+  margin: 0;
+  max-width: none;
+}
+.panel form > button {
+  justify-self: stretch;
+  min-height: 52px;
+}
+.small-head {
+  font-size: 1.1rem;
+  margin: 36px 0 14px;
+}
+.mini-steps {
+  counter-reset: step;
+  display: grid;
+  gap: 14px;
+  margin: 24px 0 32px;
+  padding: 0;
+  list-style: none;
+  max-width: 56ch;
+}
+.mini-steps li {
+  counter-increment: step;
+  position: relative;
+  padding-inline-start: 48px;
+  min-height: 34px;
+  padding-block-start: 5px;
+}
+.mini-steps li::before {
+  content: counter(step);
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-content: center;
+  border-radius: 50%;
+  background: var(--thread);
+  color: #18202e;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.split-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 48px -16px rgb(24 32 46 / 0.3);
+}
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+  .panel {
+    position: static;
+  }
+}
+/* A guide reads like an article: a wider title, then a comfortable column. */
+.guide h1 {
+  max-width: 24ch;
+}
+.guide > section {
+  padding-block-start: 8px;
+}
+.guide h2 {
+  font-size: 1.35rem;
+}
+main .lead + .guide-grid {
+  margin-block-start: 40px;
+}
