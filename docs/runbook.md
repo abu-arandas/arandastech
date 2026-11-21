@@ -244,6 +244,14 @@ polite `plan-on-hold` note and the owner an alert. A plan on hold raises no invo
 brings it back on its usual day (the months on hold are not billed); **Resume** does it without the payment. Payment is
 by bank or CliQ for now, marked paid in one tap; card payments come with PayTabs.
 
+**Weekly posts.** Each Sunday Marketing picks the approved post templates used least lately (`post-*` in
+`packages/core/src/post-templates.ts`, approved in Team, Weekly posts, or in Business memory) and schedules them on
+Buffer for Monday, Wednesday and Friday at 10:00 Amman; `marketing.posts_per_week` sets how many (at most 7). Facebook
+posts start in Arabic and LinkedIn posts in English, then each template alternates. Code fills the only blanks: the
+site link in the post's language and `billing.trial_days`. Each post waits in Approvals until the owner turns on the
+**Marketing autopilot** (Team page): a standing rule that lets only the approved wording go, one a day at most, for 30
+days. Nothing is scheduled while Buffer is not connected; the Buffer key expires 19 December 2026 (alert 7 days before).
+
 **Heartbeat.** `.github/workflows/heartbeat.yml` calls `/api/cron/agents` every 30 minutes, so new mail is read and
 answered within half an hour. The daily jobs still run once a day.
 

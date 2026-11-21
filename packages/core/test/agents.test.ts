@@ -220,6 +220,8 @@ describe('manual mode: no AI key', () => {
       'support.triage_inbox',
       'operations.daily_briefing',
       'sales.sequences',
+      // The test clock starts on a Sunday, when Marketing plans the week's posts.
+      'marketing.weekly_posts',
     ]);
     expect(await t.platform.agents.scheduleDaily()).toEqual([]);
     await t.platform.agents.runDue();

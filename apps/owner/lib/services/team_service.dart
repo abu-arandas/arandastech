@@ -1,5 +1,6 @@
 import '../models/command.dart';
 import '../models/json.dart';
+import '../models/marketing.dart';
 import '../models/team.dart';
 import 'platform_client.dart';
 
@@ -15,6 +16,11 @@ abstract interface class TeamService {
 
   /// Runs the work that is due now, instead of waiting for the next visit or the daily schedule.
   Future<void> runDue();
+
+  /// Marketing's weekly posts, its post templates and its autopilot.
+  Future<MarketingState> marketing();
+  Future<void> setMarketingAutopilot({required bool on});
+  Future<void> approvePost(String key);
 }
 
 class HttpTeamService implements TeamService {
@@ -41,4 +47,13 @@ class HttpTeamService implements TeamService {
 
   @override
   Future<void> runDue() => _client.send('POST', '/api/owner/agents/run', {});
+
+  @override
+  Future<MarketingState> marketing() async => MarketingState.fromJson(await _client.send('GET', '/api/owner/marketing'));
+
+  @override
+  Future<void> setMarketingAutopilot({required bool on}) => _client.send('POST', '/api/owner/marketing/autopilot', {'on': on});
+
+  @override
+  Future<void> approvePost(String key) => _client.send('POST', '/api/owner/memory/${Uri.encodeComponent('template:$key')}/approve', {});
 }

@@ -60,6 +60,8 @@ const post = z.strictObject({
   locale,
   link: z.url().optional(),
   scheduled_for: z.iso.datetime().optional(),
+  /** The approved post template it uses, when Marketing posts from one. */
+  template: z.string().max(80).optional(),
 });
 
 const issue = z.strictObject({

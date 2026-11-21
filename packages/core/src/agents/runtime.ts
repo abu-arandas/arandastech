@@ -457,6 +457,16 @@ export class AgentRuntime {
       { key: `sales.sequences:${day}`, runAt: new Date(`${day}T05:00:00Z`) },
     );
     if (sales) queued.push('sales.sequences');
+    // Each Sunday in Amman, Marketing plans the week's posts from the approved post templates.
+    if (new Date(this.platform.clock().getTime() + 3 * 3_600_000).getUTCDay() === 0) {
+      const { queued: posts } = await enqueue(
+        this.db,
+        'marketing.weekly_posts',
+        { day },
+        { key: `marketing.weekly_posts:${day}` },
+      );
+      if (posts) queued.push('marketing.weekly_posts');
+    }
     return queued;
   }
 }

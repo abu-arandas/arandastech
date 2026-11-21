@@ -46,6 +46,11 @@ export class BufferConnector extends LiveConnector {
     super();
   }
 
+  /** Whether the saved key has a page on this network, so a post is only planned where it can go out. */
+  hasChannel(channel: string): boolean {
+    return Boolean(this.creds.channels[channel]);
+  }
+
   protected async call(actionType: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
     if (actionType !== 'buffer.create_draft' && actionType !== 'buffer.schedule_post')
       throw unknownAction(this.id, actionType);

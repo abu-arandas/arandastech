@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../models/command.dart';
+import '../models/marketing.dart';
 import '../models/team.dart';
 import '../services/platform.dart';
 import 'session_controller.dart';
@@ -12,14 +13,17 @@ class TeamController extends GetxController implements PlatformReader {
   final SessionController _session;
   final team = Rxn<TeamState>();
   final commands = <Command>[].obs;
+  final marketing = Rxn<MarketingState>();
 
   @override
   Future<void Function()> read(Platform platform) async {
     final teamNow = await platform.team.team();
     final commandsNow = await platform.team.commands();
+    final marketingNow = await platform.team.marketing();
     return () {
       team.value = teamNow;
       commands.assignAll(commandsNow);
+      marketing.value = marketingNow;
     };
   }
 
@@ -27,6 +31,7 @@ class TeamController extends GetxController implements PlatformReader {
   void clear() {
     team.value = null;
     commands.clear();
+    marketing.value = null;
   }
 
   /// Asks Operations for a plan. Returns it, or null when the platform refused.
@@ -48,6 +53,12 @@ class TeamController extends GetxController implements PlatformReader {
 
   /// Runs the work that is due now, then shows what changed.
   Future<bool> runDue() => _session.act((p) => p.team.runDue());
+
+  /// Lets Marketing post its approved templates by itself, or makes every post wait in Approvals again.
+  Future<bool> setMarketingAutopilot({required bool on}) => _session.act((p) => p.team.setMarketingAutopilot(on: on));
+
+  /// The owner approves one post wording; only approved wording is ever posted.
+  Future<bool> approvePost(PostTemplate post) => _session.act((p) => p.team.approvePost(post.key));
 
   void _replace(Command command) {
     final i = commands.indexWhere((c) => c.id == command.id);

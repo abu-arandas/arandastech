@@ -15,6 +15,7 @@ const RUNNABLE = [
   'sales.reply_new_leads',
   'sales.sequences',
   'support.triage_inbox',
+  'marketing.weekly_posts',
 ] as const;
 
 /** The departments (blueprint 7) and the command center (8.3). */
