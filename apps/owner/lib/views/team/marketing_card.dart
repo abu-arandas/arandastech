@@ -82,9 +82,21 @@ class _TemplateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<TeamController>();
+    final theme = Theme.of(context);
+    // Approving covers both languages, so both wordings are shown in full, each in its own direction.
     return ListTile(
-      title: Text(post.title),
-      subtitle: Text(post.channel == 'linkedin' ? 'LinkedIn' : 'Facebook'),
+      title: Text('${post.title} · ${MarketingCard._channels[post.channel] ?? post.channel}'),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (language, direction) in const [('en', TextDirection.ltr), ('ar', TextDirection.rtl)])
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(post.text[language] ?? '', textDirection: direction, style: theme.textTheme.bodySmall),
+            ),
+        ],
+      ),
+      isThreeLine: true,
       trailing: post.approved ? Text('Approved'.tr) : FilledButton.tonal(onPressed: () => controller.approvePost(post), child: Text('Approve'.tr)),
     );
   }

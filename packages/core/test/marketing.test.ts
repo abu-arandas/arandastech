@@ -61,6 +61,10 @@ describe('weekly posts', () => {
     const status = (await owner('GET', '/api/owner/marketing')).body;
     expect(status.templates.length).toBeGreaterThanOrEqual(8);
     expect(status.templates.every((p: Json) => !p.approved)).toBe(true);
+    // The owner sees the exact wording before approving it.
+    const trial = status.templates.find((p: Json) => p.key === 'post-trial');
+    expect(trial.text.en).toContain('{{trial_days}} days');
+    expect(trial.text.ar).toContain('{{link}}');
     expect(status.autopilot).toBeNull();
   });
 

@@ -23,10 +23,15 @@ class MarketingState {
 
 /// A post wording Marketing may use once the owner approves it.
 class PostTemplate {
-  const PostTemplate({required this.key, required this.title, required this.channel, required this.approved});
+  const PostTemplate({required this.key, required this.title, required this.channel, required this.approved, this.text = const {}});
 
-  factory PostTemplate.fromJson(Json json) =>
-      PostTemplate(key: '${json['key']}', title: '${json['title']}', channel: '${json['channel']}', approved: json['approved'] == true);
+  factory PostTemplate.fromJson(Json json) => PostTemplate(
+    key: '${json['key']}',
+    title: '${json['title']}',
+    channel: '${json['channel']}',
+    approved: json['approved'] == true,
+    text: localizedOf(json['text']),
+  );
 
   final String key;
   final String title;
@@ -34,6 +39,9 @@ class PostTemplate {
   /// `facebook` or `linkedin`.
   final String channel;
   final bool approved;
+
+  /// The exact wording in each language, with its blanks (the link, the trial days) still in double braces.
+  final Localized text;
 }
 
 /// A post Marketing scheduled, and where it stands: waiting for the owner, sent to Buffer, or turned down.

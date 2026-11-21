@@ -20,8 +20,9 @@ export function registerMarketingRoutes(router: Router, platform: Platform): voi
 
   router.add('GET', '/api/owner/marketing', 'staff', async ({ caller }) => {
     staffOf(caller);
-    const approved = await db.query<{ key: string; status: string }>(
-      `select key, status from memory_items where key = any($1::text[])`,
+    // The wording as it stands in business memory: what the owner approves is what gets posted.
+    const stored = await db.query<{ key: string; status: string; body: Record<string, { text?: string }> }>(
+      `select key, status, body from memory_items where key = any($1::text[])`,
       [POST_TEMPLATE_KEYS.map((key) => `template:${key}`)],
     );
     const posts = await db.query(
@@ -32,12 +33,16 @@ export function registerMarketingRoutes(router: Router, platform: Platform): voi
     return {
       autopilot: await activeAutopilot(db, MARKETING_AUTOPILOT),
       buffer_connected: platform.connectors.buffer?.mode === 'live',
-      templates: POST_TEMPLATE_KEYS.map((key) => ({
-        key,
-        title: POST_TEMPLATES[key]!.title,
-        channel: POST_TEMPLATES[key]!.channel,
-        approved: approved.some((row) => row.key === `template:${key}` && row.status === 'approved'),
-      })),
+      templates: POST_TEMPLATE_KEYS.map((key) => {
+        const row = stored.find((r) => r.key === `template:${key}`);
+        return {
+          key,
+          title: POST_TEMPLATES[key]!.title,
+          channel: POST_TEMPLATES[key]!.channel,
+          approved: row?.status === 'approved',
+          text: { en: row?.body.en?.text ?? '', ar: row?.body.ar?.text ?? '' },
+        };
+      }),
       posts,
     };
   });
