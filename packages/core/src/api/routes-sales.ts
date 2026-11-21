@@ -17,24 +17,29 @@ import { listLeads } from '../crm/crm';
 import { addProspects, changeLead } from '../crm/pipeline';
 import { cancelPlan, listPlans, resumePlan, startPlan, startTrialPlan } from '../crm/plans';
 import { revenueStatus } from '../crm/revenue';
-import { createRule, listRules, revokeRule, type StandingRule } from '../governance/rules';
 import { getPolicy } from '../governance/settings';
 import { invalid } from '../lib/errors';
 import type { Platform } from '../platform';
 import { SALES_TEMPLATE_KEYS } from '../sales-templates';
+import { activeAutopilot, type Autopilot, switchAutopilot } from './autopilot';
 import { staffOf } from './guards';
 import type { Router } from './http';
 
 /** The revenue engine's addresses: the goal, the pipeline, prospects, proposals, invoices and Sales' autopilot. */
 
 /** The standing rule that lets Sales send its template emails without asking each time. */
-const AUTOPILOT_RULE = 'Sales autopilot';
+const SALES_AUTOPILOT: Autopilot = {
+  name: 'Sales autopilot',
+  actionType: 'gmail.send_email',
+  templates: SALES_TEMPLATE_KEYS,
+  limit: (db) => getPolicy(db, 'sales.daily_send_limit'),
+  period: 'day',
+};
 
 export function registerSalesRoutes(router: Router, platform: Platform): void {
   const { db, clock } = platform;
 
-  const autopilot = async () =>
-    (await listRules(db)).find((rule) => rule.name === AUTOPILOT_RULE && rule.status === 'active') ?? null;
+  const autopilot = () => activeAutopilot(db, SALES_AUTOPILOT);
 
   // ---------------------------------------------------------------- Public: what a client opens from an email
 
@@ -123,42 +128,11 @@ export function registerSalesRoutes(router: Router, platform: Platform): void {
     return { invoice: await voidInvoice(db, params.id!, staff.actor) };
   });
 
-  registerAutopilotRoute(router, platform, autopilot);
+  // Sales' autopilot: one standing rule for its own template emails, renewed by turning it on again.
+  router.add('POST', '/api/owner/sales/autopilot', 'owner', async ({ caller, json }) => ({
+    autopilot: await switchAutopilot(platform, staffOf(caller), SALES_AUTOPILOT, json.on === true),
+  }));
   registerPlanRoutes(router, platform);
-}
-
-/** Sales' autopilot: one standing rule for its own template emails, renewed by turning it on again. */
-function registerAutopilotRoute(
-  router: Router,
-  platform: Platform,
-  autopilot: () => Promise<StandingRule | null>,
-): void {
-  const { db, clock } = platform;
-  router.add('POST', '/api/owner/sales/autopilot', 'owner', async ({ caller, json }) => {
-    const staff = staffOf(caller);
-    const current = await autopilot();
-    if (current) await revokeRule(db, current.id, staff.actor, staff.isOwner);
-    if (json.on !== true) return { autopilot: null };
-    const now = clock();
-    const days = await getPolicy(db, 'rules.max_lifetime_days');
-    const rule = await createRule(
-      db,
-      {
-        name: AUTOPILOT_RULE,
-        actionType: 'gmail.send_email',
-        conditions: { templates: SALES_TEMPLATE_KEYS },
-        spendLimitPerActionMinor: 0,
-        spendLimitPerPeriodMinor: 0,
-        recipientLimitPerPeriod: await getPolicy(db, 'sales.daily_send_limit'),
-        period: 'day',
-        expiresAt: new Date(now.getTime() + days * 86_400_000),
-      },
-      staff.actor,
-      staff.isOwner,
-      now,
-    );
-    return { autopilot: rule };
-  });
 }
 
 /** Plans: the owner starts, cancels or resumes what a client pays on a schedule (see crm/plans.ts). */

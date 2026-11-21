@@ -10,6 +10,7 @@ import '../../widgets/motion.dart';
 import '../../widgets/page_list.dart';
 import '../../widgets/section_title.dart';
 import 'command_card.dart';
+import 'marketing_card.dart';
 import 'team_words.dart';
 
 /// The departments at work (blueprint 7) and the command center (8.3): the owner says what they want, reads the plan,
@@ -109,6 +110,7 @@ class _TeamPageState extends State<TeamPage> {
               delay: Motion.stagger * i,
               child: CommandCard(command: command),
             ),
+          const MarketingCard(),
           const SectionTitle('Departments'),
           for (final d in team.departments)
             ListTile(

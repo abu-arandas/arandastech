@@ -134,12 +134,23 @@ export async function fitsTemplate(
   if (!item || item.kind !== 'template') return false;
   const text = (item.body as Record<string, { subject: string; body: string } | undefined>)[locale];
   if (!text) return false;
-  const pattern = (source: string): RegExp =>
-    new RegExp(
-      `^${source
-        .split(/\{\{\w+\}\}/)
-        .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-        .join('[^\n]{0,300}?')}$`,
-    );
-  return pattern(text.subject).test(email.subject) && pattern(text.body).test(email.body);
+  return blanksOnly(text.subject).test(email.subject) && blanksOnly(text.body).test(email.body);
+}
+
+/** True when a social post is the approved post template with only its blanks filled in, like `fitsTemplate`. */
+export async function fitsPost(db: Db, key: string, locale: string, text: string): Promise<boolean> {
+  const item = await approvedMemory(db, `template:${key}`);
+  if (!item || item.kind !== 'template') return false;
+  const approved = (item.body as Record<string, { text?: string } | undefined>)[locale]?.text;
+  return typeof approved === 'string' && blanksOnly(approved).test(text);
+}
+
+/** The approved wording as a pattern: the words exactly, and each `{{blank}}` any text on one line. */
+function blanksOnly(source: string): RegExp {
+  return new RegExp(
+    `^${source
+      .split(/\{\{\w+\}\}/)
+      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('[^\n]{0,300}?')}$`,
+  );
 }

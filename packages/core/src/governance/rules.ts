@@ -1,7 +1,7 @@
 import { type Db, json, maybeOne, one } from '../lib/db';
 import { forbidden, invalid, notFound } from '../lib/errors';
 import type { Actor } from '../lib/types';
-import { fitsTemplate } from '../memory';
+import { fitsPost, fitsTemplate } from '../memory';
 import { actionSpec, levelOf } from './actions';
 import { audit } from './audit';
 import { getPolicy } from './settings';
@@ -127,8 +127,7 @@ export async function matchRule(
     if (rule.conditions.templates) {
       const template = String(action.payload.template ?? '');
       if (!rule.conditions.templates.includes(template)) continue;
-      const email = { subject: String(action.payload.subject ?? ''), body: String(action.payload.body ?? '') };
-      if (!(await fitsTemplate(db, template, String(action.payload.locale ?? 'en'), email))) continue;
+      if (!(await fitsApprovedWording(db, action, template))) continue;
     }
     if (rule.conditions.recipient === 'order_buyer') {
       const order = maybeOne(
@@ -152,6 +151,18 @@ export async function matchRule(
     return rule;
   }
   return null;
+}
+
+/** The action's words are its approved template's, blanks aside: an email's subject and body, or a post's text. */
+async function fitsApprovedWording(
+  db: Db,
+  action: { type: string; payload: Record<string, unknown> },
+  template: string,
+): Promise<boolean> {
+  const locale = String(action.payload.locale ?? 'en');
+  if (action.type.startsWith('buffer.')) return fitsPost(db, template, locale, String(action.payload.text ?? ''));
+  const email = { subject: String(action.payload.subject ?? ''), body: String(action.payload.body ?? '') };
+  return fitsTemplate(db, template, locale, email);
 }
 
 export async function recordRuleUse(

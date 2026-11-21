@@ -2,6 +2,7 @@ import { registerCommandWorkflows } from './agents/command';
 import type { ModelClient } from './agents/model';
 import { AgentRuntime } from './agents/runtime';
 import { registerBriefingWorkflows } from './agents/briefing';
+import { registerMarketingWorkflows } from './agents/marketing';
 import { registerCheckWorkflows } from './agents/checks';
 import { registerSalesWorkflows } from './agents/sales';
 import { registerWorkflows } from './agents/workflows';
@@ -74,6 +75,7 @@ export function createPlatform(
   registerBriefingWorkflows(platform.agents);
   registerCheckWorkflows(platform.agents);
   registerSalesWorkflows(platform.agents);
+  registerMarketingWorkflows(platform.agents);
   registerCommandWorkflows(platform.agents);
   return platform;
 }

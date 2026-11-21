@@ -187,6 +187,11 @@ export const POLICY_DEFAULTS = {
     description:
       'How often a shop pays after its trial: once (one invoice), month or year. Marking a trial lead "Won" starts this plan.',
   },
+  'marketing.posts_per_week': {
+    value: 3 as number,
+    description:
+      'Social posts Marketing schedules each week from the approved post templates, at most 7 (one a day). 0 stops the weekly posts.',
+  },
   'engineering.repository': {
     value: 'abu-arandas/arandastech' as string,
     description: 'The GitHub repository the Engineering department files issues in.',

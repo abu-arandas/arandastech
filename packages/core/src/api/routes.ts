@@ -4,6 +4,7 @@ import { registerAgentRoutes } from './routes-agents';
 import { registerBusinessRoutes } from './routes-business';
 import { registerConnectionRoutes } from './routes-connections';
 import { registerDemoRoutes } from './routes-demo';
+import { registerMarketingRoutes } from './routes-marketing';
 import { registerOwnerRoutes } from './routes-owner';
 import { registerPublicRoutes } from './routes-public';
 import { registerSalesRoutes } from './routes-sales';
@@ -19,4 +20,5 @@ export function registerRoutes(router: Router, platform: Platform): void {
   registerConnectionRoutes(router, platform);
   registerSettingsRoutes(router, platform);
   registerAgentRoutes(router, platform);
+  registerMarketingRoutes(router, platform);
 }
