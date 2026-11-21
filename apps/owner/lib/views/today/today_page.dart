@@ -76,7 +76,7 @@ class TodayPage extends StatelessWidget {
       return PageList(
         children: [
           const Greeting(),
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
           _Lead(overview: o),
           const SizedBox(height: 16),
           const Appear(child: BriefingCard()),

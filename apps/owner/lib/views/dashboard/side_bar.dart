@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../config/brand.dart';
+import '../../config/theme.dart';
 import '../../controllers/approvals_controller.dart';
 import '../../controllers/session_controller.dart';
 import '../../widgets/fun.dart';
@@ -23,14 +24,19 @@ class SideBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final light = Theme.of(context).brightness == Brightness.light;
+    // The frame is always dark ink, so everything inside it (the pause card, the buttons) takes the dark theme.
+    return Theme(
+      data: AppTheme.dark(),
+      child: Builder(builder: (context) => _frame(context, light ? Brand.shell : Brand.shellDark)),
+    );
+  }
+
+  Widget _frame(BuildContext context, Color colour) {
     final session = Get.find<SessionController>();
     return Container(
       width: extended ? 256 : 88,
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        border: BorderDirectional(end: BorderSide(color: scheme.outlineVariant)),
-      ),
+      color: colour,
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: extended ? 16 : 12, vertical: 16),
@@ -43,7 +49,7 @@ class SideBar extends StatelessWidget {
                   const SecretMark(size: 36),
                   if (extended) ...[
                     const SizedBox(width: 12),
-                    Text(Brand.wordmark.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500)),
+                    Text(Brand.wordmark.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24, color: Colors.white)),
                   ],
                 ],
               ),
@@ -78,7 +84,8 @@ class SideBar extends StatelessWidget {
   }
 }
 
-/// One area in the menu: a pill that fills when selected, an icon that hops when chosen, and the approvals count.
+/// One area in the menu: a pill that lights up when selected with a short thread-orange stitch at its start, an icon
+/// that hops when chosen, and the approvals count.
 class _Item extends StatelessWidget {
   const _Item({required this.area, required this.selected, required this.extended, required this.onTap});
 
@@ -89,8 +96,7 @@ class _Item extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final colour = selected ? scheme.primary : scheme.onSurfaceVariant;
+    final colour = selected ? Colors.white : Colors.white.withValues(alpha: 0.62);
     final icon = AreaIcon(area: area, selected: selected, colour: colour);
     return Squish(
       tooltip: extended ? null : area.label.tr,
@@ -102,17 +108,25 @@ class _Item extends StatelessWidget {
           duration: Motion.medium,
           curve: Motion.ease,
           height: 48,
-          padding: EdgeInsets.symmetric(horizontal: extended ? 14 : 0),
-          decoration: ShapeDecoration(color: selected ? scheme.primary.withValues(alpha: 0.12) : Colors.transparent, shape: const StadiumBorder()),
+          padding: EdgeInsetsDirectional.only(start: extended ? 4 : 0, end: extended ? 14 : 0),
+          decoration: ShapeDecoration(color: selected ? Colors.white.withValues(alpha: 0.1) : Colors.transparent, shape: AppTheme.shape(14)),
           child: extended
               ? Row(
                   children: [
+                    AnimatedContainer(
+                      duration: Motion.medium,
+                      curve: Motion.ease,
+                      width: 3,
+                      height: selected ? 18 : 0,
+                      margin: const EdgeInsetsDirectional.only(end: 11),
+                      decoration: const ShapeDecoration(color: Brand.thread, shape: StadiumBorder()),
+                    ),
                     icon,
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(
                         area.label.tr,
-                        style: TextStyle(color: colour, fontWeight: selected ? FontWeight.w500 : FontWeight.w400),
+                        style: TextStyle(color: colour, fontWeight: selected ? FontWeight.w600 : FontWeight.w400),
                       ),
                     ),
                   ],
