@@ -20,6 +20,11 @@ class MarketingCard extends StatelessWidget {
     'blocked': 'Blocked',
   };
 
+  static const _channels = {'linkedin': 'LinkedIn', 'facebook': 'Facebook'};
+
+  /// Each language named in itself, as a language menu does.
+  static const _languages = {'en': 'English', 'ar': 'العربية'};
+
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<TeamController>();
@@ -60,7 +65,7 @@ class MarketingCard extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               leading: Icon(post.channel == 'linkedin' ? Icons.work_outline : Icons.storefront_outlined),
               title: Text((statuses[post.status] ?? post.status).tr),
-              subtitle: Text([post.channel == 'linkedin' ? 'LinkedIn' : 'Facebook', if (post.locale == 'ar') 'العربية' else 'English'].join(' · ')),
+              subtitle: Text('${_channels[post.channel] ?? post.channel} · ${_languages[post.locale] ?? ''}'),
               trailing: post.scheduledFor == null ? null : Text(post.scheduledFor!.substring(0, 10), textDirection: TextDirection.ltr),
             ),
         ],
