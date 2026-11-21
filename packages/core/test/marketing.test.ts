@@ -3,6 +3,7 @@ import { postTimes } from '../src/agents/marketing';
 import { createApi, type ApiResponse } from '../src/api/index';
 import { BufferConnector } from '../src/connectors/live/buffer';
 import { DEMO_OWNER_ID } from '../src/company';
+import { createRule } from '../src/governance/rules';
 import { setPolicy } from '../src/governance/settings';
 import { createTestPlatform, OWNER, type TestPlatform } from './helpers/platform';
 
@@ -112,6 +113,33 @@ describe('weekly posts', () => {
       evidence: [],
     });
     expect(action.status).toBe('pending');
+  });
+
+  it('a rule for one post template also holds a post to its approved words', async () => {
+    await createRule(
+      t.test.db,
+      {
+        name: 'One post',
+        actionType: 'buffer.schedule_post',
+        conditions: { template: 'post-trial' },
+        spendLimitPerActionMinor: 0,
+        spendLimitPerPeriodMinor: 0,
+        recipientLimitPerPeriod: 5,
+        period: 'week',
+        expiresAt: new Date(t.clock.now().getTime() + 7 * 86_400_000),
+      },
+      OWNER,
+      true,
+      t.clock.now(),
+    );
+    const { action } = await t.platform.gateway.propose({
+      type: 'buffer.schedule_post',
+      payload: { channel: 'facebook', locale: 'en', template: 'post-trial', text: 'Everything free forever!' },
+      requester: { kind: 'agent', id: 'marketing' },
+      evidence: [],
+    });
+    expect(action.status).toBe('pending');
+    await t.test.db.query(`update standing_rules set status = 'revoked' where name = 'One post'`);
   });
 
   it('the Sunday tick queues the weekly posts, and the number per week comes from the policy sheet', async () => {

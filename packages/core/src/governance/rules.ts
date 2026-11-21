@@ -123,7 +123,12 @@ export async function matchRule(
     [action.type, now],
   );
   for (const rule of rules) {
-    if (rule.conditions.template && rule.conditions.template !== action.payload.template) continue;
+    if (rule.conditions.template) {
+      if (rule.conditions.template !== action.payload.template) continue;
+      // A post is public, so its words are always held to the approved template, whatever kind of rule covers it.
+      if (action.type.startsWith('buffer.') && !(await fitsApprovedWording(db, action, rule.conditions.template)))
+        continue;
+    }
     if (rule.conditions.templates) {
       const template = String(action.payload.template ?? '');
       if (!rule.conditions.templates.includes(template)) continue;

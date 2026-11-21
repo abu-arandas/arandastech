@@ -132,7 +132,9 @@ export async function fitsTemplate(
 ): Promise<boolean> {
   const item = await approvedMemory(db, `template:${key}`);
   if (!item || item.kind !== 'template') return false;
-  const text = (item.body as Record<string, { subject: string; body: string } | undefined>)[locale];
+  // The same language fallback as renderTemplate, so an email it wrote is always recognised.
+  const texts = item.body as Record<string, { subject: string; body: string } | undefined>;
+  const text = texts[locale] ?? texts.en;
   if (!text) return false;
   return blanksOnly(text.subject).test(email.subject) && blanksOnly(text.body).test(email.body);
 }
