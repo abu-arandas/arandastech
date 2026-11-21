@@ -369,6 +369,8 @@ describe('the daily limit', () => {
   let t: TestPlatform;
   beforeAll(async () => {
     t = await createTestPlatform();
+    // Only version A of the first emails, so the lead's random id cannot pick version B (ab-tests.test.ts covers B).
+    await t.test.db.query(`update memory_items set status = 'draft' where key like 'template:%.b'`);
   });
   afterAll(async () => t.test.drop());
 
