@@ -67,7 +67,7 @@ class StoreTab extends StatelessWidget {
       final language = session.locale.value.languageCode;
       return PageList(
         children: [
-          const SectionTitle('Orders'),
+          const SectionTitle('Orders', icon: Icons.local_shipping_outlined),
           if (controller.orders.isEmpty) const EmptyLine('No orders yet.'),
           for (final order in controller.orders)
             Card(
@@ -99,7 +99,7 @@ class StoreTab extends StatelessWidget {
                 ),
               ),
             ),
-          const SectionTitle('Catalog'),
+          const SectionTitle('Catalog', icon: Icons.inventory_2_outlined),
           if (controller.products.isEmpty) const EmptyLine('No products yet.'),
           for (final product in controller.products)
             Card(
