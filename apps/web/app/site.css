@@ -1,0 +1,275 @@
+/* The frame around every page: the sticky header (mark, links, language, one main action, a folding menu on phones)
+   and the ink footer. Colours and curves come from the tokens in globals.css. */
+body {
+  overflow-x: clip;
+}
+header.site {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 30;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  border-block-end: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  animation: drop var(--t-slow) var(--enter) both;
+}
+header.site .wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px 28px;
+  padding-block: 12px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
+}
+header.site .brand {
+  margin-inline-end: auto;
+}
+.mark-disc {
+  fill: var(--brand);
+}
+.mark-ring {
+  fill: none;
+  stroke: var(--bg);
+  stroke-opacity: 0.25;
+  stroke-width: 3;
+}
+.mark-hole {
+  fill: var(--bg);
+}
+.mark-lit {
+  fill: var(--thread);
+}
+header.site nav.links {
+  display: flex;
+  gap: 4px 26px;
+}
+header.site nav a,
+header.site .lang {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  padding-block: 4px 2px;
+  background: linear-gradient(var(--thread), var(--thread)) no-repeat 0 100% / 0 2px;
+  transition:
+    color var(--t-hover) var(--ease),
+    background-size var(--t-hover) var(--ease);
+}
+[dir='rtl'] header.site nav a {
+  background-position: 100% 100%;
+}
+header.site nav a:hover,
+header.site .lang:hover {
+  color: var(--ink);
+  background-size: 100% 2px;
+}
+header.site .lang {
+  font-weight: 500;
+  color: var(--ink);
+}
+.button.small {
+  min-height: 40px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+}
+/* The phone menu: two lines that turn into a cross, and a sheet that drops under the header. */
+.menu {
+  display: none;
+  position: relative;
+}
+.menu summary {
+  list-style: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: 999px;
+}
+.menu summary::-webkit-details-marker {
+  display: none;
+}
+.menu summary span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+  transition: transform var(--t-hover) var(--pop);
+}
+.menu[open] summary span:first-child {
+  transform: translateY(4px) rotate(45deg);
+}
+.menu[open] summary span:last-child {
+  transform: translateY(-4px) rotate(-45deg);
+}
+.menu nav {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: calc(100% + 10px);
+  display: grid;
+  gap: 2px;
+  min-width: 230px;
+  padding: 10px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lift);
+  animation: pop-in 260ms var(--pop) both;
+  transform-origin: top right;
+}
+.menu nav a {
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 1rem;
+  background: none;
+}
+.menu nav a:hover {
+  background: var(--wash);
+}
+@media (max-width: 900px) {
+  header.site nav.links {
+    display: none;
+  }
+  .menu {
+    display: block;
+  }
+}
+@media (max-width: 480px) {
+  header.site .button.small {
+    display: none;
+  }
+}
+
+/* The mark: leans in under the pointer with its lit hole winking, presses in when clicked, shakes for the secret. */
+.brand svg {
+  flex: none;
+  transition: transform var(--t-fast) var(--pop);
+}
+.brand:hover svg {
+  transform: rotate(-12deg) scale(1.06);
+}
+.brand:hover .mark-lit {
+  animation: wink 600ms var(--ease);
+}
+.brand:active svg {
+  transform: scale(0.86);
+}
+header.site .brand.shake svg {
+  animation: wiggle 520ms var(--ease);
+}
+
+/* The footer: ink in both themes, the wordmark large, three short columns, then the base line. */
+footer.site {
+  --ink: #eef2fa;
+  --muted: #9aa5ba;
+  --line: #2a3448;
+  --bg: #0d121c;
+  --brand: #8eaef0;
+  background: #0d121c;
+  color: var(--muted);
+  font-size: 0.95rem;
+  position: relative;
+}
+/* The seam where the page meets the footer. */
+footer.site::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 10px;
+  height: 2px;
+  background: repeating-linear-gradient(to right, var(--thread) 0 8px, transparent 8px 14px);
+  opacity: 0.55;
+}
+footer.site .wrap {
+  display: grid;
+  grid-template-columns: 2fr repeat(3, 1fr);
+  gap: 40px 32px;
+  padding-block: 72px 32px;
+}
+footer.site .brand {
+  font-size: 1.8rem;
+  color: var(--ink);
+}
+.footer-brand p {
+  margin: 14px 0 0;
+  max-width: 34ch;
+}
+footer.site h2 {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 6px 0 14px;
+}
+[dir='rtl'] footer.site h2 {
+  letter-spacing: 0;
+  font-size: 0.9rem;
+}
+footer.site nav {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+footer.site nav a {
+  color: var(--muted);
+  text-decoration: none;
+  width: fit-content;
+  transition:
+    color var(--t-hover) var(--ease),
+    translate var(--t-hover) var(--pop);
+}
+footer.site nav a:hover {
+  color: var(--ink);
+  translate: calc(var(--from) * -4px) 0;
+}
+.footer-base {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding-block-start: 24px;
+  border-block-start: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+@media (max-width: 760px) {
+  footer.site .wrap {
+    grid-template-columns: 1fr 1fr;
+  }
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@keyframes drop {
+  from {
+    translate: 0 -100%;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+  }
+}
+
+/* A short page still puts the footer at the bottom of the window. */
+body {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+body > main {
+  flex: 1;
+  width: 100%;
+}

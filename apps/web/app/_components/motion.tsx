@@ -4,31 +4,39 @@ import { useEffect, useRef, useState } from 'react';
 import { type Celebration, celebrate } from '@/lib/confetti';
 
 /**
- * Plays the page's scroll reveals (every [data-reveal] rises in once, as it comes into view) and keeps the logo's
- * secret: on the home page, press the logo five times in a row for a shower of shirt buttons and a thank-you line.
+ * Plays the page's scroll reveals: every [data-reveal] rises in once, as it comes into view. It is rendered at the end
+ * of each page that has reveals (not in the layout), so it starts only after that page has hydrated: React would
+ * otherwise see the data-shown it adds as a mismatch.
  */
-export function Motion({ home, secret }: { home: string; secret: string }) {
-  const [toast, setToast] = useState<string | null>(null);
-
+export function Reveals() {
   useEffect(() => {
     const root = document.documentElement;
-    const items = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
+    const items = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]:not([data-shown])'));
     let observer: IntersectionObserver | undefined;
     if (root.classList.contains('js-motion') && 'IntersectionObserver' in window) {
       observer = new IntersectionObserver(
         (entries) => {
           for (const entry of entries) {
             if (!entry.isIntersecting) continue;
-            entry.target.classList.add('in');
+            entry.target.setAttribute('data-shown', '');
             observer?.unobserve(entry.target);
           }
         },
         { rootMargin: '0px 0px -6% 0px' },
       );
       for (const item of items) observer.observe(item);
-    } else for (const item of items) item.classList.add('in');
+    } else for (const item of items) item.setAttribute('data-shown', '');
     root.classList.add('motion-ready');
+    return () => observer?.disconnect();
+  }, []);
+  return null;
+}
 
+/** Keeps the logo's secret: on the home page, press the logo five times in a row for a shower of shirt buttons. */
+export function Motion({ home, secret }: { home: string; secret: string }) {
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
     const brand = document.querySelector<HTMLAnchorElement>('header.site a.brand');
     let taps = 0;
     let last = 0;
@@ -53,7 +61,6 @@ export function Motion({ home, secret }: { home: string; secret: string }) {
     };
     brand?.addEventListener('click', onClick);
     return () => {
-      observer?.disconnect();
       brand?.removeEventListener('click', onClick);
       window.clearTimeout(hide);
     };

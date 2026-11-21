@@ -10,6 +10,6 @@ test('every text has English and Arabic', () => {
 });
 
 test('money keeps each currency in its own decimals', () => {
-  assert.equal(money(5900, 'USD'), '59.00 USD');
-  assert.equal(money(5000, 'JOD'), '5.000 JOD');
+  assert.equal(money(5900, 'USD'), '\u206659.00 USD\u2069');
+  assert.equal(money(5000, 'JOD'), '\u20665.000 JOD\u2069');
 });

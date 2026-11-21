@@ -1,7 +1,7 @@
+import { Reveals } from '@/app/_components/motion';
 import { type Locale, isLocale, t } from '@/lib/i18n';
-import { GUIDES, say } from '@/lib/guides';
 import { pageMetadata } from '@/lib/seo';
-import { stagger } from '@/app/_components/text';
+import { GuideCards } from '@/app/_components/home/closing';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -14,22 +14,11 @@ export default async function Guides({ params }: { params: Promise<{ locale: str
   const locale = (await params).locale as Locale;
   return (
     <>
+      <p className="eyebrow enter">{t('guides', locale)}</p>
       <h1 className="enter">{t('guidesTitle', locale)}</h1>
       <p className="lead enter">{t('guidesIntro', locale)}</p>
-      <div className="grid">
-        {GUIDES.map((guide, i) => (
-          <a
-            className="card guide-card"
-            key={guide.slug}
-            href={`/${locale}/guides/${guide.slug}`}
-            data-reveal=""
-            style={stagger(i)}
-          >
-            <h3>{say(guide.title, locale)}</h3>
-            <p>{say(guide.description, locale)}</p>
-          </a>
-        ))}
-      </div>
+      <GuideCards locale={locale} intro />
+      <Reveals />
     </>
   );
 }

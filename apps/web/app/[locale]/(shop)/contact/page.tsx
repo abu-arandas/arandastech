@@ -1,9 +1,16 @@
 import { redirect } from 'next/navigation';
 import { call } from '@/lib/platform';
-import { isLocale, type Locale, t } from '@/lib/i18n';
+import { isLocale, type Locale, t, type TextKey } from '@/lib/i18n';
 import { pageMetadata } from '@/lib/seo';
 import { Celebrate } from '@/app/_components/motion';
 import { Done } from '@/app/_components/text';
+
+/** What happens after the form: the same three steps the home page shows agencies. */
+const NEXT: [TextKey, TextKey][] = [
+  ['step1Title', 'step1Body'],
+  ['step2Title', 'step2Body'],
+  ['step3Title', 'step3Body'],
+];
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -47,38 +54,60 @@ export default async function Contact({
     );
   return (
     <>
-      <h1 className="enter">{t('contact', locale)}</h1>
-      {query.error && (
-        <p className="error" role="alert">
-          {query.error}
-        </p>
-      )}
-      <form action={send} className="enter" style={{ animationDelay: '80ms' }}>
-        <input type="hidden" name="locale" value={locale} />
-        <input type="hidden" name="package" value={query.package ?? ''} />
-        {/* People never see this field. Only a script fills it in. */}
-        <label className="hp" aria-hidden="true">
-          Website
-          <input name="website" tabIndex={-1} autoComplete="off" />
-        </label>
-        <label>
-          {t('name', locale)}
-          <input name="name" required maxLength={120} />
-        </label>
-        <label>
-          {t('email', locale)}
-          <input name="email" type="email" required maxLength={200} dir="ltr" />
-        </label>
-        <label>
-          {t('phone', locale)}
-          <input name="phone" maxLength={40} dir="ltr" />
-        </label>
-        <label>
-          {t('message', locale)}
-          <textarea name="message" required rows={6} maxLength={5000} />
-        </label>
-        <button type="submit">{t('send', locale)}</button>
-      </form>
+      <div className="split">
+        <div className="split-copy">
+          <p className="eyebrow enter">{t('contactEyebrow', locale)}</p>
+          <h1 className="enter">{t('contactTitle', locale)}</h1>
+          <p className="lead enter">{t('contactLead', locale)}</p>
+          <h2 className="small-head enter">{t('contactNext', locale)}</h2>
+          <ol className="mini-steps enter" style={{ animationDelay: '80ms' }}>
+            {NEXT.map(([title, body]) => (
+              <li key={title}>
+                <strong>{t(title, locale)}</strong> {t(body, locale)}
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="panel enter" style={{ animationDelay: '120ms' }}>
+          {query.error && (
+            <p className="error" role="alert">
+              {query.error}
+            </p>
+          )}
+          <ContactForm locale={locale} pkg={query.package} />
+        </div>
+      </div>
     </>
+  );
+}
+
+function ContactForm({ locale, pkg }: { locale: Locale; pkg?: string }) {
+  return (
+    <form action={send}>
+      <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="package" value={pkg ?? ''} />
+      {/* People never see this field. Only a script fills it in. */}
+      <label className="hp" aria-hidden="true">
+        Website
+        <input name="website" tabIndex={-1} autoComplete="off" />
+      </label>
+      <label>
+        {t('name', locale)}
+        <input name="name" required maxLength={120} />
+      </label>
+      <label>
+        {t('email', locale)}
+        <input name="email" type="email" required maxLength={200} dir="ltr" />
+      </label>
+      <label>
+        {t('phone', locale)}
+        <input name="phone" maxLength={40} dir="ltr" />
+      </label>
+      <label>
+        {t('message', locale)}
+        <textarea name="message" required rows={6} maxLength={5000} />
+      </label>
+      <button type="submit">{t('send', locale)}</button>
+    </form>
   );
 }

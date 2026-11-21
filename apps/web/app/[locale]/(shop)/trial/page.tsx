@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { call } from '@/lib/platform';
+import { trialDays, withDays } from '@/lib/trial';
 import { isLocale, type Locale, t, type TextKey } from '@/lib/i18n';
 import { pageMetadata } from '@/lib/seo';
 import { Celebrate } from '@/app/_components/motion';
@@ -11,18 +12,6 @@ import { Done } from '@/app/_components/text';
  */
 
 const KINDS: TextKey[] = ['kindShop', 'kindCafe', 'kindBoutique', 'kindOther'];
-
-/** The free days from the policy sheet, so the page says what the emails say. 14 if the platform cannot answer. */
-async function trialDays(): Promise<number> {
-  try {
-    const answer = await call<{ days: number }>('GET', '/api/public/trial');
-    return answer.ok ? answer.data.days : 14;
-  } catch {
-    return 14;
-  }
-}
-
-const withDays = (text: string, days: number): string => text.replaceAll('{days}', String(days));
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -78,62 +67,82 @@ export default async function Trial({
   const days = await trialDays();
   return (
     <>
-      <p className="eyebrow enter">{t('trialEyebrow', locale)}</p>
-      <h1 className="enter">{withDays(t('trialTitle', locale), days)}</h1>
-      <p className="enter">{t('trialIntro', locale)}</p>
-      <ol className="trial-steps enter" style={{ animationDelay: '60ms' }}>
-        <li>{t('trialStep1', locale)}</li>
-        <li>{t('trialStep2', locale)}</li>
-        <li>{withDays(t('trialStep3', locale), days)}</li>
-      </ol>
-      {query.error && (
-        <p className="error" role="alert">
-          {query.error}
-        </p>
-      )}
-      <form action={send} className="enter" style={{ animationDelay: '120ms' }}>
-        <input type="hidden" name="locale" value={locale} />
-        {/* People never see this field. Only a script fills it in. */}
-        <label className="hp" aria-hidden="true">
-          Website
-          <input name="website" tabIndex={-1} autoComplete="off" />
-        </label>
-        <label>
-          {t('name', locale)}
-          <input name="name" required maxLength={120} />
-        </label>
-        <label>
-          {t('shopName', locale)}
-          <input name="shop" required maxLength={160} />
-        </label>
-        <label>
-          {t('businessKind', locale)}
-          <select name="kind" defaultValue="kindShop">
-            {KINDS.map((key) => (
-              <option key={key} value={key}>
-                {t(key, locale)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {t('city', locale)}
-          <input name="city" maxLength={60} />
-        </label>
-        <label>
-          {t('email', locale)}
-          <input name="email" type="email" required maxLength={200} dir="ltr" />
-        </label>
-        <label>
-          {t('phone', locale)}
-          <input name="phone" maxLength={40} dir="ltr" />
-        </label>
-        <label>
-          {t('trialNotes', locale)}
-          <textarea name="notes" rows={4} maxLength={2000} />
-        </label>
-        <button type="submit">{t('trialSend', locale)}</button>
-      </form>
+      <div className="split">
+        <div className="split-copy">
+          <p className="eyebrow enter">{t('trialEyebrow', locale)}</p>
+          <h1 className="enter">{withDays(t('trialTitle', locale), days)}</h1>
+          <p className="lead enter">{t('trialIntro', locale)}</p>
+          <ol className="mini-steps enter" style={{ animationDelay: '60ms' }}>
+            <li>{t('trialStep1', locale)}</li>
+            <li>{t('trialStep2', locale)}</li>
+            <li>{withDays(t('trialStep3', locale), days)}</li>
+          </ol>
+          <img
+            className="split-shot enter"
+            style={{ animationDelay: '160ms' }}
+            src="/shots/retail-till.webp"
+            alt={t('trialShot', locale)}
+            width={1440}
+            height={900}
+          />
+        </div>
+        <div className="panel enter" style={{ animationDelay: '120ms' }}>
+          {query.error && (
+            <p className="error" role="alert">
+              {query.error}
+            </p>
+          )}
+          <TrialForm locale={locale} />
+        </div>
+      </div>
     </>
+  );
+}
+
+function TrialForm({ locale }: { locale: Locale }) {
+  return (
+    <form action={send}>
+      <input type="hidden" name="locale" value={locale} />
+      {/* People never see this field. Only a script fills it in. */}
+      <label className="hp" aria-hidden="true">
+        Website
+        <input name="website" tabIndex={-1} autoComplete="off" />
+      </label>
+      <label>
+        {t('name', locale)}
+        <input name="name" required maxLength={120} />
+      </label>
+      <label>
+        {t('shopName', locale)}
+        <input name="shop" required maxLength={160} />
+      </label>
+      <label>
+        {t('businessKind', locale)}
+        <select name="kind" defaultValue="kindShop">
+          {KINDS.map((key) => (
+            <option key={key} value={key}>
+              {t(key, locale)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        {t('city', locale)}
+        <input name="city" maxLength={60} />
+      </label>
+      <label>
+        {t('email', locale)}
+        <input name="email" type="email" required maxLength={200} dir="ltr" />
+      </label>
+      <label>
+        {t('phone', locale)}
+        <input name="phone" maxLength={40} dir="ltr" />
+      </label>
+      <label>
+        {t('trialNotes', locale)}
+        <textarea name="notes" rows={4} maxLength={2000} />
+      </label>
+      <button type="submit">{t('trialSend', locale)}</button>
+    </form>
   );
 }

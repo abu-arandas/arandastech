@@ -147,6 +147,84 @@ export const TEXT = {
     ar: 'شكراً لك. سنراسلك خلال يوم برابط لحجز مكالمة التجهيز.',
   },
   smile: { en: 'Made in Amman, one button at a time.', ar: 'صُنع في عمّان، زِرّاً بعد زِرّ.' },
+  // The home page. Every fact here is true of the products today; the figures on it come from the catalogue.
+  heroTitle: {
+    en: 'Flutter apps, sewn to fit agencies and shops',
+    ar: 'تطبيقات Flutter، مخيّطة على مقاس الوكالات والمحلات',
+  },
+  // The word in the title that gets the stitch under it. It must appear in heroTitle exactly as written.
+  heroMark: { en: 'sewn', ar: 'مخيّطة' },
+  ctaProject: { en: 'Start a project', ar: 'ابدأ مشروعك' },
+  ctaProducts: { en: 'See the products', ar: 'شاهد المنتجات' },
+  factProducts: { en: 'products ready to ship', ar: 'منتجات جاهزة للإطلاق' },
+  factFrom: { en: 'From {price}', ar: 'من {price}' },
+  factFromLabel: { en: 'for a source-code license', ar: 'لترخيص الكود المصدري' },
+  factLanguages: { en: 'AR + EN', ar: 'عربي + EN' },
+  factLanguagesLabel: { en: 'on every screen, right to left too', ar: 'في كل شاشة، ومن اليمين لليسار أيضاً' },
+  heroShot: { en: 'The Zirr Retail shop on a laptop and a phone', ar: 'متجر زِرّ للتجزئة على حاسوب وهاتف' },
+  tickerLabel: { en: 'What we build with', ar: 'ما نبني به' },
+  pauseTicker: { en: 'Pause the moving line', ar: 'أوقف الشريط المتحرك' },
+  playTicker: { en: 'Play the moving line', ar: 'شغّل الشريط المتحرك' },
+  tick1: { en: 'Flutter', ar: 'Flutter' },
+  tick2: { en: 'Supabase', ar: 'Supabase' },
+  tick3: { en: 'Arabic and English', ar: 'عربي وإنجليزي' },
+  tick4: { en: 'Right to left', ar: 'من اليمين لليسار' },
+  tick5: { en: 'JoFotara e-invoices', ar: 'فواتير جوفوترا' },
+  tick6: { en: 'Keeps selling offline', ar: 'يبيع دون إنترنت' },
+  tick7: { en: 'Source code you own', ar: 'كود مصدري تملكه' },
+  tick8: { en: 'Made in Amman', ar: 'صُنع في عمّان' },
+  productsTitle: { en: 'Products you can license today', ar: 'منتجات تشتري ترخيصها اليوم' },
+  seeLive: { en: 'See it live', ar: 'شاهده يعمل' },
+  agenciesEyebrow: { en: 'For agencies', ar: 'للوكالات' },
+  agenciesTitle: {
+    en: 'Your Flutter team in Amman, without the hiring',
+    ar: 'فريق Flutter لوكالتك في عمّان، دون توظيف',
+  },
+  agenciesLead: {
+    en: 'You keep the client and the name. We build the app in Flutter and Supabase, in Arabic and English, and hand you the code.',
+    ar: 'يبقى العميل والاسم لك. نبني التطبيق بـFlutter وSupabase، بالعربي والإنجليزي، ونسلّمك الكود.',
+  },
+  step1Title: { en: 'Send the brief', ar: 'أرسل الفكرة' },
+  step1Body: {
+    en: 'Screens, a Figma file or a voice note. We reply with a plan and a quote.',
+    ar: 'شاشات أو ملف Figma أو حتى رسالة صوتية. نردّ عليك بخطة وعرض سعر.',
+  },
+  step2Title: { en: 'We build it under your name', ar: 'نبنيه باسم وكالتك' },
+  step2Body: {
+    en: 'Builds you can show your client as it grows, with no Zirr logo anywhere.',
+    ar: 'نسخ تعرضها على عميلك أولاً بأول، دون شعار زِرّ في أي مكان.',
+  },
+  step3Title: { en: 'You ship it and own the code', ar: 'تطلقه والكود ملكك' },
+  step3Body: {
+    en: 'The source code, the database and the setup notes are yours to keep.',
+    ar: 'الكود المصدري وقاعدة البيانات وملاحظات الإعداد كلها لك.',
+  },
+  agenciesCta: { en: 'Tell us about the project', ar: 'حدّثنا عن المشروع' },
+  trialPoint1: { en: 'Receipts in Arabic and English', ar: 'فواتير بالعربي والإنجليزي' },
+  trialPoint2: { en: 'Keeps selling when the internet drops', ar: 'يستمر في البيع إذا انقطع الإنترنت' },
+  trialPoint3: { en: 'Sends your JoFotara e-invoices', ar: 'يرسل فواتير جوفوترا عنك' },
+  trialShot: { en: 'The Zirr till with a basket of suits', ar: 'كاشير زِرّ وفيه سلة بدلات' },
+  readGuide: { en: 'Read', ar: 'اقرأ' },
+  closeTitle: { en: 'Got an app in mind? Let’s sew it together.', ar: 'عندك فكرة تطبيق؟ يلا نخيّطها سوا.' },
+  closeLead: {
+    en: 'Tell us what it should do and who it is for. We reply by email.',
+    ar: 'أخبرنا ماذا يفعل ولمن هو. ونردّ عليك بالبريد.',
+  },
+  footerAbout: {
+    en: 'A Flutter and Supabase studio in Amman, Jordan.',
+    ar: 'استوديو Flutter وSupabase في عمّان، الأردن.',
+  },
+  footerStudio: { en: 'Studio', ar: 'الاستوديو' },
+  footerLegal: { en: 'The small print', ar: 'التفاصيل الصغيرة' },
+  menu: { en: 'Menu', ar: 'القائمة' },
+  navProducts: { en: 'Products', ar: 'المنتجات' },
+  contactEyebrow: { en: 'Say hello', ar: 'قل مرحباً' },
+  contactTitle: { en: 'Tell us about your app', ar: 'حدّثنا عن تطبيقك' },
+  contactLead: {
+    en: 'A few lines are enough: what it should do, who it is for, and when you need it. We reply by email.',
+    ar: 'تكفي بضعة أسطر: ماذا يفعل، ولمن، ومتى تحتاجه. ونردّ عليك بالبريد.',
+  },
+  contactNext: { en: 'What happens next', ar: 'ماذا يحدث بعدها' },
   // Proposals and invoices a client opens from an email.
   proposal: { en: 'Proposal', ar: 'عرض السعر' },
   preparedFor: { en: 'Prepared for', ar: 'مُعدّ لـ' },
@@ -210,4 +288,5 @@ export function amount(minor: number, currency: string): string {
 }
 
 /** "59.00 USD" or "5.000 JOD", from whole minor units. */
-export const money = (minor: number, currency: string): string => `${amount(minor, currency)} ${currency}`;
+// Wrapped in invisible left-to-right isolates (U+2066 … U+2069) so "59.00 USD" keeps its order inside Arabic text.
+export const money = (minor: number, currency: string): string => `\u2066${amount(minor, currency)} ${currency}\u2069`;
