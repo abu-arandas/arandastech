@@ -4,6 +4,7 @@ import { readConnection } from '../connectors/connections';
 import { createLead } from '../crm/crm';
 import { optedOut, optOut } from '../crm/deliverability';
 import { handleGumroadPing } from '../crm/gumroad';
+import { getPolicy } from '../governance/settings';
 import { AppError } from '../lib/errors';
 import type { Platform } from '../platform';
 import { check } from './guards';
@@ -20,6 +21,9 @@ export function registerPublicRoutes(router: Router, platform: Platform): void {
       `select id, name, outcome, audience, deliverables, price_kind from service_packages where status = 'approved' order by sort`,
     ),
   }));
+
+  // The trial page shows the free days the policy sheet promises, so the page and the emails always agree.
+  router.add('GET', '/api/public/trial', 'public', async () => ({ days: await getPolicy(db, 'billing.trial_days') }));
 
   router.add('POST', '/api/public/leads', 'public', async ({ json }) => {
     // A field people cannot see. Only a script fills it in, and a script gets a polite nothing.

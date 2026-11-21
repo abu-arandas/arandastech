@@ -98,6 +98,8 @@ const leadInput = z.strictObject({
   name: z.string().trim().min(1).max(120),
   email: z.email().max(200),
   phone: z.string().trim().max(40).optional(),
+  /** The business, for a shop that asks for the free trial. */
+  company: z.string().trim().max(160).optional(),
   locale: z.enum(['en', 'ar']),
   message: z.string().trim().min(1).max(5000),
   projectType: z.string().trim().max(80).optional(),
@@ -212,8 +214,8 @@ export async function createLead(db: Db, raw: LeadInput, now: Date): Promise<{ l
   return db.tx(async (tx) => {
     const lead = one(
       await tx.query<LeadRow>(
-        `insert into leads (name, email, phone, locale, project_type, package_id, message, source, created_at)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`,
+        `insert into leads (name, email, phone, locale, project_type, package_id, message, source, created_at, company)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *`,
         [
           input.name,
           input.email,
@@ -224,6 +226,7 @@ export async function createLead(db: Db, raw: LeadInput, now: Date): Promise<{ l
           input.message,
           input.source,
           now,
+          input.company || null,
         ],
       ),
     );

@@ -67,6 +67,7 @@ export default async function LocaleLayout({
             <nav>
               <a href={`/${locale}#services`}>{t('services', locale)}</a>
               <a href={`/${locale}#products`}>{t('products', locale)}</a>
+              <a href={`/${locale}/trial`}>{t('trial', locale)}</a>
               <a href={`/${locale}/contact`}>{t('contact', locale)}</a>
               <a href={`/${locale}/order`}>{t('orderStatus', locale)}</a>
               <a href={`/${other}`} lang={other}>

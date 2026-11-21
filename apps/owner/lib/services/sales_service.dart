@@ -6,7 +6,7 @@ import 'platform_client.dart';
 /// The revenue engine: the monthly goal, the pipeline, prospects, proposals, invoices and Sales' autopilot.
 abstract interface class SalesService {
   Future<RevenueStatus> revenue();
-  Future<({List<PipelineLead> leads, List<Paper> proposals, List<Paper> invoices})> pipeline();
+  Future<({List<PipelineLead> leads, List<Paper> proposals, List<Paper> invoices, List<Plan> plans})> pipeline();
 
   /// Adds businesses to contact. Returns how many were added, and why the others were not.
   Future<Json> addProspects(List<Json> prospects);
@@ -22,6 +22,13 @@ abstract interface class SalesService {
   Future<void> markPaid(String invoiceId, String via);
   Future<void> voidInvoice(String invoiceId);
 
+  /// Starts a plan for a lead: an amount billed once, every month or every year, after optional free days.
+  Future<void> startPlan(Json plan);
+  Future<void> cancelPlan(String planId);
+
+  /// Lifts a hold before the late invoice is paid.
+  Future<void> resumePlan(String planId);
+
   /// Lets Sales send its approved template emails without asking each time, or stops that.
   Future<void> setAutopilot({required bool on});
 }
@@ -35,12 +42,13 @@ class HttpSalesService implements SalesService {
   Future<RevenueStatus> revenue() async => RevenueStatus.fromJson(await _client.send('GET', '/api/owner/revenue'));
 
   @override
-  Future<({List<PipelineLead> leads, List<Paper> proposals, List<Paper> invoices})> pipeline() async {
+  Future<({List<PipelineLead> leads, List<Paper> proposals, List<Paper> invoices, List<Plan> plans})> pipeline() async {
     final json = await _client.send('GET', '/api/owner/pipeline');
     return (
       leads: jsonList(json['leads']).map(PipelineLead.fromJson).toList(),
       proposals: jsonList(json['proposals']).map((p) => Paper.fromJson(p, dateKey: 'valid_until')).toList(),
       invoices: jsonList(json['invoices']).map((i) => Paper.fromJson(i, dateKey: 'due_on')).toList(),
+      plans: jsonList(json['plans']).map(Plan.fromJson).toList(),
     );
   }
 
@@ -61,6 +69,15 @@ class HttpSalesService implements SalesService {
 
   @override
   Future<void> voidInvoice(String invoiceId) => _client.send('POST', '/api/owner/invoices/$invoiceId/void', {});
+
+  @override
+  Future<void> startPlan(Json plan) => _client.send('POST', '/api/owner/plans', plan);
+
+  @override
+  Future<void> cancelPlan(String planId) => _client.send('POST', '/api/owner/plans/$planId/cancel', {});
+
+  @override
+  Future<void> resumePlan(String planId) => _client.send('POST', '/api/owner/plans/$planId/resume', {});
 
   @override
   Future<void> setAutopilot({required bool on}) => _client.send('POST', '/api/owner/sales/autopilot', {'on': on});

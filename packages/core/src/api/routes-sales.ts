@@ -15,8 +15,9 @@ import {
 } from '../crm/billing';
 import { listLeads } from '../crm/crm';
 import { addProspects, changeLead } from '../crm/pipeline';
+import { cancelPlan, listPlans, resumePlan, startPlan, startTrialPlan } from '../crm/plans';
 import { revenueStatus } from '../crm/revenue';
-import { createRule, listRules, revokeRule } from '../governance/rules';
+import { createRule, listRules, revokeRule, type StandingRule } from '../governance/rules';
 import { getPolicy } from '../governance/settings';
 import { invalid } from '../lib/errors';
 import type { Platform } from '../platform';
@@ -61,7 +62,12 @@ export function registerSalesRoutes(router: Router, platform: Platform): void {
 
   router.add('GET', '/api/owner/pipeline', 'staff', async ({ caller }) => {
     staffOf(caller);
-    return { leads: await listLeads(db), proposals: await listProposals(db), invoices: await listInvoices(db) };
+    return {
+      leads: await listLeads(db),
+      proposals: await listProposals(db),
+      invoices: await listInvoices(db),
+      plans: await listPlans(db),
+    };
   });
 
   router.add('POST', '/api/owner/prospects', 'owner', async ({ caller, json }) => {
@@ -71,7 +77,10 @@ export function registerSalesRoutes(router: Router, platform: Platform): void {
 
   router.add('POST', '/api/owner/leads/:id', 'owner', async ({ caller, params, json }) => {
     const staff = staffOf(caller);
-    return { lead: await changeLead(db, params.id!, json, staff.actor) };
+    const lead = await changeLead(db, params.id!, json, staff.actor);
+    // A shop on the free trial that is marked won starts its trial plan from the policy sheet.
+    const plan = lead.stage === 'won' ? await startTrialPlan(db, lead, staff.actor, clock()) : null;
+    return { lead, plan };
   });
 
   router.add('POST', '/api/owner/proposals', 'owner', async ({ caller, json }) => {
@@ -114,7 +123,17 @@ export function registerSalesRoutes(router: Router, platform: Platform): void {
     return { invoice: await voidInvoice(db, params.id!, staff.actor) };
   });
 
-  // Sales' autopilot: one standing rule for its own template emails, renewed by turning it on again.
+  registerAutopilotRoute(router, platform, autopilot);
+  registerPlanRoutes(router, platform);
+}
+
+/** Sales' autopilot: one standing rule for its own template emails, renewed by turning it on again. */
+function registerAutopilotRoute(
+  router: Router,
+  platform: Platform,
+  autopilot: () => Promise<StandingRule | null>,
+): void {
+  const { db, clock } = platform;
   router.add('POST', '/api/owner/sales/autopilot', 'owner', async ({ caller, json }) => {
     const staff = staffOf(caller);
     const current = await autopilot();
@@ -139,5 +158,25 @@ export function registerSalesRoutes(router: Router, platform: Platform): void {
       now,
     );
     return { autopilot: rule };
+  });
+}
+
+/** Plans: the owner starts, cancels or resumes what a client pays on a schedule (see crm/plans.ts). */
+function registerPlanRoutes(router: Router, platform: Platform): void {
+  const { db, clock } = platform;
+
+  router.add('POST', '/api/owner/plans', 'owner', async ({ caller, json }) => {
+    const staff = staffOf(caller);
+    return { plan: await startPlan(db, json, staff.actor, clock()) };
+  });
+
+  router.add('POST', '/api/owner/plans/:id/cancel', 'owner', async ({ caller, params }) => {
+    const staff = staffOf(caller);
+    return { plan: await cancelPlan(db, params.id!, staff.actor, clock()) };
+  });
+
+  router.add('POST', '/api/owner/plans/:id/resume', 'owner', async ({ caller, params }) => {
+    const staff = staffOf(caller);
+    return { plan: await resumePlan(db, params.id!, staff.actor, clock()) };
   });
 }

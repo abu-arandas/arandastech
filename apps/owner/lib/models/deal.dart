@@ -93,3 +93,49 @@ class Paper {
 
   String get total => formatMoney(totalMinor, currency);
 }
+
+/// A plan: what a client pays every month or year, or once when a free trial ends, and where it stands.
+class Plan {
+  const Plan({
+    required this.id,
+    required this.leadId,
+    required this.title,
+    required this.buyerName,
+    required this.amountMinor,
+    required this.currency,
+    required this.every,
+    required this.status,
+    this.nextInvoiceOn,
+  });
+
+  factory Plan.fromJson(Json json) => Plan(
+    id: '${json['id']}',
+    leadId: '${json['lead_id']}',
+    title: '${json['title']}',
+    buyerName: '${json['buyer_name']}',
+    amountMinor: intOf(json['amount_minor']),
+    currency: '${json['currency']}',
+    every: '${json['every']}',
+    status: '${json['status']}',
+    nextInvoiceOn: json['next_invoice_on'] as String?,
+  );
+
+  final String id;
+  final String leadId;
+  final String title;
+  final String buyerName;
+  final int amountMinor;
+  final String currency;
+
+  /// once, month or year.
+  final String every;
+
+  /// trial, active, on_hold, ended or cancelled.
+  final String status;
+
+  /// The day of the next invoice; null once nothing more is billed.
+  final String? nextInvoiceOn;
+
+  String get amount => formatMoney(amountMinor, currency);
+  bool get isOpen => status == 'trial' || status == 'active' || status == 'on_hold';
+}

@@ -4,6 +4,7 @@ import { invoicesToRemind, type InvoiceRow, markInvoiceSent, markProposalSent, t
 import type { LeadRow, MessageRow } from '../crm/crm';
 import { chooseTemplate, decideTests, testLine } from '../crm/ab-tests';
 import { OPEN_STAGES, SEQUENCES, stopSequence, wantsNoMore } from '../crm/pipeline';
+import { billDuePlans, holdLatePlans } from '../crm/plans';
 import type { Stage } from '../crm/stages';
 import { getPolicy } from '../governance/settings';
 import { type Db, json, maybeOne } from '../lib/db';
@@ -135,6 +136,8 @@ interface SequenceResult {
   retried: number;
   reminders: number;
   held_by_limit: number;
+  plan_invoices: number;
+  plans_on_hold: number;
 }
 
 /** What happened to one lead today. */
@@ -166,6 +169,8 @@ async function sequences(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
       retried: 0,
       reminders: 0,
       held_by_limit: 0,
+      plan_invoices: 0,
+      plans_on_hold: 0,
     };
     for (const lead of await dueLeads(rt.db, now)) {
       const last = await lastEmail(rt.db, lead);
@@ -191,6 +196,7 @@ async function sequences(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
       budget -= 1;
     }
     await remindInvoices(rt, run, now, result);
+    await runPlans(rt, run, now, result);
     if (result.held_by_limit)
       run.notes.push(
         `${result.held_by_limit} emails wait for tomorrow: the daily limit in the policy sheet is reached.`,
@@ -340,6 +346,36 @@ async function remindInvoices(rt: AgentRuntime, run: Run, now: Date, result: Seq
     result.proposed.push(action);
     result.reminders += 1;
   }
+}
+
+/**
+ * Plans first put a late client on hold (with one polite note), then raise today's invoices, so a plan that is late
+ * gets no new invoice on the same morning. Invoices go out through sales.send_document like any other invoice.
+ */
+async function runPlans(rt: AgentRuntime, run: Run, now: Date, result: SequenceResult): Promise<void> {
+  for (const invoice of await holdLatePlans(rt.db, now)) {
+    result.plans_on_hold += 1;
+    const text = await write(rt, run, 'plan-on-hold', invoice.locale, invoiceValues(rt, invoice));
+    if (!text || !invoice.buyer_email) continue;
+    result.proposed.push(
+      await proposeEmail(
+        rt,
+        run,
+        {
+          to: invoice.buyer_email,
+          ...text,
+          locale: invoice.locale,
+          template: 'plan-on-hold',
+          lead_id: invoice.lead_id ?? undefined,
+        },
+        [{ kind: 'invoice', id: invoice.id }],
+        `sales.plan_on_hold:${invoice.id}`,
+      ),
+    );
+  }
+  result.plan_invoices = (await billDuePlans(rt.db, now)).length;
+  if (result.plan_invoices)
+    run.notes.push(`${result.plan_invoices} plan invoices were raised today and go out by email.`);
 }
 
 // ---------------------------------------------------------------- Proposals, invoices and receipts

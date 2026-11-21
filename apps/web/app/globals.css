@@ -815,3 +815,15 @@ table.compare tbody th {
   color: var(--muted);
   font-weight: 500;
 }
+/* The free trial page: three numbered steps before the form. */
+.trial-steps {
+  display: grid;
+  gap: 8px;
+  padding-inline-start: 1.4em;
+  margin-block: 16px 24px;
+  max-width: 62ch;
+}
+.trial-steps li::marker {
+  color: var(--thread-text);
+  font-weight: 600;
+}

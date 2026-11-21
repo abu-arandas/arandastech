@@ -2,12 +2,14 @@ import { z } from 'zod';
 import { mayPropose } from '../api/mcp';
 import { listLeads, type LeadRow, type MessageRow, updateLead } from '../crm/crm';
 import { startSequence } from '../crm/pipeline';
+import { SALES_LINES } from '../sales-templates';
 import { assistantScore, combineScores, QUALIFIED, scoreLead } from '../crm/scoring';
 import { getPolicy } from '../governance/settings';
 import { json, maybeOne } from '../lib/db';
 import type { Locale, Localized } from '../lib/types';
 import { listApprovedMemory, renderTemplate } from '../memory';
 import { AWAITING_REPLY, type Json, say } from './common';
+import { firstName } from './sales';
 import { type AgentRuntime, manualNote, type Run, type WorkflowContext } from './runtime';
 
 /**
@@ -83,6 +85,22 @@ const leadReplySchema = z.object({
   assumptions: z.array(z.string().max(300)).max(6),
 });
 
+/** The trial answer, or null while its template waits for the owner's approval. */
+async function trialWelcome(rt: AgentRuntime, lead: LeadRow): Promise<{ subject: string; body: string } | null> {
+  const link = await getPolicy(rt.db, 'sales.booking_link');
+  try {
+    return await renderTemplate(rt.db, 'trial-welcome', lead.locale, {
+      first_name: firstName(lead.name),
+      company: lead.company ?? lead.name,
+      sender: await getPolicy(rt.db, 'sales.sender_name'),
+      trial_days: String(await getPolicy(rt.db, 'billing.trial_days')),
+      booking_line: link ? SALES_LINES.booking[lead.locale](link) : SALES_LINES.noBooking[lead.locale],
+    });
+  } catch {
+    return null;
+  }
+}
+
 async function leadReply(rt: AgentRuntime, input: Json, ctx: WorkflowContext): Promise<unknown> {
   return rt.record('sales.lead_reply', ctx, input, async (run) => {
     const lead = maybeOne(await rt.db.query<LeadRow>('select * from leads where id = $1', [input.lead_id]));
@@ -106,7 +124,16 @@ async function leadReply(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
     let reply: { subject: string; body: string } | null = null;
     let scored = scoreLead(lead, flagged);
     let assumptions: string[] = [];
-    if (!flagged) {
+    let template: string | undefined;
+    // A shop that asked for the free trial gets the fixed trial answer with the setup call link, when it is approved.
+    if (!flagged && lead.source === 'trial') {
+      reply = await trialWelcome(rt, lead);
+      if (reply) {
+        template = 'trial-welcome';
+        evidence.push({ kind: 'memory', id: 'template:trial-welcome' });
+      }
+    }
+    if (!flagged && !reply) {
       const written = await rt.think(run, {
         skills: ['lead-reply'],
         effort: 'medium',
@@ -153,6 +180,7 @@ async function leadReply(rt: AgentRuntime, input: Json, ctx: WorkflowContext): P
         body: reply.body,
         locale: lead.locale,
         lead_id: lead.id,
+        ...(template ? { template } : {}),
       };
       // A message that tries to steer the bots gets a draft and nothing else (blueprint 15, step 8).
       action = flagged

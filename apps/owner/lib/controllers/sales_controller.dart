@@ -16,6 +16,7 @@ class SalesController extends GetxController implements PlatformReader {
   final leads = <PipelineLead>[].obs;
   final proposals = <Paper>[].obs;
   final invoices = <Paper>[].obs;
+  final plans = <Plan>[].obs;
 
   /// What the last prospect import said, ready to show.
   final importNote = RxnString();
@@ -29,6 +30,7 @@ class SalesController extends GetxController implements PlatformReader {
       leads.assignAll(pipelineNow.leads);
       proposals.assignAll(pipelineNow.proposals);
       invoices.assignAll(pipelineNow.invoices);
+      plans.assignAll(pipelineNow.plans);
     };
   }
 
@@ -38,6 +40,7 @@ class SalesController extends GetxController implements PlatformReader {
     leads.clear();
     proposals.clear();
     invoices.clear();
+    plans.clear();
     importNote.value = null;
   }
 
@@ -71,4 +74,18 @@ class SalesController extends GetxController implements PlatformReader {
   Future<bool> markPaid(Paper invoice, String via) => _session.act((p) => p.sales.markPaid(invoice.id, via));
 
   Future<bool> voidInvoice(Paper invoice) => _session.act((p) => p.sales.voidInvoice(invoice.id));
+
+  /// The lead's plan that still bills, if any.
+  Plan? openPlanOf(PipelineLead lead) {
+    for (final plan in plans) {
+      if (plan.leadId == lead.id && plan.isOpen) return plan;
+    }
+    return null;
+  }
+
+  Future<bool> startPlan(Json plan) => _session.act((p) => p.sales.startPlan(plan));
+
+  Future<bool> cancelPlan(Plan plan) => _session.act((p) => p.sales.cancelPlan(plan.id));
+
+  Future<bool> resumePlan(Plan plan) => _session.act((p) => p.sales.resumePlan(plan.id));
 }

@@ -110,6 +110,42 @@ export const TEXT = {
   },
   guidesAll: { en: 'All guides', ar: 'كل الأدلة' },
   guideNext: { en: 'Where to go next', ar: 'ماذا بعد' },
+  // The free trial page for shops.
+  trial: { en: 'Free trial', ar: 'تجربة مجانية' },
+  trialEyebrow: { en: 'For shops, cafés and boutiques', ar: 'للمحلات والمقاهي والبوتيكات' },
+  trialTitle: {
+    en: 'Try the Zirr till free for {days} days',
+    ar: 'جرّب كاشير زِرّ مجاناً {days} يوماً',
+  },
+  trialIntro: {
+    en: 'A till that prints receipts in Arabic and English, keeps selling when the internet drops, and sends your JoFotara e-invoices. We set it up for you.',
+    ar: 'كاشير يطبع الفواتير بالعربي والإنجليزي، ويستمر في البيع حتى لو انقطع الإنترنت، ويرسل فواتير جوفوترا عنك. ونحن نجهّزه لك.',
+  },
+  trialStep1: {
+    en: 'Leave your details. We reply by email with a link to book a short setup call.',
+    ar: 'اترك بياناتك. نرد عليك بالبريد برابط لحجز مكالمة قصيرة للتجهيز.',
+  },
+  trialStep2: {
+    en: 'We add your products, install the till and show your staff how to use it.',
+    ar: 'نضيف منتجاتك، ونركّب الكاشير، ونشرح لموظفيك طريقة استخدامه.',
+  },
+  trialStep3: {
+    en: 'You sell on it as normal for {days} days and pay nothing. If it does not help, we take it away.',
+    ar: 'تبيع عليه كالمعتاد {days} يوماً دون أن تدفع شيئاً. وإن لم يفدك نزيله.',
+  },
+  shopName: { en: 'Shop name', ar: 'اسم المحل' },
+  businessKind: { en: 'What kind of business?', ar: 'ما نوع النشاط؟' },
+  kindShop: { en: 'Shop', ar: 'محل تجاري' },
+  kindCafe: { en: 'Café or restaurant', ar: 'مقهى أو مطعم' },
+  kindBoutique: { en: 'Fashion boutique', ar: 'بوتيك أزياء' },
+  kindOther: { en: 'Something else', ar: 'نشاط آخر' },
+  city: { en: 'City', ar: 'المدينة' },
+  trialNotes: { en: 'Anything we should know? (optional)', ar: 'هل هناك ما يجب أن نعرفه؟ (اختياري)' },
+  trialSend: { en: 'Ask for the free trial', ar: 'اطلب التجربة المجانية' },
+  trialThanks: {
+    en: 'Thank you. We will email you within a day with a link to book the setup call.',
+    ar: 'شكراً لك. سنراسلك خلال يوم برابط لحجز مكالمة التجهيز.',
+  },
   smile: { en: 'Made in Amman, one button at a time.', ar: 'صُنع في عمّان، زِرّاً بعد زِرّ.' },
   // Proposals and invoices a client opens from an email.
   proposal: { en: 'Proposal', ar: 'عرض السعر' },

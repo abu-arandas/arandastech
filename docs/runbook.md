@@ -231,6 +231,19 @@ audience. Addresses already in the pipeline or that asked not to be written to a
 Arabic or English twin, and schema.org data for the products and their prices. Add a guide by adding an entry there:
 its test checks the Arabic, the description length and the links. Submit the sitemap once in Google Search Console.
 
+**The free trial.** `/en/trial` and `/ar/trial` take a shop's name, kind, city and contact. The lead comes in with
+source `trial`, and Sales answers with the `trial-welcome` email (the setup call link; it waits in Approvals like every
+answer to a website form). Once the till is installed, mark the lead **Won**: its plan starts from the policy sheet,
+free for `billing.trial_days`, then billed `billing.trial_plan_price`, `billing.trial_plan_every` (once, month or
+year; today 299 JOD once, as the shop emails say). Cancel the plan in Sales if the shop says no before the trial ends.
+
+**Plans.** Sales, a lead, **Start a plan** bills an amount once, every month or every year, after optional free days
+(`packages/core/src/crm/plans.ts`). Each morning Sales raises the invoices that fall due and emails them; the usual two
+reminders follow (due day and a week later); 14 days after the due date the plan goes **on hold**, the client gets one
+polite `plan-on-hold` note and the owner an alert. A plan on hold raises no invoices. Marking the late invoice paid
+brings it back on its usual day (the months on hold are not billed); **Resume** does it without the payment. Payment is
+by bank or CliQ for now, marked paid in one tap; card payments come with PayTabs.
+
 **Heartbeat.** `.github/workflows/heartbeat.yml` calls `/api/cron/agents` every 30 minutes, so new mail is read and
 answered within half an hour. The daily jobs still run once a day.
 
