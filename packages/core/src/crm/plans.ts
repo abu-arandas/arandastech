@@ -74,7 +74,10 @@ export async function startPlan(db: Db, raw: unknown, by: Actor, now: Date): Pro
  * days, then billed as set there. Nothing happens for other leads, or when the lead already has a plan.
  */
 export async function startTrialPlan(db: Db, lead: LeadRow, by: Actor, now: Date): Promise<PlanRow | null> {
-  if (lead.source !== 'trial' || (await planOf(db, lead.id))) return null;
+  if (lead.source !== 'trial') return null;
+  // A lead gets one free trial: a plan it ever had, even a cancelled one, means no new trial.
+  const before = await db.query('select 1 from plans where lead_id = $1 limit 1', [lead.id]);
+  if (before.length) return null;
   const prices = Object.entries(await getPolicy(db, 'billing.trial_plan_price')).filter(([, v]) => v);
   const [currency, amount] = prices[0] ?? [];
   if (!currency || !amount) return null;
@@ -184,12 +187,23 @@ export async function billDuePlans(db: Db, now: Date): Promise<InvoiceRow[]> {
     [today],
   );
   const raised: InvoiceRow[] = [];
-  for (const plan of due) raised.push(await billPlan(db, plan, today, now));
+  for (const { id } of due) {
+    const invoice = await billPlan(db, id, today, now);
+    if (invoice) raised.push(invoice);
+  }
   return raised;
 }
 
-async function billPlan(db: Db, plan: PlanRow, today: string, now: Date): Promise<InvoiceRow> {
+/** Bills one plan, if it is still due once locked: a second run at the same moment finds it already moved on. */
+async function billPlan(db: Db, planId: string, today: string, now: Date): Promise<InvoiceRow | null> {
   return db.tx(async (tx) => {
+    const plan = maybeOne(
+      await tx.query<PlanRow>(
+        `${SELECT} where id = $1 and status in ('trial', 'active') and next_invoice_on <= $2 for update`,
+        [planId, today],
+      ),
+    );
+    if (!plan) return null;
     const invoice = await insertInvoice(tx, {
       leadId: plan.lead_id,
       proposalId: null,

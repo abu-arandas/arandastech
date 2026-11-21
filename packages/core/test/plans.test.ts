@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApi, type ApiResponse } from '../src/api/index';
 import { DEMO_OWNER_ID } from '../src/company';
 import { firstInvoiceDayFrom, nextInvoiceDay } from '../src/crm/plan-dates';
+import { billDuePlans } from '../src/crm/plans';
 import { setPolicy } from '../src/governance/settings';
 import { createTestPlatform, OWNER, type TestPlatform } from './helpers/platform';
 
@@ -194,6 +195,24 @@ describe('plans', () => {
     await sequences();
     expect(await invoicesOf(monthly.id)).toHaveLength(2);
     expect((await api.owner('POST', `/api/owner/plans/${monthly.id}/resume`, {})).status).toBe(422);
+  });
+
+  it('a lead gets one free trial, and two runs at once bill a plan once', async () => {
+    const [huda] = await t.test.db.query<Json>(`select id from leads where email = 'huda@huda-cafe.example'`);
+    const again = await api.owner('POST', `/api/owner/leads/${huda!.id}`, { stage: 'won' });
+    expect(again.body.plan).toBeNull();
+
+    const made = await api.owner('POST', '/api/owner/plans', {
+      lead_id: huda!.id,
+      amount: '25',
+      every: 'month',
+    });
+    const [first, second] = await Promise.all([
+      billDuePlans(t.test.db, t.clock.now()),
+      billDuePlans(t.test.db, t.clock.now()),
+    ]);
+    expect(first!.length + second!.length).toBe(1);
+    expect(await invoicesOf(made.body.plan.id)).toHaveLength(1);
   });
 
   it('the plan after the trial is set on the policy sheet: once, month or year', async () => {

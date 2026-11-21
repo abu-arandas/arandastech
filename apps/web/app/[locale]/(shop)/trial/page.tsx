@@ -14,8 +14,12 @@ const KINDS: TextKey[] = ['kindShop', 'kindCafe', 'kindBoutique', 'kindOther'];
 
 /** The free days from the policy sheet, so the page says what the emails say. 14 if the platform cannot answer. */
 async function trialDays(): Promise<number> {
-  const answer = await call<{ days: number }>('GET', '/api/public/trial');
-  return answer.ok ? answer.data.days : 14;
+  try {
+    const answer = await call<{ days: number }>('GET', '/api/public/trial');
+    return answer.ok ? answer.data.days : 14;
+  } catch {
+    return 14;
+  }
 }
 
 const withDays = (text: string, days: number): string => text.replaceAll('{days}', String(days));
